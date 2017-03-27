@@ -1,0 +1,4 @@
+"src": include
+
+true: package(KappaLib), bin_annot, safe_string, debug
+true: use_menhir, explain
