@@ -13,7 +13,7 @@ let keywords_list =
      ("before", BEFORE); ("after", AFTER); 
      ("time", TIME); ("nphos", NPHOS); ("rule", RULE); ("count", COUNT);
      ("component", COMPONENT); ("dist", DIST); ("size", SIZE);
-     ("query", QUERY)]
+     ("query", QUERY); ("int_state", INT_STATE)]
 
 let ktab = 
     let t = Hashtbl.create 20 in 
@@ -46,7 +46,8 @@ rule token = parse
   | "\"" ([^'"']* as s) "\"" {STRING s}
   | space {token lexbuf}
   | "\n" {new_line lexbuf; token lexbuf}
-  | "#" {comment lexbuf}
+  | "/*" {comment true lexbuf}
+  | "#" {comment false lexbuf}
 
   | "(" {OP_PAR}
   | ")" {CL_PAR}
@@ -56,9 +57,9 @@ rule token = parse
   | "]" {CL_SQPAR}
   | "|" {BAR}
   | "!" {LINK}
-  | "~" {INT_STATE}
+  | "~" {TILDE}
 
-
+  | "=" {EQ}
   | ":" {COLON}
   | "," {COMMA}
   | "." {DOT}
@@ -79,7 +80,8 @@ rule token = parse
   | eof {EOF}
 
 
-and comment = parse
-  | "\n" { new_line lexbuf ;token lexbuf }
+and comment multiline = parse
+  | "\n" { new_line lexbuf ; if multiline then comment true lexbuf else token lexbuf }
+  | "*/" { if multiline then token lexbuf else comment false lexbuf }
   | eof {EOF}
-  | _ {comment lexbuf}
+  | _ {comment multiline lexbuf}

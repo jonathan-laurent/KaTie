@@ -28,6 +28,13 @@ let component ag_id state =
 
 let time state = Some (Val (state.Replay.time, Float))
 
+
+let int_state model ((ag_id, ag_kind), ag_site) state = 
+    let st = Edges.get_internal ag_id ag_site state.Replay.graph in
+    let signature = Model.signatures model in
+    Some (Val (Format.asprintf "%a" (Signature.print_internal_state signature ag_kind ag_site) st, String))
+
+
 let take_measures 
     (model : Model.t) 
     (ev : Query.event) 
@@ -50,6 +57,8 @@ let take_measures
                 | Component ag_id -> 
                     component ag_matchings.(ag_id) state (* Absurd *)
                 | Nphos _ -> None
+                | Int_state ((ag_id, ag_kind), ag_site) ->
+                    int_state model ((ag_matchings.(ag_id), ag_kind), ag_site) state
                 end
             | Event_measure (ty, ev_measure) -> 
                 begin match ev_measure with
@@ -58,5 +67,5 @@ let take_measures
                 end in
             set_measure m_id v
          in
-
+         
      Array.iteri take_measure ev.measures

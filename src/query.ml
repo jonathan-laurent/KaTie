@@ -89,6 +89,7 @@ type _ event_measure =
     | Rule : string event_measure
 
 type _ state_measure = 
+    | Int_state : (Agent.t * site_name) -> string state_measure
     | Count : pattern -> int state_measure
     | Component : agent_id -> agent_set state_measure
     | Nphos : agent_id -> int state_measure

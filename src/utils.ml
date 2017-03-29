@@ -10,6 +10,8 @@ end
 
 module IntMap = Map.Make (Int)
 
+module StringMap = Map.Make (String)
+
 let monadic_fold (type acc) (type b) 
     (f : acc -> b -> acc list) 
     (init : acc) 

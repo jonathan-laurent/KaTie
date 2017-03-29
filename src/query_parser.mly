@@ -20,32 +20,30 @@ let make_agent ag_mod id1 id2_opt ag_sites =
     { ag_constr = Some id1 ; ag_kind = id2 ; ag_mod ; ag_sites}
 %}
 
+
 %token EOF QUERY
 %token COLON DOT COMMA UNDERSCORE
 %token EQ PLUS MINUS MULT GT GE LT LE
 %token NOT
 %token OP_PAR CL_PAR OP_SQPAR CL_SQPAR OP_CURL CL_CURL BAR
-%token LINK INT_STATE
-
+%token LINK TILDE
 %token MATCH DO AND WITH LAST FIRST BEFORE AFTER
-
-%token TIME NPHOS RULE COUNT COMPONENT DIST SIZE
+%token TIME NPHOS RULE COUNT COMPONENT DIST SIZE INT_STATE
 
 %token <int> INT
 %token <string> STRING
 %token <string> ID
 
-%nonassoc EQ GT GE LT LE
-
 %left COMMA
+%nonassoc EQ GT GE LT LE
 %left MINUS PLUS
 %left MULT
+%nonassoc NOT
 
-%start mixture_pat
 %type <Query_ast.mixture_pat> mixture_pat
 
-%start query 
-%type <Query_ast.query> query
+%start single_query 
+%type <Query_ast.query> single_query
 
 %start queries
 %type <Query_ast.query list> queries
@@ -96,9 +94,9 @@ lnk_state:
     { Bound_to_type (agent_kind, site_name) }
 
 int_state_attr:
-  | INT_STATE st=ID 
+  | TILDE st=ID 
     { fun s -> { s with site_int_test = Some st } }
-  | INT_STATE OP_SQPAR st=ID CL_SQPAR 
+  | TILDE OP_SQPAR st=ID CL_SQPAR 
     { fun s -> { s with site_int_mod = Some st } }
 
 
@@ -124,7 +122,10 @@ ev_measure_annot:
   | { This }
   | OP_SQPAR id=ID CL_SQPAR { Ev id }
 
+quark: ag_id=ID DOT site_name=ID { (ag_id, site_name) }
+
 expr:
+  | OP_PAR e=expr CL_PAR { e }
   | i=INT { Int_const i }
   | s=STRING { String_const s }
   | unop=unop e=expr { Unop (unop, e) }
@@ -133,6 +134,7 @@ expr:
   | lhs=expr COMMA rhs=expr { Concat (lhs, rhs) }
   | COUNT OP_CURL agents=separated_list(COMMA, STRING) CL_CURL OP_CURL e=expr CL_CURL
     { Count_agents (agents, e) }
+  | DIST { failwith "Not handled yet"}
   | TIME ev_expr=ev_measure_annot
     { Event_measure (ev_expr, Time) }
   | RULE ev_expr=ev_measure_annot
@@ -141,6 +143,9 @@ expr:
     { State_measure (st_expr, Nphos id) }
   | COMPONENT st_expr=st_measure_annot OP_CURL id=ID CL_CURL
     { State_measure (st_expr, Component id) }
+  | INT_STATE st_expr=st_measure_annot OP_CURL quark=quark CL_CURL
+    { State_measure (st_expr, Int_state quark) }
+
 
 
 pattern: MATCH clauses=separated_list(AND, clause) { clauses }
@@ -176,5 +181,8 @@ query_header:
 
 query: header=query_header pattern=pattern DO OP_CURL action=action CL_CURL
   { header {pattern; action; query_name=None; legend=None} }
+
+
+single_query: q=query EOF { q }
 
 queries: qs=list(query) EOF { qs }

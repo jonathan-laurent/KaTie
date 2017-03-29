@@ -18,6 +18,7 @@ open Query
 
 module IntMap = Utils.IntMap
 
+module SMap = Utils.StringMap
 
 (*****************************************************************************)
 (* Useful data structures                                                    *)
@@ -112,6 +113,29 @@ end
 
 
 (*****************************************************************************)
+(* Parse whole query to find constrained agent's types                       *)
+(*****************************************************************************)
+
+let clause_pattern = function
+    | Ast.Event e -> e
+    | Ast.First_after (e, _) -> e
+    | Ast.Last_before (e, _) -> e
+
+let constrained_agents_types q = 
+    q.Ast.pattern |> List.fold_left (fun acc clause ->
+        let pat = clause_pattern clause in
+        pat.Ast.main_pattern |> List.fold_left (fun acc ag ->
+            match ag.Ast.ag_constr with
+            | None -> acc
+            | Some id -> 
+                let kind = ag.Ast.ag_kind in
+                SMap.add id kind acc
+        ) acc
+    ) SMap.empty
+
+let single_clause q = List.length q.Ast.pattern = 1
+
+(*****************************************************************************)
 (* Compilation environment                                                   *)
 (*****************************************************************************)
 
@@ -130,9 +154,11 @@ type env = {
     query_events : tmp_event Dict.t ;
     model : Model.t ;
     model_signature : Signature.s ;
+    constrained_agents_types : string SMap.t ;
+    single_clause : bool ;
 }
 
-let create_env (model : Model.t) = 
+let create_env (model : Model.t) (q : Ast.query) = 
     let create_agent () = { tmp_ag_kind=None } in
     let create_event () = {
         tmp_ev_measures = PreArray.create () ;
@@ -143,6 +169,9 @@ let create_env (model : Model.t) =
         model_signature = Model.signatures model ;
         query_agents = Dict.create create_agent ;
         query_events = Dict.create create_event ;
+        constrained_agents_types = 
+            constrained_agents_types q ;
+        single_clause = single_clause q ;
     }
 
 (*****************************************************************************)
@@ -166,27 +195,49 @@ let eval_st_expr env cur_ev_id = function
     | Ast.Before ev_expr -> eval_ev_expr env cur_ev_id ev_expr, Before
     | Ast.After  ev_expr -> eval_ev_expr env cur_ev_id ev_expr, After
 
-let register_measure cur_ev_id ev_id ev measure_descr ty = 
-    (* `cur_ev_id` is only equal to `None` when the measure is taken during the action *)
-    let used_in_pattern = cur_ev_id <> None in
+let register_measure in_action cur_ev_id ev_id ev measure_descr ty = 
+    let used_in_pattern = not in_action in
     let m_id = PreArray.add ev.tmp_ev_measures 
         { used_in_pattern ; measure_descr } in
     E (Measure (ev_id, m_id), ty)
 
 
-let compile_event_measure env cur_ev_id ev_expr m =
+let compile_event_measure env in_action cur_ev_id ev_expr m =
     let ev_id = eval_ev_expr env cur_ev_id ev_expr in
     let ev = Dict.get env.query_events ev_id in
     let measure_descr, ST ty = 
         match m with
         | Ast.Time -> Event_measure (Float, Time), ST Float
         | Ast.Rule -> Event_measure (String, Rule), ST String in
-    register_measure cur_ev_id ev_id ev measure_descr ty
+    register_measure in_action cur_ev_id ev_id ev measure_descr ty
+
+
 
 let tr_agent env ag_name = 
     Dict.id_of_name env.query_agents ag_name
 
-let compile_state_measure env cur_ev_id st_expr m = 
+let tr_agent_kind env s = 
+    Signature.num_of_agent (Locality.dummy_annot s) env.model_signature 
+
+let tr_site_name env ag_kind_id s = 
+    Signature.num_of_site (Locality.dummy_annot s)
+        (Signature.get env.model_signature ag_kind_id)
+
+let tr_int_state env ag_id s_id st = 
+    Signature.num_of_internal_state s_id (Locality.dummy_annot st)
+        (Signature.get env.model_signature ag_id)
+
+let tr_quark env (ag_name, site_name) = 
+    let ag_id = tr_agent env ag_name in
+    let ag_kind_name = 
+        try SMap.find ag_name env.constrained_agents_types
+        with Not_found -> failwith "Illegal agent usage." in
+    let agent_kind = tr_agent_kind env ag_kind_name in
+    let site_id = tr_site_name env agent_kind site_name in
+    ((ag_id, agent_kind), site_id)
+
+
+let compile_state_measure env in_action cur_ev_id st_expr m = 
     let ev_id , m_time = eval_st_expr env cur_ev_id st_expr in
     let ev = Dict.get env.query_events ev_id in
 
@@ -196,8 +247,11 @@ let compile_state_measure env cur_ev_id st_expr m =
             State_measure (m_time, Int, Nphos (tr_agent env ag_name)), ST Int 
         | Ast.Component ag_name ->
             State_measure (m_time, Agent_set, Component (tr_agent env ag_name)), ST Agent_set
+        | Ast.Int_state quark ->
+            let quark = tr_quark env quark in
+            State_measure (m_time, String, Int_state quark), ST String
     in
-   register_measure cur_ev_id ev_id ev measure_descr ty
+   register_measure in_action cur_ev_id ev_id ev measure_descr ty
 
 
 
@@ -220,6 +274,15 @@ fun lhs rhs ->
     | Float, Float -> Some (Same_type (lhs, rhs, Float))
     | String, String -> Some (Same_type (lhs, rhs, String))
     | Agent_set, Agent_set -> Some (Same_type (lhs, rhs, Agent_set))
+
+    (* Implicit coercions *)
+    | Int, Float -> 
+        let lhs = (Unop (Unop float_of_int, lhs), Float) in
+        Some (Same_type (lhs, rhs, Float))
+    | Float, Int -> 
+        let rhs = (Unop (Unop float_of_int, rhs), Float) in
+        Some (Same_type (lhs, rhs, Float))
+
     | _ -> None
 
 let int_of_bool = function
@@ -267,43 +330,42 @@ let combine_binop : type a . Ast.binop -> a expr -> a expr -> some_expr =
             | Ast.Le -> comparison ( <= ) ( <= ) lhs rhs
         end
 
-let tr_agent_kind env s = 
-    Signature.num_of_agent (Locality.dummy_annot s) env.model_signature 
 
-let rec compile_expr env cur_ev_id e = 
+
+let rec compile_expr env in_action cur_ev_id e = 
     match e with
     | Ast.Int_const i -> E (Const i, Int)
     | Ast.Float_const f -> E (Const f, Float)
     | Ast.String_const s -> E (Const s, String)
     | Ast.Unop (Ast.Not, arg_ast) ->
-        let E arg = compile_expr env cur_ev_id arg_ast in
+        let E arg = compile_expr env in_action cur_ev_id arg_ast in
         begin match expr_ty arg with
         | Int -> E (Unop (Unop expr_not, arg), Int)
         | _ -> assert false
     end
     | Ast.Unop (Ast.Size, arg_ast) ->
-        let E arg = compile_expr env cur_ev_id arg_ast in
+        let E arg = compile_expr env in_action cur_ev_id arg_ast in
         begin match expr_ty arg with
         | Agent_set -> E (Unop (Unop Agent.SetMap.Set.size, arg), Int)
         | _ -> failwith "`size` can only be applied to sets of agents."
         end
     | Ast.Binop (lhs, op, rhs) ->
-        let E lhs = compile_expr env cur_ev_id lhs in
-        let E rhs = compile_expr env cur_ev_id rhs in
+        let E lhs = compile_expr env in_action cur_ev_id lhs in
+        let E rhs = compile_expr env in_action cur_ev_id rhs in
         begin match same_type lhs rhs with
         | Some (Same_type (lhs, rhs, ty)) -> combine_binop op lhs rhs
         | None -> failwith "Type error."
         end
     | Ast.State_measure (st, m) -> 
-        compile_state_measure env cur_ev_id st m
+        compile_state_measure env in_action cur_ev_id st m
     | Ast.Event_measure (ev, m) ->
-        compile_event_measure env cur_ev_id ev m
+        compile_event_measure env in_action cur_ev_id ev m
     | Ast.Concat (lhs, rhs) ->
-        let E lhs = compile_expr env cur_ev_id lhs in
-        let E rhs = compile_expr env cur_ev_id rhs in
+        let E lhs = compile_expr env in_action cur_ev_id lhs in
+        let E rhs = compile_expr env in_action cur_ev_id rhs in
         E (Binop (lhs, Concat, rhs), Tuple)
     | Ast.Count_agents (ag_kinds, arg) ->
-        let E arg = compile_expr env cur_ev_id arg in
+        let E arg = compile_expr env in_action cur_ev_id arg in
         begin match expr_ty arg with
         | Agent_set -> 
             let ags = List.map (tr_agent_kind env) ag_kinds in
@@ -315,15 +377,6 @@ let rec compile_expr env cur_ev_id e =
 (*****************************************************************************)
 (* Compile mixture patterns                                                  *)
 (*****************************************************************************)
-
-let tr_site_name env ag_kind_id s = 
-    Signature.num_of_site (Locality.dummy_annot s)
-        (Signature.get env.model_signature ag_kind_id)
-
-let tr_int_state env ag_id s_id st = 
-    Signature.num_of_internal_state s_id (Locality.dummy_annot st)
-        (Signature.get env.model_signature ag_id)
-
 
 let compile_mixture_pattern env ags = 
 
@@ -419,6 +472,7 @@ let compile_mixture_pattern env ags =
     { agents ; tests ; mods ; agent_constraints }
 
 
+
 (*****************************************************************************)
 (* Compile events                                                            *)
 (*****************************************************************************)
@@ -435,7 +489,7 @@ let true_expr = (Const 1, Int)
 let compile_with_clause env name_opt = function
     | None -> true_expr
     | Some wc ->
-        begin match compile_expr env name_opt wc with
+        begin match compile_expr env false name_opt wc with
             | E (e, Int) -> (e, Int)
             | _ -> failwith "A with clause should be of type `int`."
         end
@@ -515,7 +569,7 @@ let compile_trace_pattern env tpat =
 
 let compile_action env = function
     | Ast.Print e -> 
-        let E e = compile_expr env None e in
+        let E e = compile_expr env true None e in
         Print e
 
 
@@ -595,7 +649,7 @@ let schedule_execution (q : query) =
     q
 
 let compile (model : Model.t) (q : Ast.query) = 
-    let env = create_env model in
+    let env = create_env model q in
     (* Compile the action first so that no measure is missing in the pattern *)
     let action = compile_action env q.Ast.action in
     let pattern = compile_trace_pattern env q.Ast.pattern in

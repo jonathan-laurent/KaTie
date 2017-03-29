@@ -37,7 +37,8 @@ type event_expr = This | Ev of identifier
 
 type state_expr = Before of event_expr | After of event_expr
 
-type state_measure = 
+type state_measure =
+  | Int_state of (identifier * identifier)
   | Component of identifier
   | Nphos of identifier
 
