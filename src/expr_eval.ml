@@ -9,6 +9,7 @@ open Format
 let expr_type : type a. a expr -> a expr_type = snd
 
 let string_of_type : type a. a expr_type -> string = function
+    | Bool -> "bool"
     | Int -> "int"
     | Float -> "float"
     | String -> "string"
@@ -52,8 +53,7 @@ let eval_compare : type a . a expr_type -> a -> a -> int =
         | _ -> compare lhs rhs
 
 
-let eval_eq ty lhs rhs = 
-    if eval_compare ty lhs rhs = 0 then 1 else 0
+let eval_eq ty lhs rhs = eval_compare ty lhs rhs = 0
 
 let to_tuple : type a. a expr_type -> a -> tuple =
     fun ty x -> 
@@ -103,6 +103,7 @@ let rec print_list print_el fmt = function
     | x::xs -> fprintf fmt "%a, %a" print_el x (print_list print_el) xs
 
 let rec print_value fmt = function
+    | Val (x, Bool) -> fprintf fmt "%d" (Utils.int_of_bool x)
     | Val (x, Int) -> fprintf fmt "%d" x
     | Val (x, Float) -> fprintf fmt "%f" x
     | Val (x, String) -> fprintf fmt "'%s'" x

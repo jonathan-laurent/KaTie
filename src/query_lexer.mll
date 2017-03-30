@@ -9,7 +9,7 @@ open Query_parser
 
 let keywords_list = 
     [("match", MATCH); ("do", DO); ("yield", DO); ("and", AND);
-     ("with", WITH); ("last", LAST); ("first", FIRST);
+     ("with", WITH); ("last", LAST); ("first", FIRST); ("when", WHEN);
      ("before", BEFORE); ("after", AFTER); 
      ("time", TIME); ("nphos", NPHOS); ("rule", RULE); ("count", COUNT);
      ("component", COMPONENT); ("dist", DIST); ("size", SIZE);
@@ -39,7 +39,7 @@ let integer = non_null_digit digit*
 
 let ident = (letter | '_') (letter | '_' | digit)*
 
-let space = [' ' '\t']
+let space = [' ' '\t' '\r']
 
 rule token = parse
   | "'" ([^'\'']* as s) "'"  {STRING s}

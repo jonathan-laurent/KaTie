@@ -391,14 +391,19 @@ let free_cm_memory (cm : complete_matching) =
 
 
 let execute_action (q : query) (fmt : Format.formatter) (cm : complete_matching) =
-    let Print e = q.action in
-    let read_measure (ev_id, measure_id) = 
-        cm_get_measure cm ev_id measure_id in
-    let _ = Expr_eval.eval_expr_to_value read_measure e |> map_option (fun v ->
-        Format.fprintf fmt "%a@;" Expr_eval.print_value v ) in
-    free_cm_memory cm
-
-
+    let read_measure (ev_id, measure_id) = cm_get_measure cm ev_id measure_id in
+    let rec aux = function
+        | Print e ->
+            let _ = Expr_eval.eval_expr_to_value read_measure e |> map_option (fun v ->
+                Format.fprintf fmt "%a@;" Expr_eval.print_value v ) in 
+            ()
+        | If (cond, action) -> 
+            begin match Expr_eval.eval_expr read_measure cond with
+            | Some b -> if b then aux action
+            | None -> failwith "Invalid conditional."
+            end
+    
+    in aux q.action ; free_cm_memory cm
 
 let prepare_second_pass cms =
     

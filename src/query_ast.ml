@@ -78,6 +78,7 @@ type action =
 
 type query = {
   pattern : trace_pattern ;
+  when_clause : expr option ;
   action : action ;
   legend : (string list) option ;
   query_name : string option ;

@@ -27,7 +27,7 @@ let make_agent ag_mod id1 id2_opt ag_sites =
 %token NOT
 %token OP_PAR CL_PAR OP_SQPAR CL_SQPAR OP_CURL CL_CURL BAR
 %token LINK TILDE
-%token MATCH DO AND WITH LAST FIRST BEFORE AFTER
+%token MATCH DO AND WITH LAST FIRST BEFORE AFTER WHEN
 %token TIME NPHOS RULE COUNT COMPONENT DIST SIZE INT_STATE
 
 %token <int> INT
@@ -179,8 +179,10 @@ query_header:
   | QUERY name=STRING legend=option(query_legend)
     {fun q -> {q with query_name = Some name ; legend}}
 
-query: header=query_header pattern=pattern DO OP_CURL action=action CL_CURL
-  { header {pattern; action; query_name=None; legend=None} }
+when_clause: WHEN e=expr { e }
+
+query: header=query_header pattern=pattern when_clause=option(when_clause) DO OP_CURL action=action CL_CURL
+  { header {pattern; when_clause; action; query_name=None; legend=None} }
 
 
 single_query: q=query EOF { q }

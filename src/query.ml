@@ -52,7 +52,7 @@ and lnk_state =
 type agent_set = Agent.SetMap.Set.t
 
 type (_, _, _) binop =
-    | Eq    : ('a, 'a, int) binop
+    | Eq    : ('a, 'a, bool) binop
     | Binop : ('a -> 'b -> 'c) -> ('a, 'b, 'c) binop
     | Concat  : ('a, 'b, tuple) binop
 
@@ -61,11 +61,12 @@ and (_, _) unop =
     | Count_agents : agent_kind list -> (agent_set, tuple) unop
 
 and _ expr_type =
+    | Bool : bool expr_type
     | Int : int expr_type
     | Float : float expr_type
     | String : string expr_type
     | Agent_set : agent_set expr_type
-    | Tuple : (value list) expr_type
+    | Tuple : tuple expr_type
 
 and value =
     | Val : 'a * 'a expr_type -> value
@@ -111,7 +112,7 @@ and state_measure_time = Before | After
 
 type event_pattern = {
     main_pattern : pattern ;
-    with_clause : int expr ;
+    with_clause : bool expr ;
     rule_constraint : rule_constraint option ;
 }
 
@@ -155,12 +156,13 @@ type trace_pattern = {
     (* equality_constraints : (event_id * event_id) list ; *)
 }
 
-type action = Print : 'a expr -> action
+type action =
+    | Print : 'a expr -> action
+    | If : bool expr * action -> action
 
 type query = {
     title : string option ;
     legend : (string list option) ;
     pattern : trace_pattern ;
     action : action ;
-    
 }

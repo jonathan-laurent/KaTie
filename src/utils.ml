@@ -57,3 +57,7 @@ let default d = function
     | _ -> d
 
 let list_maximum l = List.fold_left (max) 0 l
+
+let int_of_bool = function
+    | true -> 1
+    | false -> 0

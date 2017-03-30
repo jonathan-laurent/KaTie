@@ -270,6 +270,7 @@ type same_type = Same_type : 'a expr * 'a expr * 'a expr_type -> same_type
 let same_type : type a b . a expr -> b expr -> same_type option =
 fun lhs rhs ->
     match expr_ty lhs, expr_ty rhs with
+    | Bool, Bool -> Some (Same_type (lhs, rhs, Bool))
     | Int, Int -> Some (Same_type (lhs, rhs, Int))
     | Float, Float -> Some (Same_type (lhs, rhs, Float))
     | String, String -> Some (Same_type (lhs, rhs, String))
@@ -308,17 +309,15 @@ let combine_binop : type a . Ast.binop -> a expr -> a expr -> some_expr =
         fun int_op float_op lhs rhs ->
         match expr_ty lhs with
         | Int -> 
-            let op x y = int_of_bool (int_op x y) in
-            E (Binop (lhs, Binop op, rhs), Int)
+            E (Binop (lhs, Binop int_op, rhs), Bool)
         | Float ->
-            let op x y = int_of_bool (float_op x y) in
-            E (Binop (lhs, Binop op, rhs), Int) 
+            E (Binop (lhs, Binop float_op, rhs), Bool) 
         | _ -> assert false 
     in
 
     fun op lhs rhs ->
         begin match op with
-            | Ast.Eq -> E (Binop (lhs, Eq, rhs), Int)
+            | Ast.Eq -> E (Binop (lhs, Eq, rhs), Bool)
 
             | Ast.Add -> arith ( + ) ( +. ) lhs rhs 
             | Ast.Mul -> arith ( * ) ( *. ) lhs rhs
@@ -484,13 +483,13 @@ let compile_rule_constraint env = function
     | Some (Ast.Obs s) -> Some (Obs s)
     | None -> None
 
-let true_expr = (Const 1, Int)
+let true_expr = (Const true, Bool)
 
 let compile_with_clause env name_opt = function
     | None -> true_expr
     | Some wc ->
         begin match compile_expr env false name_opt wc with
-            | E (e, Int) -> (e, Int)
+            | E (e, Bool) -> (e, Bool)
             | _ -> failwith "A with clause should be of type `int`."
         end
 
@@ -567,11 +566,15 @@ let compile_trace_pattern env tpat =
 (* Compile action                                                            *)
 (*****************************************************************************)
 
-let compile_action env = function
-    | Ast.Print e -> 
+let compile_action env when_clause = function
+    | Ast.Print e ->
         let E e = compile_expr env true None e in
-        Print e
-
+        begin match when_clause with
+        | None -> Print e
+        | Some (E (b, Bool)) -> If ((b, Bool), Print e)
+        | Some (E (b, _)) -> 
+            failwith "The when clause should be of type `bool`."
+        end
 
 (*****************************************************************************)
 (* Compile queries                                                           *)
@@ -651,7 +654,8 @@ let schedule_execution (q : query) =
 let compile (model : Model.t) (q : Ast.query) = 
     let env = create_env model q in
     (* Compile the action first so that no measure is missing in the pattern *)
-    let action = compile_action env q.Ast.action in
+    let when_clause = Utils.map_option (compile_expr env true None) q.Ast.when_clause in
+    let action = compile_action env when_clause q.Ast.action in
     let pattern = compile_trace_pattern env q.Ast.pattern in
     let title = q.Ast.query_name in
     let legend = q.Ast.legend in

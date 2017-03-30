@@ -19,6 +19,7 @@ let pp_dline f = fprintf f "%s@;" dline
 
 let pp_dotline f = fprintf f "%s@;" dotline
 
+
 module type PRINTABLE = 
 sig
     type t
@@ -122,7 +123,9 @@ let pp_expr f e =
   let mes = expr_measures e in
   fprintf f "expr involving measures %a" (pp_list_inline pp_int2) mes
 
-let pp_action f (Print e) = pp_expr f e ; pp_newline f
+let rec pp_action f = function 
+  | Print e -> pp_expr f e ; pp_newline f
+  | If (cond, act) -> fprintf f "Test: %a@.Expr: %a@." pp_expr cond pp_action act
 
 let pp_rule f r = 
   match !global_model with
