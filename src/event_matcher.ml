@@ -5,6 +5,7 @@
 open Matchings
 open Query
 open Utils
+open Streaming
 
 (*****************************************************************************)
 (* Simple utilities                                                          *)
@@ -78,12 +79,12 @@ exception No_match
 
 let match_agents_in_pattern
   (pat : Query.event_pattern)
-  (pr_state, step, state : Replay.state * Trace.step * Replay.state)
+  (w : Streaming.window)
   : (int array)  option =
 
-  if satisfy_rule_constraint pat.rule_constraint state step then try
+  if satisfy_rule_constraint pat.rule_constraint w.state w.step then try
     
-    let _tests, actions = extract_tests_actions step in
+    let _tests, actions = extract_tests_actions w.step in
 
     let compatible_agents ag_pid ag = 
        p_agent_ty pat ag_pid = agent_ty ag in
@@ -159,7 +160,7 @@ let match_agents_in_pattern
           match translate_psite ms s with
           | None -> ms
           | Some (src_ag, src_s) ->
-            begin match Edges.link_destination src_ag src_s state.Replay.graph with
+            begin match Edges.link_destination src_ag src_s w.state.Replay.graph with
               | None -> raise No_match
               | Some dst ->
                 IntMap.add (psite_ag_id s') (site_ag_id dst) ms
@@ -188,12 +189,12 @@ let match_agents_in_pattern
 
 let match_simple_pattern
   (pat : Query.event_pattern)
-  (pr_state, step, state as window : Replay.state * Trace.step * Replay.state)
+  (w : Streaming.window)
   : (int array) option =
 
-  match match_agents_in_pattern pat window with
+  match match_agents_in_pattern pat w with
   | Some ag_matchings -> begin
-    let _tests, actions = extract_tests_actions step in
+    let _tests, actions = extract_tests_actions w.step in
 
     let translate_ag ag_pid = ag_matchings.(ag_pid) in
 
@@ -240,22 +241,22 @@ let match_simple_pattern
     let tests_ok = pat.main_pattern.tests |> List.for_all (
       function
       | Agent_exists ag_pid ->
-        Edges.is_agent (translate_ag ag_pid, p_agent_ty pat ag_pid) state.Replay.graph
+        Edges.is_agent (translate_ag ag_pid, p_agent_ty pat ag_pid) w.state.Replay.graph
       | Lnk_state_is ((ag_pid, s), Free) ->
-        Edges.is_free (translate_ag ag_pid) s state.Replay.graph
+        Edges.is_free (translate_ag ag_pid) s w.state.Replay.graph
       | Lnk_state_is ((ag_pid, s), Bound_to (ag_pid', s')) ->
         Edges.link_exists 
           (translate_ag ag_pid)  s 
-          (translate_ag ag_pid') s' state.Replay.graph
+          (translate_ag ag_pid') s' w.state.Replay.graph
       | Lnk_state_is ((ag_pid, s), Bound_to_any) -> 
-        not (Edges.is_free (translate_ag ag_pid) s state.Replay.graph)
+        not (Edges.is_free (translate_ag ag_pid) s w.state.Replay.graph)
       | Lnk_state_is ((ag_pid, s), Bound_to_type (ag_kind', s')) -> 
-        begin match Edges.link_destination (translate_ag ag_pid) s state.Replay.graph with
+        begin match Edges.link_destination (translate_ag ag_pid) s w.state.Replay.graph with
         | None -> false
         | Some ((_, ag_kind''), s'') -> ag_kind' = ag_kind'' && s' = s''
         end
       | Int_state_is ((ag_pid, s), st) ->
-        Edges.get_internal (translate_ag ag_pid) s state.Replay.graph = st
+        Edges.get_internal (translate_ag ag_pid) s w.state.Replay.graph = st
     ) in
 
     if mods_ok && tests_ok then Some ag_matchings else None
@@ -270,7 +271,7 @@ let match_simple_pattern
 
 let match_event
     (ev : Query.event)
-    (_, step, _ as window : Replay.state * Trace.step * Replay.state)
+    (w : Streaming.window)
     : ev_matchings option =
 
     let main_pat_opt = ev.event_pattern in
@@ -299,10 +300,9 @@ let match_event
         | None, None -> assert false
         end in
 
-
     let generate_matchings effective pm1 pm2_opt = 
       let common = {
-        ev_id_in_trace = Utils.default (-1) (Streaming.get_step_id step) ;
+        ev_id_in_trace = w.step_id ;
         ev_id_in_query = ev.event_id;
         indexing_ag_matchings = 
           List.map (qid_to_gid' pm1 pm2_opt) ev.already_constrained_agents
@@ -320,10 +320,10 @@ let match_event
 
      match def_pat_opt, main_pat_opt with
      | Some def_pat, Some main_pat ->
-      begin match match_simple_pattern def_pat window with
+      begin match match_simple_pattern def_pat w with
       | None -> None (* No matching at all *)
       | Some def_pat_matchings ->
-        begin match match_simple_pattern main_pat window  with
+        begin match match_simple_pattern main_pat w  with
           | None -> 
             Some (generate_matchings false (def_pat, def_pat_matchings) None)
           | Some main_pat_matchings -> 
@@ -332,7 +332,7 @@ let match_event
       end
     | Some pat, None
     | None, Some pat ->
-        begin match match_simple_pattern pat window with
+        begin match match_simple_pattern pat w with
         | None ->  None
         | Some pat_matchings ->
           Some (generate_matchings true (pat, pat_matchings) None)

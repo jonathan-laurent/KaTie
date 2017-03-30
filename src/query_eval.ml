@@ -55,6 +55,7 @@ open Format
 
 let pp_event_matching_common f em = 
     fprintf f "ev-id-in-query: %d@;" em.ev_id_in_query ;
+    fprintf f "ev-id-in-trace: %d@;" em.ev_id_in_trace ;
     fprintf f "indexing-ag-matchings: %a@;" 
         (pp_list_inline pp_int) em.indexing_ag_matchings
 
@@ -336,7 +337,9 @@ let first_pass_process_step query window env =
         | Root ->
           begin
             match Event_matcher.match_event ev window with
-            | Some ms -> new_partial_matching env ev_id ms
+            | Some ms -> 
+                (*Format.printf "%a\n" Dbg.pp_event_matchings ms ; *) 
+                new_partial_matching env ev_id ms
             | None -> ()
           end
     ) ;
@@ -425,26 +428,30 @@ let second_pass_process_step
     (fmt : Format.formatter)
     (cms : complete_matching array) =
 
-    fun (_, step, _ as window) (remaining_mes, remaining_acts) ->
+    fun (window : window) (remaining_mes, remaining_acts) ->
         let rec measure = function 
             | [] -> [] (* There's nothing interesting in the trace anymore *)
             | (step_id, m_id, ev_id) :: remaining 
-                when Some step_id = get_step_id step ->
+                when step_id = window.step_id ->
                 (* Something interesting happens *)
                 begin
                     let cm = cms.(m_id) in
+                    begin try
                     Measures.take_measures
                         model
                         query.pattern.events.(ev_id) 
                         cm.cm_agents
                         window
-                        (cm_set_measure cm ev_id) ;
+                        (cm_set_measure cm ev_id)
+                    with _ -> begin
+                        Array.iter (Dbg.pp_event_matching Format.std_formatter) cm.cm_events
+                    end end;
                     measure remaining
                 end
             | remaining -> remaining in
         let rec actions = function
             | [] -> []
-            | (step_id, m_id) :: remaining when Some step_id = get_step_id step ->
+            | (step_id, m_id) :: remaining when step_id = window.step_id ->
                 begin
                     execute_action query fmt cms.(m_id) ;
                     actions remaining

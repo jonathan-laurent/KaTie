@@ -4,10 +4,10 @@
 
 open Format
 
-let line = 
+let line =
     "-------------------------------------------------------------------------------"
 
-let dline = 
+let dline =
     "==============================================================================="
 
 let dotline =
@@ -174,6 +174,7 @@ let pp_measure_descr f = function
   | Event_measure (_, Rule) -> fprintf f "rule"
   | State_measure (_, _, Component ag) -> fprintf f "component(%d)" ag
   | State_measure (_, _, Nphos ag) -> fprintf f "nphos(%d)" ag
+  | State_measure (_, _, Int_state ((ag_id, ag_kind), s)) -> fprintf f "int_state((%d, %d), %d)" ag_id ag_kind s
   | _  -> fprintf f "<measure>"
 
 let pp_measure f {measure_descr} = pp_measure_descr f measure_descr

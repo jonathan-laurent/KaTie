@@ -35,8 +35,8 @@ let formatter_of_file f =
   Format.formatter_of_out_channel (open_out f)
 
 let query_output_file q =
-  let title = Utils.default "output" q.Query.title in
-  Format.sprintf "%s.log" title
+  let title = Utils.default "output.csv" q.Query.title in
+  Format.sprintf "%s" title
 
 
 

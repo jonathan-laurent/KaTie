@@ -3,6 +3,7 @@
 (*****************************************************************************)
 
 open Query
+open Streaming
 
 let rule_name model = function
     | Trace.Rule (r, _, _) -> 
@@ -30,7 +31,14 @@ let time state = Some (Val (state.Replay.time, Float))
 
 
 let int_state model ((ag_id, ag_kind), ag_site) state = 
-    let st = Edges.get_internal ag_id ag_site state.Replay.graph in
+    let st = try Edges.get_internal ag_id ag_site state.Replay.graph 
+        with _ -> begin 
+            Format.printf "(%d, %d), %d \n\n" ag_id ag_kind ag_site ;
+            Format.printf "%d\n\n" state.Replay.event ;
+            Edges.debug_print Format.std_formatter state.Replay.graph ;
+            Format.printf "\n" ;
+            assert false 
+        end in
     let signature = Model.signatures model in
     Some (Val (Format.asprintf "%a" (Signature.print_internal_state signature ag_kind ag_site) st, String))
 
@@ -39,7 +47,7 @@ let take_measures
     (model : Model.t) 
     (ev : Query.event) 
     (ag_matchings : int array)
-    (prev_state, step, next_state : Replay.state * Trace.step * Replay.state)
+    (w : Streaming.window)
     (set_measure : int -> value option -> unit)
     : unit =
 
@@ -49,8 +57,8 @@ let take_measures
             | State_measure (time, ty, st_measure) ->
                 let state = 
                     begin match time with
-                    | Before -> prev_state
-                    | After -> next_state
+                    | Before -> w.previous_state
+                    | After -> w.state
                     end in
                 begin match st_measure with
                 | Count _ -> None
@@ -62,10 +70,10 @@ let take_measures
                 end
             | Event_measure (ty, ev_measure) -> 
                 begin match ev_measure with
-                | Time -> time next_state
-                | Rule -> rule_name model step
+                | Time -> time w.state
+                | Rule -> rule_name model w.step
                 end in
             set_measure m_id v
          in
-         
+
      Array.iteri take_measure ev.measures

@@ -4,13 +4,6 @@
 
 module JS = Yojson.Basic
 
-
-let get_step_id step = 
-    let open Trace in
-    let open Simulation_info in
-    Utils.map_option (fun si -> si.story_event) (simulation_info_of_step step)
-
-
 let extract_env (fname : string) = 
     let desc = open_in fname in
   let lex_buf = Lexing.from_channel desc in
@@ -117,7 +110,12 @@ let basic_fold_trace (type acc)
     exit 2
 
 
-type window = Replay.state * Trace.step * Replay.state
+type window = {
+    previous_state : Replay.state ;
+    state : Replay.state ;
+    step : Trace.step ;
+    step_id : int ;
+}
 
 let fold_trace
     (type acc)
@@ -130,20 +128,32 @@ let fold_trace
     : acc =
 
     let previous = ref None in
+    let step_id = ref (-1) in
 
     let init_state = 
         Replay.init_state ~with_connected_components:update_ccs in
 
     let process_step step state acc =
+        step_id := !step_id + 1 ;
         begin match !previous with
         | None ->
             if compute_previous_states then previous := Some (init_state, step) ;
-            step_f (init_state, step, state) acc 
+            let window = {
+                step ;
+                previous_state = init_state ;
+                state = state ;
+                step_id = !step_id ;
+            } in step_f window acc 
         | Some (previous_state, last_step) ->
             let previous_state, _ = 
                 Replay.do_step (Model.signatures env) previous_state last_step in
             previous := Some (previous_state, step) ;
-            step_f (previous_state, step, state) acc
+            let window = {
+                step ;
+                previous_state ;
+                state = state ;
+                step_id = !step_id
+            } in step_f window acc 
         end in
 
     basic_fold_trace ~update_ccs fname process_step init
