@@ -49,6 +49,9 @@ rule token = parse
   | "/*" {comment true lexbuf}
   | "#" {comment false lexbuf}
 
+  | "&&" {LOGIC_AND}
+  | "||" {LOGIC_OR}
+
   | "(" {OP_PAR}
   | ")" {CL_PAR}
   | "{" {OP_CURL}

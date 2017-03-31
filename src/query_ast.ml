@@ -31,7 +31,7 @@ type mixture_pat = agent list
 
 type unop = Not | Size
 
-type binop = Eq | Add | Mul | Sub | Gt | Ge | Lt | Le | Similarity
+type binop = Eq | Add | Mul | Sub | Gt | Ge | Lt | Le | Similarity | And | Or
 
 type event_expr = This | Ev of identifier
 

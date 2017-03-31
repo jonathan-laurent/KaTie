@@ -329,6 +329,13 @@ let combine_binop : type a . Ast.binop -> a expr -> a expr -> some_expr =
         | _ -> assert false 
     in
 
+    let boolop :
+        type b . (bool -> bool -> bool) -> b expr -> b expr -> some_expr =
+        fun op lhs rhs ->
+        match expr_ty lhs with
+        | Bool -> E (Binop (lhs, Binop op, rhs), Bool)
+        | _ -> failwith "Boolean combinator is given non-boolean arguments." in
+
     fun op lhs rhs ->
         begin match op with
             | Ast.Eq -> E (Binop (lhs, Eq, rhs), Bool)
@@ -345,6 +352,9 @@ let combine_binop : type a . Ast.binop -> a expr -> a expr -> some_expr =
             | Ast.Ge -> comparison ( >= ) ( >= ) lhs rhs
             | Ast.Lt -> comparison ( < )  ( < )  lhs rhs
             | Ast.Le -> comparison ( <= ) ( <= ) lhs rhs
+
+            | Ast.And -> boolop ( && ) lhs rhs
+            | Ast.Or  -> boolop ( || ) lhs rhs
         end
 
 

@@ -24,7 +24,7 @@ let make_agent ag_mod id1 id2_opt ag_sites =
 %token EOF QUERY
 %token COLON DOT COMMA UNDERSCORE
 %token EQ PLUS MINUS MULT GT GE LT LE
-%token NOT
+%token NOT LOGIC_AND LOGIC_OR
 %token OP_PAR CL_PAR OP_SQPAR CL_SQPAR OP_CURL CL_CURL BAR
 %token LINK TILDE
 %token MATCH DO AND WITH LAST FIRST BEFORE AFTER WHEN
@@ -35,6 +35,7 @@ let make_agent ag_mod id1 id2_opt ag_sites =
 %token <string> ID
 
 %left COMMA
+%left LOGIC_AND LOGIC_OR
 %nonassoc EQ GT GE LT LE
 %left MINUS PLUS
 %left MULT
@@ -115,6 +116,8 @@ int_state_attr:
   | GE { Ge }
   | LT { Lt }
   | LE { Le }
+  | LOGIC_AND { And }
+  | LOGIC_OR { Or }
 
 st_measure_annot:
   | { After This }
