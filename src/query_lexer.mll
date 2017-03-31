@@ -13,7 +13,7 @@ let keywords_list =
      ("before", BEFORE); ("after", AFTER); 
      ("time", TIME); ("nphos", NPHOS); ("rule", RULE); ("count", COUNT);
      ("component", COMPONENT); ("dist", DIST); ("size", SIZE);
-     ("query", QUERY); ("int_state", INT_STATE)]
+     ("query", QUERY); ("int_state", INT_STATE); ("similarity", SIMILARITY)]
 
 let ktab = 
     let t = Hashtbl.create 20 in 

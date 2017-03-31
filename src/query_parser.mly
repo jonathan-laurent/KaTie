@@ -28,7 +28,7 @@ let make_agent ag_mod id1 id2_opt ag_sites =
 %token OP_PAR CL_PAR OP_SQPAR CL_SQPAR OP_CURL CL_CURL BAR
 %token LINK TILDE
 %token MATCH DO AND WITH LAST FIRST BEFORE AFTER WHEN
-%token TIME NPHOS RULE COUNT COMPONENT DIST SIZE INT_STATE
+%token TIME NPHOS RULE COUNT COMPONENT DIST SIZE INT_STATE SIMILARITY
 
 %token <int> INT
 %token <string> STRING
@@ -71,13 +71,17 @@ agent:
   ag_sites=agent_sites
   { make_agent ag_mod id1 id2_opt ag_sites }
 
+string_or_int:
+  | name=ID { name }
+  | i=INT { string_of_int i }
+
 site:
-  | name=ID { make_site name }
-  | name=ID bond=lnk_state_attr { bond (make_site name) }
-  | name=ID intst=int_state_attr { intst (make_site name) }
-  | name=ID bond=lnk_state_attr intst=int_state_attr 
+  | name=string_or_int { make_site name }
+  | name=string_or_int bond=lnk_state_attr { bond (make_site name) }
+  | name=string_or_int intst=int_state_attr { intst (make_site name) }
+  | name=string_or_int bond=lnk_state_attr intst=int_state_attr 
     { intst (bond (make_site name)) }
-  | name=ID intst=int_state_attr bond=lnk_state_attr
+  | name=string_or_int intst=int_state_attr bond=lnk_state_attr
     { intst (bond (make_site name)) }
 
 lnk_state_attr:
@@ -94,9 +98,9 @@ lnk_state:
     { Bound_to_type (agent_kind, site_name) }
 
 int_state_attr:
-  | TILDE st=ID 
+  | TILDE st=string_or_int 
     { fun s -> { s with site_int_test = Some st } }
-  | TILDE OP_SQPAR st=ID CL_SQPAR 
+  | TILDE OP_SQPAR st=string_or_int CL_SQPAR 
     { fun s -> { s with site_int_mod = Some st } }
 
 
@@ -134,6 +138,8 @@ expr:
   | lhs=expr COMMA rhs=expr { Concat (lhs, rhs) }
   | COUNT OP_CURL agents=separated_list(COMMA, STRING) CL_CURL OP_CURL e=expr CL_CURL
     { Count_agents (agents, e) }
+  | SIMILARITY OP_CURL e1=expr CL_CURL OP_CURL e2=expr CL_CURL
+    { Binop (e1, Similarity, e2) }
   | DIST { failwith "Not handled yet"}
   | TIME ev_expr=ev_measure_annot
     { Event_measure (ev_expr, Time) }

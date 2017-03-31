@@ -290,6 +290,20 @@ let int_of_bool = function
     | true -> 1
     | false -> 0
 
+
+module IntSet = Utils.IntSet
+
+let agent_set_ids s = IntSet.of_list (List.map fst (AgentSet.elements s))
+
+let set_similarity s s' =
+    let s = agent_set_ids s in
+    let s' = agent_set_ids s' in
+    let denom = IntSet.cardinal (IntSet.union s s') in
+    if denom = 0 then 1.0 else
+        let num = IntSet.cardinal (IntSet.inter s s') in
+        float_of_int num /. float_of_int denom
+
+
 (* Binary operators always have similarly typed arguments *)
 let combine_binop : type a . Ast.binop -> a expr -> a expr -> some_expr =
 
@@ -318,7 +332,11 @@ let combine_binop : type a . Ast.binop -> a expr -> a expr -> some_expr =
     fun op lhs rhs ->
         begin match op with
             | Ast.Eq -> E (Binop (lhs, Eq, rhs), Bool)
-
+            | Ast.Similarity -> 
+                begin match expr_ty lhs with
+                | Agent_set -> E (Binop (lhs, Binop set_similarity, rhs), Float)
+                | _ -> failwith "`similarity` expects agent sets as arguments."
+                end
             | Ast.Add -> arith ( + ) ( +. ) lhs rhs 
             | Ast.Mul -> arith ( * ) ( *. ) lhs rhs
             | Ast.Sub -> arith ( - ) ( -. ) lhs rhs
@@ -328,7 +346,6 @@ let combine_binop : type a . Ast.binop -> a expr -> a expr -> some_expr =
             | Ast.Lt -> comparison ( < )  ( < )  lhs rhs
             | Ast.Le -> comparison ( <= ) ( <= ) lhs rhs
         end
-
 
 
 let rec compile_expr env in_action cur_ev_id e = 
@@ -370,8 +387,7 @@ let rec compile_expr env in_action cur_ev_id e =
             let ags = List.map (tr_agent_kind env) ag_kinds in
             E (Unop (Count_agents ags, arg), Tuple)
         | _ -> failwith "`count` expects a set of agents as its second argument."
-        end
-
+    end        
 
 (*****************************************************************************)
 (* Compile mixture patterns                                                  *)
@@ -610,8 +626,6 @@ let compute_traversal_tree (q : query) =
     end
 
 
-module IntSet = Set.Make (Utils.Int)
-
 let def_rel_pattern ev = 
     match ev.defining_rel with
     | None -> None
@@ -641,7 +655,7 @@ let schedule_agents_capture q =
         q.pattern.events.(i) <- 
             { ev with already_constrained_agents ; captured_agents } ;
         let constrained = IntSet.union constrained ev_ags in
-        children |> List.iter (fun (r, t) -> aux t constrained)
+        children |> List.iter (fun (_r, t) -> aux t constrained)
     in aux q.pattern.traversal_tree IntSet.empty
 
 

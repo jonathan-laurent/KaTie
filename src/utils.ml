@@ -8,6 +8,8 @@ struct
     let compare = compare
 end
 
+module IntSet = Set.Make (Int)
+
 module IntMap = Map.Make (Int)
 
 module StringMap = Map.Make (String)

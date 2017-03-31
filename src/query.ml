@@ -49,7 +49,9 @@ and lnk_state =
 
 (* Expressions *)
 
-type agent_set = Agent.SetMap.Set.t
+module AgentSet = Agent.SetMap.Set
+
+type agent_set = AgentSet.t
 
 type (_, _, _) binop =
     | Eq    : ('a, 'a, bool) binop

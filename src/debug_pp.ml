@@ -180,7 +180,7 @@ let pp_measure_descr f = function
   | State_measure (_, _, Int_state ((ag_id, ag_kind), s)) -> fprintf f "int_state((%d, %d), %d)" ag_id ag_kind s
   | _  -> fprintf f "<measure>"
 
-let pp_measure f {measure_descr} = pp_measure_descr f measure_descr
+let pp_measure f {measure_descr;_} = pp_measure_descr f measure_descr
 
 let pp_main_pattern f (p : pattern) = 
   fprintf f "agents:@;%a" (pp_array pp_agent_descr) p.agents ;
@@ -244,7 +244,7 @@ let pp_trace_pattern f tp =
   pp_tree f tp.traversal_tree ;
   pp_newline f
 
-let pp_query f {pattern ; action} =
+let pp_query f {pattern ; action ; _} =
   fprintf f "@[<v>" ;
   pp_dline f ;
   fprintf f "| QUERY DESCRIPTION@;" ;
