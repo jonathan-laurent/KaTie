@@ -4,6 +4,8 @@
 
 let trace_file = ref ""
 let query_file = ref ""
+let default_out_file = ref "output.csv"
+let debug_mode = ref false
 
 let usage =
   Sys.argv.(0) ^
@@ -11,7 +13,10 @@ let usage =
 
 let options = [
   "-q", Arg.Set_string query_file, "query file" ;
-  "-t", Arg.Set_string trace_file, "trace file" ]
+  "-t", Arg.Set_string trace_file, "trace file" ;
+  "-o", Arg.Set_string default_out_file, 
+  "default output file (if not specified: `output.csv`)" ;
+  "--debug", Arg.Set debug_mode, "set debug mode" ]
 
 let parse_and_compile_queries model file = 
   try
@@ -35,13 +40,14 @@ let formatter_of_file f =
   Format.formatter_of_out_channel (open_out f)
 
 let query_output_file q =
-  let title = Utils.default "output.csv" q.Query.title in
+  let title = Utils.default !default_out_file q.Query.title in
   Format.sprintf "%s" title
 
 
-
 let main () =
-  let () = Printexc.record_backtrace true in
+  
+  if !debug_mode then Printexc.record_backtrace true ;
+
   let () =
     Arg.parse
       options
@@ -56,11 +62,12 @@ let main () =
 
     print_endline "Queries successfully compiled." ;
 
-    with_file "compiled-query" (fun fmt ->
-      queries |> List.iter (fun q ->
-        Debug_pp.pp_query fmt q
-      )
-    );
+    if !debug_mode then begin
+      with_file "compiled-query" (fun fmt ->
+        queries |> List.iter (fun q ->
+          Debug_pp.pp_query fmt q
+        ))
+    end ;
     
     let queries = queries
       |> List.map (fun q -> (q, query_output_file q)) in

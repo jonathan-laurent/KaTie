@@ -5,7 +5,7 @@
 module JS = Yojson.Basic
 
 let extract_env (fname : string) = 
-    let desc = open_in fname in
+  let desc = open_in fname in
   let lex_buf = Lexing.from_channel desc in
   let lex_st = Yojson.init_lexer ~fname () in
 
