@@ -2,6 +2,8 @@
 (* Kappa Trace Query Engine                                                  *)
 (*****************************************************************************)
 
+open Tql_error
+
 let trace_file = ref ""
 let query_file = ref ""
 let default_out_file = ref "output.csv"
@@ -27,7 +29,10 @@ let parse_and_compile_queries model file =
     close_in oc ;
     queries
 
-  with Sys_error _ -> failwith "File not found."
+  with 
+    | Sys_error _ -> failwith "File not found."
+    | Query_parser.Error -> 
+      raise (error Parse_error)
 
 
 let with_file file f = 
@@ -86,4 +91,9 @@ let main () =
     print_endline "Done."
 
 
-let () = main ()
+let err_formatter = Format.formatter_of_out_channel stderr
+
+let () =
+  try main ()
+  with
+  | Tql_error.Error e -> Tql_error.print_error err_formatter e

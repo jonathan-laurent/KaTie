@@ -6,6 +6,7 @@
 
 open Lexing
 open Query_parser
+open Tql_error
 
 let keywords_list = 
     [("match", MATCH); ("do", DO); ("yield", DO); ("and", AND);
@@ -81,6 +82,7 @@ rule token = parse
   | ident as s {kword_or_id s}
 
   | eof {EOF}
+  | _ { raise (error_at (lexeme_start_p lexbuf) Lexer_error)}
 
 
 and comment multiline = parse
