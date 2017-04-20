@@ -97,3 +97,5 @@ let () =
   try main ()
   with
   | Error e -> Tql_error.print_error err_formatter e
+  | Failure msg -> prerr_endline ("[Fatal error] " ^ msg)
+  | ExceptionDefn.Malformed_Decl msg -> prerr_endline ("[KaSim error] " ^ fst msg)

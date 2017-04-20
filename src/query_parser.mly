@@ -195,7 +195,11 @@ query_header:
 
 when_clause: WHEN e=expr { e }
 
-every_clause: EVERY f=FLOAT SECONDS { f }
+float_or_int:
+  | f=FLOAT { f }
+  | i=INT { float_of_int i }
+
+every_clause: EVERY f=float_or_int SECONDS { f }
 
 query: 
   header=query_header pattern=pattern
@@ -203,7 +207,6 @@ query:
   when_clause=option(when_clause)
   DO OP_CURL action=action CL_CURL
   { header {pattern; when_clause; action; query_name=None; legend=None; every_clause} }
-
 
 single_query: q=query EOF { q }
 
