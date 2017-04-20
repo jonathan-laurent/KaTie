@@ -24,6 +24,7 @@ type ev_matching = {
 and ev_matching_common_part = {
     ev_id_in_trace : int ;
     ev_id_in_query : int ;
+    ev_time : float ;
     indexing_ag_matchings : Ag_valuation.t ;
 }
 

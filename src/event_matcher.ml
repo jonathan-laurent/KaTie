@@ -7,6 +7,7 @@ open Query
 open Utils
 open Streaming
 
+
 (*****************************************************************************)
 (* Simple utilities                                                          *)
 (*****************************************************************************)
@@ -304,6 +305,7 @@ let match_event
       let common = {
         ev_id_in_trace = w.step_id ;
         ev_id_in_query = ev.event_id;
+        ev_time = w.state.Replay.time ;
         indexing_ag_matchings = 
           List.map (qid_to_gid' pm1 pm2_opt) ev.already_constrained_agents
       } in

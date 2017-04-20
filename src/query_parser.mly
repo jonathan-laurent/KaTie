@@ -25,12 +25,14 @@ let make_agent ag_mod id1 id2_opt ag_sites =
 %token COLON DOT COMMA UNDERSCORE
 %token EQ PLUS MINUS MULT GT GE LT LE
 %token NOT LOGIC_AND LOGIC_OR
-%token OP_PAR CL_PAR OP_SQPAR CL_SQPAR OP_CURL CL_CURL BAR
+%token OP_PAR CL_PAR OP_SQPAR CL_SQPAR OP_CURL CL_CURL BAR CL_PAT
 %token LINK TILDE
 %token MATCH DO AND WITH LAST FIRST BEFORE AFTER WHEN
 %token TIME NPHOS RULE COUNT COMPONENT DIST SIZE INT_STATE SIMILARITY
+%token EVERY SECONDS
 
 %token <int> INT
+%token <float> FLOAT
 %token <string> STRING
 %token <string> ID
 
@@ -134,6 +136,7 @@ quark: ag_id=ID DOT site_name=ID { (ag_id, site_name) }
 expr:
   | OP_PAR e=expr CL_PAR { e }
   | i=INT { Int_const i }
+  | f=FLOAT { Float_const f }
   | s=STRING { String_const s }
   | unop=unop e=expr { Unop (unop, e) }
   | SIZE OP_CURL e=expr CL_CURL { Unop (Size, e) }
@@ -172,12 +175,14 @@ rule_constraint:
   | rs=separated_nonempty_list(COMMA, STRING) { Rule rs }
 
 ev_pattern: 
-  event_id=option(ev_name) 
-  OP_SQPAR rule_constraint=option(rule_constraint) BAR 
-  main_pattern=mixture_pat
-  BAR CL_SQPAR
-  with_clause=option(with_clause)
-  { {event_id; with_clause; main_pattern; rule_constraint} }
+  | event_id=option(ev_name)
+    OP_SQPAR rule_constraint=option(rule_constraint) BAR 
+    main_pattern=mixture_pat
+    CL_PAT
+    with_clause=option(with_clause)
+    { {event_id; with_clause; main_pattern; rule_constraint} }
+  | id=ID with_clause=option(with_clause)
+    { {event_id = Some id; with_clause; main_pattern = []; rule_constraint = None} }
 
 action: e=expr { Print e }
 
@@ -190,8 +195,14 @@ query_header:
 
 when_clause: WHEN e=expr { e }
 
-query: header=query_header pattern=pattern when_clause=option(when_clause) DO OP_CURL action=action CL_CURL
-  { header {pattern; when_clause; action; query_name=None; legend=None} }
+every_clause: EVERY f=FLOAT SECONDS { f }
+
+query: 
+  header=query_header pattern=pattern
+  every_clause=option(every_clause)
+  when_clause=option(when_clause)
+  DO OP_CURL action=action CL_CURL
+  { header {pattern; when_clause; action; query_name=None; legend=None; every_clause} }
 
 
 single_query: q=query EOF { q }

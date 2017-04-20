@@ -167,4 +167,5 @@ type query = {
     legend : (string list option) ;
     pattern : trace_pattern ;
     action : action ;
+    every_clause : float option ;
 }

@@ -212,7 +212,6 @@ let compile_event_measure env in_action cur_ev_id ev_expr m =
     register_measure in_action cur_ev_id ev_id ev measure_descr ty
 
 
-
 let tr_agent env ag_name = 
     Dict.id_of_name env.query_agents ag_name
 
@@ -585,7 +584,8 @@ let compile_trace_pattern env tpat =
 
     (* Still uncomplete: we put a dummy value *)
     let traversal_tree = Tree ((-1), []) in
-    { agents; events; traversal_tree }
+    { agents; events; traversal_tree; }
+
 
 
 (*****************************************************************************)
@@ -683,4 +683,5 @@ let compile (model : Model.t) (q : Ast.query) =
     let pattern = compile_trace_pattern env q.Ast.pattern in
     let title = q.Ast.query_name in
     let legend = q.Ast.legend in
-    schedule_execution { pattern ; action ; title ; legend }
+    let every_clause = q.Ast.every_clause in
+    schedule_execution { pattern ; action ; title ; legend ; every_clause }

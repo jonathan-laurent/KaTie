@@ -87,7 +87,7 @@ let main () =
 
     fmts |> List.iter (fun (_, fmt) -> Format.fprintf fmt "@[<v>") ;
     Query_eval.eval_queries model queries !trace_file ;
-    fmts |> List.iter (fun (_, fmt) -> Format.fprintf fmt "@]") ;
+    fmts |> List.iter (fun (_, fmt) -> Format.fprintf fmt "@]@.") ;
     print_endline "Done."
 
 
@@ -96,4 +96,4 @@ let err_formatter = Format.formatter_of_out_channel stderr
 let () =
   try main ()
   with
-  | Tql_error.Error e -> Tql_error.print_error err_formatter e
+  | Error e -> Tql_error.print_error err_formatter e

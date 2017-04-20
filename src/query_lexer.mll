@@ -14,7 +14,8 @@ let keywords_list =
      ("before", BEFORE); ("after", AFTER); 
      ("time", TIME); ("nphos", NPHOS); ("rule", RULE); ("count", COUNT);
      ("component", COMPONENT); ("dist", DIST); ("size", SIZE);
-     ("query", QUERY); ("int_state", INT_STATE); ("similarity", SIMILARITY)]
+     ("query", QUERY); ("int_state", INT_STATE); ("similarity", SIMILARITY);
+     ("every", EVERY); ("seconds", SECONDS)]
 
 let ktab = 
     let t = Hashtbl.create 20 in 
@@ -36,11 +37,17 @@ let letter = ['a'-'z' 'A'-'Z']
 let digit = ['0'-'9']
 let non_null_digit = ['1'-'9']
 
-let integer = non_null_digit digit*
+let integer = "0" | (non_null_digit digit*)
+
+let float_number = digit* "." (digit*)? (['E' 'e'] ("-")? digit+)?
 
 let ident = (letter | '_') (letter | '_' | digit)*
 
 let space = [' ' '\t' '\r']
+
+
+(* There seems to be a bug here as `[||]` is parsed as
+   OP_SQPAR LOGIC_OR CL_SQPAR *)
 
 rule token = parse
   | "'" ([^'\'']* as s) "'"  {STRING s}
@@ -49,6 +56,8 @@ rule token = parse
   | "\n" {new_line lexbuf; token lexbuf}
   | "/*" {comment true lexbuf}
   | "#" {comment false lexbuf}
+
+  | "|]" {CL_PAT}
 
   | "&&" {LOGIC_AND}
   | "||" {LOGIC_OR}
@@ -77,8 +86,8 @@ rule token = parse
   | "-" {MINUS}
   | "*" {MULT}
   
-  | "0" {INT 0}
-  | (non_null_digit digit*) as s {INT (int_of_string s)}
+  | float_number as s {FLOAT (float_of_string s)}
+  | integer as s {INT (int_of_string s)}
   | ident as s {kword_or_id s}
 
   | eof {EOF}

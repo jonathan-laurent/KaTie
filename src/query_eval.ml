@@ -37,6 +37,7 @@ type env = {
     recorders : event_recorder array ;
     mutable partial_matchings : (partial_matching branchings_memory) IntMap.t ;
     mutable next_fresh_id: int ;
+    mutable last_root_matching_time: float ;
 }
 
 and 'a branchings_memory = 
@@ -84,6 +85,21 @@ let pp_partial_matching f pm =
     pp_int_map pp_tree f pm.watched ;
     pp_dline f ;
     fprintf f "@]"
+
+let pp_complete_matching f cm = 
+    fprintf f "@[<v>" ;
+    fprintf f "Agents: %a@;" (pp_array pp_int) cm.cm_agents ;
+    cm.cm_events |> Array.iter (fun em ->
+        fprintf f "%a@;" pp_event_matching em ;
+    ) ;
+    fprintf f "@]"
+
+let pp_complete_matchings f cms = 
+    cms |> Array.iter (fun cm ->
+        fprintf f "%a" pp_complete_matching cm ;
+        pp_dline f ;
+    )
+
 
 end
 
@@ -213,7 +229,8 @@ let init_env model query =
           subscribed = ValMap.empty ;
         }) ;
       partial_matchings = IntMap.empty ;
-      next_fresh_id = 0 }
+      next_fresh_id = 0 ;
+      last_root_matching_time = neg_infinity }
 
 
 
@@ -320,6 +337,14 @@ let new_partial_matching env root_id ms =
     update_partial_matching env ms id
 
 
+let is_delay_respected env cur_time = 
+    match env.query.every_clause with
+    | None -> true
+    | Some delta -> 
+        (*Printf.printf "%f, %f, %f\n" (cur_time -. env.last_root_matching_time) delta env.last_root_matching_time;*)
+        cur_time -. env.last_root_matching_time >= delta
+
+
 let first_pass_process_step query window env = 
     query.pattern.events |> Array.iteri (fun ev_id ev ->
         match recorder_status env ev_id with
@@ -338,8 +363,13 @@ let first_pass_process_step query window env =
           begin
             match Event_matcher.match_event ev window with
             | Some ms -> 
-                (*Format.printf "%a\n" Dbg.pp_event_matchings ms ; *) 
-                new_partial_matching env ev_id ms
+                let cur_time = ms.common_to_all.ev_time in
+                if is_delay_respected env cur_time then
+                begin
+                    new_partial_matching env ev_id ms ;
+                    env.last_root_matching_time <- cur_time
+                end
+
             | None -> ()
           end
     ) ;
@@ -377,7 +407,7 @@ let extract_complete_matchings env =
 (* Second pass                                                               *)
 (*****************************************************************************)
 
-(*  Forget all themeasures taken for a given matching so as to free memory. 
+(*  Forget all the measures taken for a given matching so as to free memory. 
     This can be called safely after the corresponding action has been executed.
 *)
 
@@ -545,6 +575,11 @@ let eval_queries
 
     List.iter print_legend qs ;
 
+    let n_matchings = Utils.sum_array (Array.map (Array.length) cms) in
+
+    (* cms |> Array.iter (Dbg.pp_complete_matchings Format.std_formatter) ; *)
+
+    Printf.printf "Possible matchings found: %d\n" n_matchings;
     print_endline "Executing actions..." ;
 
     ignore @@ Streaming.fold_trace
