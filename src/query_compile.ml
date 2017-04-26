@@ -396,7 +396,10 @@ let rec compile_expr env in_action cur_ev_id e =
             let ags = List.map (tr_agent_kind env) ag_kinds in
             E (Unop (Count_agents ags, arg), Tuple)
         | _ -> failwith "`count` expects a set of agents as its second argument."
-    end        
+        end
+    | Ast.Agent_id ag_name ->
+        E (Agent_id (tr_agent env ag_name), Int)
+
 
 (*****************************************************************************)
 (* Compile mixture patterns                                                  *)

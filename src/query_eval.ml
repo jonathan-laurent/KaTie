@@ -202,6 +202,10 @@ let cm_get_measure cm ev_id m_id =
     try IntMap.find m_id cm.cm_events.(ev_id).specific.recorded_measures
     with Not_found -> None
 
+let cm_get_agent_id cm qid = 
+    try Some (cm.cm_agents.(qid))
+    with _ -> assert false
+
 let cm_set_measure cm ev_id m_id v = 
     let ev = cm.cm_events.(ev_id) in
     let recorded_measures = IntMap.add m_id v ev.specific.recorded_measures in
@@ -341,7 +345,6 @@ let is_delay_respected env cur_time =
     match env.query.every_clause with
     | None -> true
     | Some delta -> 
-        (*Printf.printf "%f, %f, %f\n" (cur_time -. env.last_root_matching_time) delta env.last_root_matching_time;*)
         cur_time -. env.last_root_matching_time >= delta
 
 
@@ -422,13 +425,14 @@ let free_cm_memory (cm : complete_matching) =
 
 let execute_action (q : query) (fmt : Format.formatter) (cm : complete_matching) =
     let read_measure (ev_id, measure_id) = cm_get_measure cm ev_id measure_id in
+    let read_id = cm_get_agent_id cm in
     let rec aux = function
         | Print e ->
-            let _ = Expr_eval.eval_expr_to_value read_measure e |> map_option (fun v ->
+            let _ = Expr_eval.eval_expr_to_value read_measure read_id e |> map_option (fun v ->
                 Format.fprintf fmt "%a@;" Expr_eval.print_value v ) in 
             ()
         | If (cond, action) -> 
-            begin match Expr_eval.eval_expr read_measure cond with
+            begin match Expr_eval.eval_expr read_measure read_id cond with
             | Some b -> if b then aux action
             | None -> failwith "Invalid conditional."
             end

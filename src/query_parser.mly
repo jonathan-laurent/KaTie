@@ -28,7 +28,8 @@ let make_agent ag_mod id1 id2_opt ag_sites =
 %token OP_PAR CL_PAR OP_SQPAR CL_SQPAR OP_CURL CL_CURL BAR CL_PAT
 %token LINK TILDE
 %token MATCH DO AND WITH LAST FIRST BEFORE AFTER WHEN
-%token TIME NPHOS RULE COUNT COMPONENT DIST SIZE INT_STATE SIMILARITY
+%token TIME NPHOS RULE COUNT COMPONENT DIST SIZE 
+%token INT_STATE SIMILARITY AGENT_ID
 %token EVERY SECONDS
 
 %token <int> INT
@@ -157,6 +158,7 @@ expr:
     { State_measure (st_expr, Component id) }
   | INT_STATE st_expr=st_measure_annot OP_CURL quark=quark CL_CURL
     { State_measure (st_expr, Int_state quark) }
+  | AGENT_ID OP_CURL id=ID CL_CURL { Agent_id id }
 
 
 

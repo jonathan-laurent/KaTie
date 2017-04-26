@@ -116,6 +116,7 @@ let rec expr_measures : type a . a expr -> (int * int) list
   | Unop (_, e) -> expr_measures e
   | Binop (lhs, _, rhs) -> expr_measures lhs @ expr_measures rhs
   | Measure m -> [m]
+  | Agent_id _ -> []
 
 let pp_int2 f (x, y) = fprintf f "(%d, %d)" x y
 

@@ -82,7 +82,7 @@ and _ expr_body =
     | Measure : (event_id * measure_id) -> 'a expr_body 
     | Binop   : 'a expr * ('a, 'b, 'c) binop * 'b expr -> 'c expr_body
     | Unop    : ('a, 'b) unop * 'a expr -> 'b expr_body
-
+    | Agent_id : agent_id -> int expr_body
 
 
 (* Measures *)

@@ -56,6 +56,7 @@ type expr =
   | String_const of string
   | State_measure of state_expr * state_measure
   | Event_measure of event_expr * event_measure
+  | Agent_id of identifier
 
 type rule_constraint = Rule of string list | Obs of string
 

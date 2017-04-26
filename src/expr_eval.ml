@@ -75,27 +75,29 @@ let count_agents ags cc =
     
 
 type measures_provider = ((event_id * measure_id) -> value option)
+type agent_ids_provider = int -> int option
 
-let rec eval_expr : type a. measures_provider -> a expr -> a option =
-    fun read_measure expr ->
+let rec eval_expr : type a. measures_provider -> agent_ids_provider -> a expr -> a option =
+    fun read_measure read_id expr ->
     match expr with
     | (Const x, _) -> Some x
     | (Measure id, ty) -> bind_option (read_measure id) (cast_to ty)
     | (Binop (lhs_e, op, rhs_e), ty) -> 
-        begin match eval_expr read_measure lhs_e, op, eval_expr read_measure rhs_e with
+        begin match eval_expr read_measure read_id lhs_e, op, eval_expr read_measure read_id rhs_e with
         | Some lhs, Binop op, Some rhs -> Some (op lhs rhs)
         | Some lhs, Eq, Some rhs -> Some (eval_eq (expr_type lhs_e) lhs rhs)   
         | Some lhs, Concat, Some rhs -> Some (eval_concat (expr_type lhs_e) lhs (expr_type rhs_e) rhs)
         | _ -> Printf.printf "Failed to eval expr.\n" ; None
         end
-    | (Unop (Unop op, arg), ty) -> map_option op (eval_expr read_measure arg)
+    | (Unop (Unop op, arg), ty) -> map_option op (eval_expr read_measure read_id arg)
     | (Unop (Count_agents ags, arg), ty) ->
-        let cc = eval_expr read_measure arg in
+        let cc = eval_expr read_measure read_id arg in
         cc |> Utils.map_option (count_agents ags)
+    | (Agent_id qid, _) -> read_id qid
 
-let eval_expr_to_value : type a. measures_provider -> a expr -> value option =
-    fun read_measure expr ->
-    map_option (fun v -> Val (v, expr_type expr)) (eval_expr read_measure expr)
+let eval_expr_to_value : type a. measures_provider -> agent_ids_provider -> a expr -> value option =
+    fun read_measure read_id expr ->
+    map_option (fun v -> Val (v, expr_type expr)) (eval_expr read_measure read_id expr)
 
 let rec print_list print_el fmt = function
     | [] -> ()

@@ -53,14 +53,12 @@ let main () =
   
   if !debug_mode then Printexc.record_backtrace true ;
 
-  let () =
-    Arg.parse
-      options
-      (fun _ -> ())
-      usage in
+  Arg.parse options (fun _ -> ()) usage ;
+
   if !trace_file = "" || !query_file = "" then
     Arg.usage options usage
-  else
+  else begin
+
     let model = Streaming.extract_env !trace_file in
 
     let queries = parse_and_compile_queries model !query_file in
@@ -89,6 +87,8 @@ let main () =
     Query_eval.eval_queries model queries !trace_file ;
     fmts |> List.iter (fun (_, fmt) -> Format.fprintf fmt "@]@.") ;
     print_endline "Done."
+    
+  end
 
 
 let err_formatter = Format.formatter_of_out_channel stderr
@@ -98,4 +98,5 @@ let () =
   with
   | Error e -> Tql_error.print_error err_formatter e
   | Failure msg -> prerr_endline ("[Fatal error] " ^ msg)
-  | ExceptionDefn.Malformed_Decl msg -> prerr_endline ("[KaSim error] " ^ fst msg)
+  | ExceptionDefn.Malformed_Decl msg -> 
+    prerr_endline ("[KaSim error] " ^ fst msg)
