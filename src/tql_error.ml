@@ -3,6 +3,7 @@ open Format
 type error_kind = 
     | Lexer_error
     | Parse_error
+    | File_not_found of string
 
 type error = error_kind * Lexing.position option
 
@@ -15,6 +16,7 @@ let error ek = Error (ek, None)
 let print_error_kind f = function
     | Lexer_error -> fprintf f "Unknown symbol."
     | Parse_error -> fprintf f "Parse error."
+    | File_not_found fn -> fprintf f "File '%s' not found." fn
 
 
 let print_opt_pos f = function

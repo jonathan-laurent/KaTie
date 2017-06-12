@@ -1,7 +1,7 @@
 BIN=query
 
 all:
-	ocamlbuild main.native
+	ocamlbuild -use-ocamlfind main.native
 	mv main.native $(BIN)
 
 clean:

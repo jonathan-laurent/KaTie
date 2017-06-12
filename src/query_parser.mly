@@ -192,8 +192,11 @@ query_legend: OP_CURL arg=separated_list(COMMA, STRING) CL_CURL { arg }
 
 query_header: 
   | {fun q -> q}
+  | QUERY {fun q -> q}
   | QUERY name=STRING legend=option(query_legend)
     {fun q -> {q with query_name = Some name ; legend}}
+  | QUERY legend=query_legend
+    {fun q -> {q with legend = Some legend}}
 
 when_clause: WHEN e=expr { e }
 

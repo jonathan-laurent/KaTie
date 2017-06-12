@@ -21,18 +21,23 @@ let options = [
   "--debug", Arg.Set debug_mode, "set debug mode" ]
 
 let parse_and_compile_queries model file = 
+
   try
-    let oc = open_in file in
-    let lexbuf = Lexing.from_channel oc in
+
+  let ic = open_in file in
+  let lexbuf = Lexing.from_channel ic in
+
+  begin try
     let asts = Query_parser.queries Query_lexer.token lexbuf in
     let queries = List.map (Query_compile.compile model) asts in
-    close_in oc ;
+    close_in ic ;
     queries
-
-  with 
-    | Sys_error _ -> failwith "File not found."
+  with
     | Query_parser.Error -> 
-      raise (error Parse_error)
+      raise (error_at (Lexing.lexeme_start_p lexbuf) Parse_error)
+  end
+
+  with Sys_error _ -> raise (error (File_not_found file))
 
 
 let with_file file f = 
