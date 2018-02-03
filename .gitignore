@@ -1,4 +1,6 @@
+.DS_Store
 *.byte
 *.native
 *~
 _build/
+arch/*

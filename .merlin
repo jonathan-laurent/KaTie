@@ -1,0 +1,5 @@
+FLG -w +a-4 -strict-formats -safe-string
+PKG KappaLib
+
+S src
+B _build/src/

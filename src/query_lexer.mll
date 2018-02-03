@@ -65,7 +65,7 @@ rule token = parse
   | space {token lexbuf}
   | "\n" {new_line lexbuf; token lexbuf}
   | "/*" {comment true lexbuf}
-  | "#" {comment false lexbuf}
+  | "//" {comment false lexbuf}
 
   | "|]" {CL_PAT}
 
@@ -79,10 +79,10 @@ rule token = parse
   | "[" {OP_SQPAR}
   | "]" {CL_SQPAR}
   | "|" {BAR}
-  | "!" {LINK}
-  | "~" {TILDE}
+  | "/" {SLASH}
 
   | "=" {EQ}
+  | "#" {SHARP}
   | ":" {COLON}
   | "," {COMMA}
   | "." {DOT}

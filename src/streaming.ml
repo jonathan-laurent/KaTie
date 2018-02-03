@@ -26,7 +26,7 @@ let extract_env (fname : string) =
 
   let ident = JS.read_ident lex_st lex_buf in
 
-  assert (ident = "env") ;
+  assert (ident = "model") ;
   JS.read_space lex_st lex_buf ;
   JS.read_colon lex_st lex_buf ;
   JS.read_space lex_st lex_buf ;
@@ -64,7 +64,7 @@ let basic_fold_trace (type acc)
 
   let ident = JS.read_ident lex_st lex_buf in
 
-  assert (ident = "env") ;
+  assert (ident = "model") ;
   JS.read_space lex_st lex_buf ;
   JS.read_colon lex_st lex_buf ;
   JS.read_space lex_st lex_buf ;
@@ -89,7 +89,8 @@ let basic_fold_trace (type acc)
         (fun (state, acc) x y ->
            let step = Trace.step_of_yojson (JS.read_json x y) in
            let state, _ = Replay.do_step (Model.signatures env) state step in
-            Progress_report.tick 
+            Progress_report.tick
+                ~efficiency:false
                 state.Replay.time 0. state.Replay.event 0. progress ;
            state, step_f step state acc)
         (Replay.init_state ~with_connected_components:update_ccs, init) lex_st lex_buf in

@@ -26,7 +26,7 @@ let make_agent ag_mod id1 id2_opt ag_sites =
 %token EQ PLUS MINUS MULT GT GE LT LE
 %token NOT LOGIC_AND LOGIC_OR
 %token OP_PAR CL_PAR OP_SQPAR CL_SQPAR OP_CURL CL_CURL BAR CL_PAT
-%token LINK TILDE
+%token SLASH SHARP
 %token MATCH DO AND WITH LAST FIRST BEFORE AFTER WHEN
 %token TIME NPHOS RULE COUNT COMPONENT DIST SIZE 
 %token INT_STATE SIMILARITY AGENT_ID
@@ -69,7 +69,7 @@ agent_sites:
   | { [] }
 
 agent:
-  ag_mod=option(ag_mod) 
+  ag_mod=option(ag_mod)
   id1=ID
   id2_opt=option(agent_id2_opt)
   ag_sites=agent_sites
@@ -89,23 +89,31 @@ site:
     { intst (bond (make_site name)) }
 
 lnk_state_attr:
-  | LINK bond=lnk_state 
-    { fun s -> { s with site_lnk_test = Some bond }  }
-  | LINK OP_SQPAR bond=lnk_state CL_SQPAR 
-    { fun s -> { s with site_lnk_mod = Some bond }  }
+  | OP_SQPAR bond=lnk_state option(SLASH) CL_SQPAR
+    { fun s -> { s with site_lnk_test = Some bond } }
+  | OP_SQPAR option(SHARP) SLASH bond=lnk_state CL_SQPAR
+    { fun s -> { s with site_lnk_mod = Some bond } }
+  | OP_SQPAR pre=lnk_state SLASH post=lnk_state CL_SQPAR
+    { fun s -> { s with
+      site_lnk_test = Some pre ; 
+      site_lnk_mod = Some post } }
 
 lnk_state:
   | DOT { Free }
   | bond=INT { Bound bond }
   | UNDERSCORE { Bound_to_any }
-  | site_name=ID DOT agent_kind=ID 
+  | site_name=ID DOT agent_kind=ID
     { Bound_to_type (agent_kind, site_name) }
 
 int_state_attr:
-  | TILDE st=string_or_int 
+  | OP_CURL st=string_or_int option(SLASH) CL_CURL
     { fun s -> { s with site_int_test = Some st } }
-  | TILDE OP_SQPAR st=string_or_int CL_SQPAR 
+  | OP_CURL option(SHARP) SLASH st=string_or_int CL_CURL
     { fun s -> { s with site_int_mod = Some st } }
+  | OP_CURL pre=string_or_int SLASH post=string_or_int CL_CURL
+    { fun s -> { s with 
+      site_int_test = Some pre ; 
+      site_int_mod = Some post } }
 
 
 %inline unop: NOT { Not }
