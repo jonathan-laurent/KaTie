@@ -1,4 +1,4 @@
-FLG -w +a-4 -strict-formats -safe-string
+FLG -w +a-4-41-42 -strict-formats -safe-string
 PKG KappaLib
 
 S src

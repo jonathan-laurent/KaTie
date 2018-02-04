@@ -84,7 +84,6 @@ and _ expr_body =
     | Unop    : ('a, 'b) unop * 'a expr -> 'b expr_body
     | Agent_id : agent_id -> int expr_body
 
-
 (* Measures *)
 
 type _ event_measure = 
@@ -96,6 +95,7 @@ type _ state_measure =
     | Count : pattern -> int state_measure
     | Component : agent_id -> agent_set state_measure
     | Nphos : agent_id -> int state_measure
+    | Snapshot : string state_measure
 
 type measure = {
     used_in_pattern : bool ;

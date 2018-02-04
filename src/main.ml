@@ -18,7 +18,10 @@ let options = [
   "-t", Arg.Set_string trace_file, "trace file" ;
   "-o", Arg.Set_string default_out_file, 
   "default output file (if not specified: `output.csv`)" ;
-  "--debug", Arg.Set debug_mode, "set debug mode" ]
+  "--debug", Arg.Set debug_mode, "set debug mode" ;
+  "--snapshots-names", Arg.String Tql_output.set_snapshots_name_format,
+  "name format of generated snapshot files (default: snapshot.%.json)"
+  ]
 
 let parse_and_compile_queries model file = 
 

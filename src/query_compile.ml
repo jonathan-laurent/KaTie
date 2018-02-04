@@ -195,7 +195,7 @@ let eval_st_expr env cur_ev_id = function
     | Ast.Before ev_expr -> eval_ev_expr env cur_ev_id ev_expr, Before
     | Ast.After  ev_expr -> eval_ev_expr env cur_ev_id ev_expr, After
 
-let register_measure in_action cur_ev_id ev_id ev measure_descr ty = 
+let register_measure in_action _cur_ev_id ev_id ev measure_descr ty = 
     let used_in_pattern = not in_action in
     let m_id = PreArray.add ev.tmp_ev_measures 
         { used_in_pattern ; measure_descr } in
@@ -249,6 +249,7 @@ let compile_state_measure env in_action cur_ev_id st_expr m =
         | Ast.Int_state quark ->
             let quark = tr_quark env quark in
             State_measure (m_time, String, Int_state quark), ST String
+        | Ast.Snapshot -> State_measure (m_time, String, Snapshot), ST String
     in
    register_measure in_action cur_ev_id ev_id ev measure_descr ty
 
@@ -378,10 +379,10 @@ let rec compile_expr env in_action cur_ev_id e =
         let E lhs = compile_expr env in_action cur_ev_id lhs in
         let E rhs = compile_expr env in_action cur_ev_id rhs in
         begin match same_type lhs rhs with
-        | Some (Same_type (lhs, rhs, ty)) -> combine_binop op lhs rhs
+        | Some (Same_type (lhs, rhs, _ty)) -> combine_binop op lhs rhs
         | None -> failwith "Type error."
         end
-    | Ast.State_measure (st, m) -> 
+    | Ast.State_measure (st, m) ->
         compile_state_measure env in_action cur_ev_id st m
     | Ast.Event_measure (ev, m) ->
         compile_event_measure env in_action cur_ev_id ev m
@@ -423,7 +424,7 @@ let compile_mixture_pattern env ags =
 
     let bonds : (int, site) Hashtbl.t = Hashtbl.create 10 in
 
-    let tests = fold_sites (fun acc ag_id ag_kind_id ag site_id ast_site ->
+    let tests = fold_sites (fun acc ag_id ag_kind_id _ag site_id ast_site ->
         let site = (ag_id, site_id) in
         let acc = match ast_site.Ast.site_int_test with
             | None -> acc
@@ -452,7 +453,7 @@ let compile_mixture_pattern env ags =
 
     Hashtbl.reset bonds ;
 
-    let mods = fold_sites (fun acc ag_id ag_kind_id ag site_id ast_site ->
+    let mods = fold_sites (fun acc ag_id ag_kind_id _ag site_id ast_site ->
         let site = (ag_id, site_id) in
         let acc = match ast_site.Ast.site_int_mod with
             | None -> acc
@@ -601,7 +602,7 @@ let compile_action env when_clause = function
         begin match when_clause with
         | None -> Print e
         | Some (E (b, Bool)) -> If ((b, Bool), Print e)
-        | Some (E (b, _)) -> 
+        | Some (E (_, _)) -> 
             failwith "The when clause should be of type `bool`."
         end
 

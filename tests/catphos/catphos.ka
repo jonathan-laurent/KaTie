@@ -23,4 +23,4 @@
 %init: 3 * 'C0' S(x{u})
 %init: 1 * 'C0' K(x{p})
 
-%mod: |S(x{p})| > 5 * |S(x{u})| do $STOP ;
+%mod: |S(x{p})| > |S(x{u})| do $STOP ;

@@ -31,6 +31,7 @@ let make_agent ag_mod id1 id2_opt ag_sites =
 %token TIME NPHOS RULE COUNT COMPONENT DIST SIZE 
 %token INT_STATE SIMILARITY AGENT_ID
 %token EVERY SECONDS
+%token SNAPSHOT
 
 %token <int> INT
 %token <float> FLOAT
@@ -166,6 +167,8 @@ expr:
     { State_measure (st_expr, Component id) }
   | INT_STATE st_expr=st_measure_annot OP_CURL quark=quark CL_CURL
     { State_measure (st_expr, Int_state quark) }
+  | SNAPSHOT st_expr=st_measure_annot
+    { State_measure (st_expr, Snapshot) }
   | AGENT_ID OP_CURL id=ID CL_CURL { Agent_id id }
 
 

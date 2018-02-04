@@ -42,6 +42,20 @@ let int_state model ((ag_id, ag_kind), ag_site) state =
     let signature = Model.signatures model in
     Some (Val (Format.asprintf "%a" (Signature.print_internal_state signature ag_kind ag_site) st, String))
 
+let take_snapshot model state file =
+    let graph = state.Replay.graph in
+    let snapshot = {
+        Data.snapshot_file = file ;
+        Data.snapshot_event = state.Replay.event ;
+        Data.snapshot_time = state.Replay.time  ;
+        Data.snapshot_agents =
+            Edges.build_snapshot (Model.signatures model) graph;
+        Data.snapshot_tokens = [||] } in
+    let oc = open_out file in
+    let outbuf = Bi_outbuf.create_channel_writer oc in
+    Data.write_snapshot outbuf snapshot ;
+    Bi_outbuf.flush_channel_writer outbuf ;
+    close_out oc
 
 let take_measures 
     (model : Model.t) 
@@ -67,8 +81,12 @@ let take_measures
                 | Nphos _ -> None
                 | Int_state ((ag_id, ag_kind), ag_site) ->
                     int_state model ((ag_matchings.(ag_id), ag_kind), ag_site) state
+                | Snapshot ->
+                    let filename = Tql_output.new_snapshot_file () in
+                    take_snapshot model state filename ;
+                    Some (Val (filename, String))
                 end
-            | Event_measure (ty, ev_measure) -> 
+            | Event_measure (_ty, ev_measure) -> 
                 begin match ev_measure with
                 | Time -> time w.state
                 | Rule -> rule_name model w.step

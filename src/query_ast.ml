@@ -41,6 +41,7 @@ type state_measure =
   | Int_state of (identifier * identifier)
   | Component of identifier
   | Nphos of identifier
+  | Snapshot
 
 type event_measure = 
   | Time

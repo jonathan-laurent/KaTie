@@ -8,3 +8,7 @@ query 'unphos.csv'
 match b:[| s:S(d[/1]), k:K(d[/1], x{u}) |]
 and first u:[| s:S(d[/.]) |] after b
 do { time[u] - time[b] }
+
+query 'snapshots.csv'
+match e every 1 seconds
+do { time[e], snapshot[e] }
