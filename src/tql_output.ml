@@ -1,6 +1,7 @@
 let snapshot_prefix = ref "snapshot."
 let snapshot_suffix = ref ".json"
 let snapshot_counter = ref 0
+let snapshots_native_format = ref false
 
 let set_snapshots_name_format fmt =
   snapshot_counter := 0 ;

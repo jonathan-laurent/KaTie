@@ -52,9 +52,16 @@ let take_snapshot model state file =
             Edges.build_snapshot (Model.signatures model) graph;
         Data.snapshot_tokens = [||] } in
     let oc = open_out file in
-    let outbuf = Bi_outbuf.create_channel_writer oc in
-    Data.write_snapshot outbuf snapshot ;
-    Bi_outbuf.flush_channel_writer outbuf ;
+    if !Tql_output.snapshots_native_format then begin
+        let fmt = Format.formatter_of_out_channel oc in
+        Data.print_snapshot fmt snapshot
+    end
+    else begin
+        let outbuf = Bi_outbuf.create_channel_writer oc in
+        Data.write_snapshot outbuf snapshot ;
+        Bi_outbuf.flush_channel_writer outbuf
+    end ;
+    
     close_out oc
 
 let take_measures 
