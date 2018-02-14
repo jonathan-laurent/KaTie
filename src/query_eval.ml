@@ -526,7 +526,7 @@ let eval
     ignore @@ Streaming.fold_trace
         ~update_ccs:true
         ~compute_previous_states:true
-        m trace_file
+        trace_file
         (first_pass_process_step q)
         env ;
 
@@ -537,7 +537,7 @@ let eval
     ignore @@ Streaming.fold_trace
         ~update_ccs:true
         ~compute_previous_states:true
-        m trace_file
+        trace_file
         (second_pass_process_step m q fmt cms)
         acc ;
     Format.fprintf fmt "@]"
@@ -564,7 +564,7 @@ let eval_queries
     ignore @@ Streaming.fold_trace
         ~update_ccs:true
         ~compute_previous_states:false
-        m trace_file
+        trace_file
         step1
         () ;
 
@@ -589,6 +589,6 @@ let eval_queries
     ignore @@ Streaming.fold_trace
         ~update_ccs:true
         ~compute_previous_states:true
-        m trace_file
+        trace_file
         step2
         ()
