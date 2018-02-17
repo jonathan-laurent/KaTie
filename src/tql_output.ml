@@ -12,7 +12,7 @@ let set_snapshots_name_format fmt =
       snapshot_prefix := pre ;
       snapshot_suffix := suf
     end
-  | _ -> ()
+  | _ -> failwith "Illegal snapshots name format."
 
 let new_snapshot_file () =
   let f = Format.asprintf "%s%d%s" 

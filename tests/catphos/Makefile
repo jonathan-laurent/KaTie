@@ -5,7 +5,7 @@ QUERY=query
 all: $(CSV)
 
 $(CSV) : t.json
-	$(QUERY_EXE) -t $< -q $(QUERY) --native-snapshots
+	$(QUERY_EXE) -t $< -q $(QUERY) --native-snapshots --snapshots-names "snapshot.%.ka"
 
 t.json: catphos.ka
 	KaSim --no-log catphos.ka -trace $@
