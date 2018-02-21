@@ -24,7 +24,7 @@ let options = [
   "default output file (if not specified: `output.csv`)" ;
   "--debug", Arg.Set debug_mode, "set debug mode" ;
   "--snapshots-names", Arg.Set_string snapshots_name_format,
-  "name format of generated snapshot files (default: 'snapshot.%.json' or 'snapshot.$.ka')" ;
+  "name format of generated snapshot files (default: 'snapshot.%.json' or 'snapshot.%.ka')" ;
   "--native-snapshots", Arg.Unit native_snapshots,
   "dump snapshot using KaSim's native format"
   ]
