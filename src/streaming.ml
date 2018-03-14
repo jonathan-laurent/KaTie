@@ -24,6 +24,7 @@ let fold_trace
     (type acc)
     ?(update_ccs=true)
     ?(compute_previous_states=true)
+    ?(ignore_init=true)
     (fname : string)
     (step_f : window -> acc -> acc)
     (init : acc)
@@ -34,6 +35,13 @@ let fold_trace
         Replay.init_state ~with_connected_components:update_ccs in
     let state = ref (init_state ()) in
     let step_id = ref (-1) in
+    let initializing = ref true in
+
+    let step_f window acc =
+        if not (Trace.step_is_init window.step) then
+            initializing := false ;
+        if ignore_init && !initializing then acc
+        else step_f window acc in
 
     let process_step model acc step =
         state := Replay.do_step (Model.signatures model) !state step |> fst ;

@@ -11,4 +11,4 @@ do { time[u] - time[b] }
 
 query 'snapshots.csv'
 match e every 1 seconds
-do { time[e], snapshot[e] }
+do { time[e], snapshot[.e] }
