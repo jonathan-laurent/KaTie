@@ -9,6 +9,7 @@ let query_file = ref ""
 let default_out_file = ref "output.csv"
 let debug_mode = ref false
 let snapshots_name_format = ref ""
+let skip_init_events = ref false
 
 let native_snapshots () =
   Tql_output.snapshots_native_format := true
@@ -23,6 +24,7 @@ let options = [
   "-o", Arg.Set_string default_out_file, 
   "default output file (if not specified: `output.csv`)" ;
   "--debug", Arg.Set debug_mode, "set debug mode" ;
+  "--skip-init-events", Arg.Set skip_init_events, "skip INIT events in the trace" ;
   "--snapshots-names", Arg.Set_string snapshots_name_format,
   "name format of generated snapshot files (default: 'snapshot.%.json' or 'snapshot.%.ka')" ;
   "--native-snapshots", Arg.Unit native_snapshots,
@@ -99,7 +101,9 @@ let main () =
       |> List.map (fun (q, f) -> (q, List.assoc f fmts) ) in
 
     fmts |> List.iter (fun (_, fmt) -> Format.fprintf fmt "@[<v>") ;
-    Query_eval.eval_queries model queries !trace_file ;
+    Query_eval.eval_queries 
+      ~skip_init_events:!skip_init_events
+      model queries !trace_file ;
     fmts |> List.iter (fun (_, fmt) -> Format.fprintf fmt "@]@.") ;
     print_endline "Done."
     

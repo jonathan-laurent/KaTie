@@ -24,7 +24,7 @@ let fold_trace
     (type acc)
     ?(update_ccs=true)
     ?(compute_previous_states=true)
-    ?(ignore_init=true)
+    ?(skip_init_events=false)
     (fname : string)
     (step_f : window -> acc -> acc)
     (init : acc)
@@ -40,7 +40,7 @@ let fold_trace
     let step_f window acc =
         if not (Trace.step_is_init window.step) then
             initializing := false ;
-        if ignore_init && !initializing then acc
+        if skip_init_events && !initializing then acc
         else step_f window acc in
 
     let process_step model acc step =
