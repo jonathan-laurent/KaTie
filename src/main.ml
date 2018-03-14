@@ -26,8 +26,9 @@ let options = [
   "--snapshots-names", Arg.Set_string snapshots_name_format,
   "name format of generated snapshot files (default: 'snapshot.%.json' or 'snapshot.$.ka')" ;
   "--native-snapshots", Arg.Unit native_snapshots,
-  "dump snapshot using KaSim's native format"
-  ]
+  "dump snapshot using KaSim's native format" ;
+  "--output-directory", Arg.String Tql_output.set_output_directory ,
+  "set the output directory (default: '.')" ]
 
 let parse_and_compile_queries model file = 
   try
@@ -80,7 +81,7 @@ let main () =
     print_endline "Queries successfully compiled." ;
 
     if !debug_mode then begin
-      with_file "compiled-query" (fun fmt ->
+      with_file (Tql_output.file "compiled-query") (fun fmt ->
         queries |> List.iter (fun q ->
           Debug_pp.pp_query fmt q
         ))
@@ -92,7 +93,7 @@ let main () =
     let fmts = queries
         |> List.map snd
         |> List.sort_uniq compare
-        |> List.map (fun f -> (f, formatter_of_file f)) in
+        |> List.map (fun f -> (f, formatter_of_file (Tql_output.file f))) in
         
     let queries = queries
       |> List.map (fun (q, f) -> (q, List.assoc f fmts) ) in
