@@ -25,9 +25,9 @@ let make_agent ag_mod id1 id2_opt ag_sites =
 %token COLON DOT COMMA UNDERSCORE
 %token EQ PLUS MINUS MULT GT GE LT LE
 %token NOT LOGIC_AND LOGIC_OR
-%token OP_PAR CL_PAR OP_SQPAR CL_SQPAR OP_CURL CL_CURL BAR CL_PAT
+%token OP_PAR CL_PAR OP_SQPAR CL_SQPAR OP_CURL CL_CURL BAR
 %token SLASH SHARP
-%token MATCH DO AND WITH LAST FIRST BEFORE AFTER WHEN
+%token MATCH RETURN AND WITH LAST FIRST BEFORE AFTER WHEN
 %token TIME NPHOS RULE COUNT COMPONENT DIST SIZE INIT_EVENT
 %token INT_STATE SIMILARITY AGENT_ID
 %token EVERY SECONDS
@@ -187,13 +187,13 @@ ev_name: id=ID COLON { id }
 with_clause: WITH e=expr { e }
 
 rule_constraint: 
-  | rs=separated_nonempty_list(COMMA, STRING) { Rule rs }
+  | rs=separated_nonempty_list(BAR, STRING) { Rule rs }
 
 ev_pattern: 
   | event_id=option(ev_name)
-    OP_SQPAR rule_constraint=option(rule_constraint) BAR 
+    OP_CURL rule_constraint=option(rule_constraint)
     main_pattern=mixture_pat
-    CL_PAT
+    CL_CURL
     with_clause=option(with_clause)
     { {event_id; with_clause; main_pattern; rule_constraint} }
   | id=ID with_clause=option(with_clause)
@@ -223,7 +223,7 @@ query:
   header=query_header pattern=pattern
   every_clause=option(every_clause)
   when_clause=option(when_clause)
-  DO OP_CURL action=action CL_CURL
+  RETURN action=action
   { header {pattern; when_clause; action; query_name=None; legend=None; every_clause} }
 
 single_query: q=query EOF { q }

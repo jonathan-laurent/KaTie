@@ -9,7 +9,7 @@ open Query_parser
 open Tql_error
 
 let keywords_list = 
-    [("match", MATCH); ("do", DO); ("yield", DO); ("and", AND);
+    [("match", MATCH); ("return", RETURN); ("do", RETURN); ("and", AND);
      ("with", WITH); ("last", LAST); ("first", FIRST); ("when", WHEN);
      ("before", BEFORE); ("after", AFTER); 
      ("time", TIME); ("nphos", NPHOS); ("rule", RULE); ("count", COUNT);
@@ -67,8 +67,6 @@ rule token = parse
   | "\n" {new_line lexbuf; token lexbuf}
   | "/*" {comment true lexbuf}
   | "//" {comment false lexbuf}
-
-  | "|]" {CL_PAT}
 
   | "&&" {LOGIC_AND}
   | "||" {LOGIC_OR}
