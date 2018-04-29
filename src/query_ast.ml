@@ -46,6 +46,7 @@ type state_measure =
 type event_measure = 
   | Time
   | Rule
+  | Init_event
 
 type expr = 
   | Unop of unop * expr

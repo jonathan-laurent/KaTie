@@ -208,7 +208,8 @@ let compile_event_measure env in_action cur_ev_id ev_expr m =
     let measure_descr, ST ty = 
         match m with
         | Ast.Time -> Event_measure (Float, Time), ST Float
-        | Ast.Rule -> Event_measure (String, Rule), ST String in
+        | Ast.Rule -> Event_measure (String, Rule), ST String
+        | Ast.Init_event -> Event_measure (Bool, Init_event), ST Bool in
     register_measure in_action cur_ev_id ev_id ev measure_descr ty
 
 
@@ -252,7 +253,6 @@ let compile_state_measure env in_action cur_ev_id st_expr m =
         | Ast.Snapshot -> State_measure (m_time, String, Snapshot), ST String
     in
    register_measure in_action cur_ev_id ev_id ev measure_descr ty
-
 
 
 (*****************************************************************************)
@@ -366,7 +366,7 @@ let rec compile_expr env in_action cur_ev_id e =
     | Ast.Unop (Ast.Not, arg_ast) ->
         let E arg = compile_expr env in_action cur_ev_id arg_ast in
         begin match expr_ty arg with
-        | Int -> E (Unop (Unop expr_not, arg), Int)
+        | Bool -> E (Unop (Unop not, arg), Bool)
         | _ -> assert false
     end
     | Ast.Unop (Ast.Size, arg_ast) ->

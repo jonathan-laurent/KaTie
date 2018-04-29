@@ -21,9 +21,14 @@ let print_type fmt t = Format.fprintf fmt "%s" (string_of_type t)
 let print_value_type fmt = function
     | Val (_x, t) -> print_type fmt t
 
+let bool_to_int = function
+    | true  -> 1
+    | false -> 0
 
 let cast_to (type a) (t : a expr_type) (v : value) : a option =
     match t, v with
+    | Bool,      Val (x, Bool)      -> Some x
+    | Int,       Val (x, Bool)      -> Some (bool_to_int x)
     | Int,       Val (x, Int)       -> Some x
     | Float,     Val (x, Float)     -> Some x
     | String,    Val (x, String)    -> Some x

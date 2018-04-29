@@ -75,7 +75,7 @@ let take_measures
     let take_measure m_id {measure_descr;_} =
         let v = 
             match measure_descr with
-            | State_measure (time, ty, st_measure) ->
+            | State_measure (time, _ty, st_measure) ->
                 let state = 
                     begin match time with
                     | Before -> w.previous_state
@@ -97,6 +97,7 @@ let take_measures
                 begin match ev_measure with
                 | Time -> time w.state
                 | Rule -> rule_name model w.step
+                | Init_event -> Some (Val (Trace.step_is_init w.step, Bool))
                 end in
             set_measure m_id v
          in

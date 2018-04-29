@@ -89,6 +89,7 @@ and _ expr_body =
 type _ event_measure = 
     | Time : float event_measure
     | Rule : string event_measure
+    | Init_event : bool event_measure
 
 type _ state_measure = 
     | Int_state : (Agent.t * site_name) -> string state_measure
@@ -151,7 +152,7 @@ type ('a, 'b) tree = Tree of 'a * ('b * ('a, 'b) tree) list
     pattern. *)
 type matching_tree = (event_id, defining_relation) tree
 
-type trace_pattern = { 
+type trace_pattern = {
     agents : agent_kind array ;
     events : event array ;
     traversal_tree : matching_tree ;

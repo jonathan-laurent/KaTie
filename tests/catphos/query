@@ -1,6 +1,6 @@
 query 'phos.csv'
 match c:[| +s:S |]
-and  first b:[| s:S(d[/1]), k:K(d[/1], x{p}) |] after c
+and first b:[| s:S(d[#/1]), k:K(d[#/1], x{p}) |] after c
 and first u:[| s:S(d[/.]) |] after b
 do { time[u] - time[b] }
 
@@ -9,6 +9,6 @@ match b:[| s:S(d[/1]), k:K(d[/1], x{u}) |]
 and first u:[| s:S(d[/.]) |] after b
 do { time[u] - time[b] }
 
-query 'snapshots.csv'
-match e every 1 seconds
-do { time[e], snapshot[.e] }
+#query 'snapshots.csv'
+#match e with (not init_event[e]) every 1 seconds
+#do { time[e], snapshot[.e] }

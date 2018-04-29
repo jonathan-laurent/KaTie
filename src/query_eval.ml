@@ -372,11 +372,11 @@ let first_pass_process_step query window env =
                     new_partial_matching env ev_id ms ;
                     env.last_root_matching_time <- cur_time
                 end
-
             | None -> ()
           end
     ) ;
     env
+
 
 let extract_complete_matchings env =
 
@@ -413,7 +413,6 @@ let extract_complete_matchings env =
 (*  Forget all the measures taken for a given matching so as to free memory.
     This can be called safely after the corresponding action has been executed.
 *)
-
 let free_cm_memory (cm : complete_matching) =
     for i = 0 to Array.length cm.cm_events - 1 do
         let ev = cm.cm_events.(i) in
