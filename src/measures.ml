@@ -5,15 +5,21 @@
 open Query
 open Streaming
 
-let rule_name model = function
-    | Trace.Rule (r, _, _) -> 
-        let name = Format.asprintf "%a" (Model.print_rule ~env:model) r in
-        Some (Val (name, String))
-    | _ -> None
+let rule_name model = 
+    let ret s = Some (Val (s, String)) in
+    function
+        | Trace.Rule (r, _, _) -> 
+            let name = Format.asprintf "%a" (Model.print_rule ~env:model) r in
+            ret name
+        | Trace.Init  _ -> ret "_init_"
+        | Trace.Dummy _ -> ret "_dummy_"
+        | Trace.Subs  _ -> ret "_subs_"
+        | Trace.Pert  _ -> ret "_pert_"
+        | Trace.Obs   _ -> ret "_obs_"
 
 let component ag_id state = 
     match state.Replay.connected_components with
-    | None -> None
+    | None -> Printf.printf "No connected component information available" ; None
     | Some ccs -> 
         let cc_id = Edges.get_connected_component ag_id state.Replay.graph in
         begin match Utils.bind_option cc_id (fun cc_id -> Mods.IntMap.find_option cc_id ccs) with

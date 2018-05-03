@@ -14,7 +14,7 @@ let make_site site_name = {
 
 let make_agent ag_mod id1 id2_opt ag_sites =
   match id2_opt with
-  | None -> 
+  | None ->
     { ag_constr = None ; ag_kind = id1 ; ag_mod ; ag_sites}
   | Some id2 ->
     { ag_constr = Some id1 ; ag_kind = id2 ; ag_mod ; ag_sites}

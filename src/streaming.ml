@@ -55,7 +55,7 @@ let fold_trace
                 previous_state ;
                 state = !state ;
                 step_id = !step_id ;
-            } in step_f window acc 
+            } in step_f window acc
         | Some (previous_state, last_step) ->
             let previous_state, _ = 
                 Replay.do_step (Model.signatures model) previous_state last_step in

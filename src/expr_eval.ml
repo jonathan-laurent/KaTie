@@ -92,7 +92,7 @@ let rec eval_expr : type a. measures_provider -> agent_ids_provider -> a expr ->
         | Some lhs, Binop op, Some rhs -> Some (op lhs rhs)
         | Some lhs, Eq, Some rhs -> Some (eval_eq (expr_type lhs_e) lhs rhs)   
         | Some lhs, Concat, Some rhs -> Some (eval_concat (expr_type lhs_e) lhs (expr_type rhs_e) rhs)
-        | _ -> Printf.printf "Failed to eval expr.\n" ; None
+        | None, _, _ | _, _, None -> Printf.printf "Failed to eval expr.\n" ; None
         end
     | (Unop (Unop op, arg), ty) -> map_option op (eval_expr read_measure read_id arg)
     | (Unop (Count_agents ags, arg), ty) ->

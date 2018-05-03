@@ -563,7 +563,7 @@ let eval_queries
 
     ignore @@ Streaming.fold_trace
         ~update_ccs:true
-        ~compute_previous_states:false
+        ~compute_previous_states:true
         ~skip_init_events
         trace_file
         step1

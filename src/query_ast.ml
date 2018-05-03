@@ -12,7 +12,7 @@ type site = {
   site_int_mod  : string option ;
 }
 
-and lnk_state = 
+and lnk_state =
   | Free 
   | Bound of int 
   | Bound_to_type of (string * string) (* agent kind, site name *)
