@@ -1,13 +1,7 @@
-Kappa Trace Query Engine
+# Kappa Trace Query Language
 
----
-
-In order to compile, you need to `opam pin --dev add KaSim` [1] and
-you can then `make`. This will generate a `query` executable, which
-can be used as follows:
-`./query -t <your JSON trace file> -q <your query file>`
-
----
-
-[1] KaSim requires Ocaml >= 4.02.3. Opam will take care of installing
-other dependencies.
+Implementation of the _Kappa Trace Query Language_, as
+introduced in [this
+paper](https://www.cs.cmu.edu/~jlaurent/pdf/papers/cmsb18.pdf)
+and documented on [this
+page](https://www.cs.cmu.edu/~jlaurent/software/katql-documentation.html).
