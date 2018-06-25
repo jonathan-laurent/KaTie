@@ -1,0 +1,72 @@
+%var: 'γf' 1.0e-4
+%var: 'γr' 1.0e-2
+%var: 'γu' 1.0e-2
+%var: 'γc' 1.0
+%agent: PP1(bs, c)
+%agent: PP2(bs, c)
+%agent: CK1(bs, c)
+%agent: GSK(bs, c)
+%agent: Axn(ez1, ez2, ax1, ax2, sub, apc)
+%agent: APC(ax1, ax2, ax3, apc)
+%agent: Cat(S45{un ph}, T41{un ph}, S37{un ph}, S33{un ph}, axn)
+%init: 100 Axn(), APC()
+%init: 50 PP1(), PP2()
+%init: 10 CK1(), GSK()
+%init: 500 Cat()
+
+Axn(ez1[.]), PP1(bs[.]) <-> Axn(ez1[1]), PP1(bs[1]) @ 'γf', 'γr'
+Axn(ez1[.]), CK1(bs[.]) <-> Axn(ez1[1]), CK1(bs[1]) @ 'γf', 'γr'
+
+Axn(ez2[.]), PP2(bs[.]) <-> Axn(ez2[1]), PP2(bs[1]) @ 'γf', 'γr'
+Axn(ez2[.]), GSK(bs[.]) <-> Axn(ez2[1]), GSK(bs[1]) @ 'γf', 'γr'
+
+Axn(ax1[.]), Axn(ax2[.]) <-> Axn(ax1[1]), Axn(ax2[1]) @ 'γf' {'γu'}, 'γr'
+
+Axn(apc[.]), APC(ax1[.]) <-> Axn(apc[1]), APC(ax1[1]) @ 'γf' {'γu'}, 'γr'
+Axn(apc[.]), APC(ax2[.]) <-> Axn(apc[1]), APC(ax2[1]) @ 'γf' {'γu'}, 'γr'
+Axn(apc[.]), APC(ax3[.]) <-> Axn(apc[1]), APC(ax3[1]) @ 'γf' {'γu'}, 'γr'
+
+APC(apc[.]), APC(apc[.]) <-> APC(apc[1]), APC(apc[1]) @ 'γf' {'γu'}, 'γr'
+
+Cat(axn[.]), Axn(sub[.]) <-> Cat(axn[1]), Axn(sub[1]) @ 'γf', 'γr'
+
+// Phosphorylate / dephosphorylate site 1
+Cat(S45{un}[./1]), CK1(c[./1]) @ 0 {'γc'}
+Cat(S45{un/ph}[1]), CK1(c[1]) @ INF
+Cat(S45{ph}[1/.]), CK1(c[1/.]) @ INF
+
+Cat(S45{ph}[./1]), PP1(c[./1]) @ 0 {'γc'}
+Cat(S45{ph/un}[1]), PP1(c[1]) @ INF
+Cat(S45{un}[1/.]), PP1(c[1/.]) @ INF
+
+// Phosphorylate / dephosphorylate site 2
+Cat(T41{un}[./1], S45{ph}), GSK(c[./1]) @ 0 {'γc'}
+Cat(T41{un/ph}[1]), GSK(c[1]) @ INF
+Cat(T41{ph}[1/.]), GSK(c[1/.]) @ INF
+
+Cat(T41{ph}[./1]), PP2(c[./1]) @ 0 {'γc'}
+Cat(T41{ph/un}[1]), PP2(c[1]) @ INF
+Cat(T41{un}[1/.]), PP2(c[1/.]) @ INF
+
+// Phosphorylate / dephosphorylate site 3
+Cat(S37{un}[./1], T41{ph}), GSK(c[./1]) @ 0 {'γc'}
+Cat(S37{un/ph}[1]), GSK(c[1]) @ INF
+Cat(S37{ph}[1/.]), GSK(c[1/.]) @ INF
+
+Cat(S37{ph}[./1]), PP2(c[./1]) @ 0 {'γc'}
+Cat(S37{ph/un}[1]), PP2(c[1]) @ INF
+Cat(S37{un}[1/.]), PP2(c[1/.]) @ INF
+
+// Phosphorylate / dephosphorylate site 4
+Cat(S33{un}[./1], T41{ph}), GSK(c[./1]) @ 0 {'γc'}
+Cat(S33{un/ph}[1]), GSK(c[1]) @ INF
+Cat(S33{ph}[1/.]), GSK(c[1/.]) @ INF
+
+Cat(S33{ph}[./1]), PP2(c[./1]) @ 0 {'γc'}
+Cat(S33{ph/un}[1]), PP2(c[1]) @ INF
+Cat(S33{un}[1/.]), PP2(c[1/.]) @ INF
+
+Cat(S33{ph}, S37{ph})- @ 'γc'
+
+%obs: 'Cat_t' |Cat()|
+%mod: [T] > 500 do $STOP;
