@@ -45,7 +45,7 @@ let widen_init = 1024
 
 let rec widen i = function
   | Empty -> widen i (init widen_init)
-  | Cat (a, _, c, l, r) as node ->
+  | Cat (a, _, c, _l, _r) as node ->
     assert (a = 0) ; (* Must be called on the top node *)
     if in_interval i (a, c) then node
     else widen i (Cat (0, c, 2 * c, node, Empty))
@@ -81,7 +81,7 @@ let add i x t =
 let rec last_before i = function
   | Empty -> None
   | Leaf (i', x) -> if (i' < i) then Some (i', x) else None
-  | Cat (a, b, c, l, r) ->
+  | Cat (_a, b, _c, l, r) ->
     if i <= b then last_before i l
     else
       match last_before i r with
@@ -92,7 +92,7 @@ let rec last_before i = function
 let rec first_after i = function
   | Empty -> None
   | Leaf (i', x) -> if (i' > i) then Some (i', x) else None
-  | Cat (a, b, c, l, r) ->
+  | Cat (_a, b, _c, l, r) ->
     if i >= b - 1 then first_after i r
     else
       match first_after i l with
@@ -123,20 +123,3 @@ let test_1 () =
   assert (last_before 0 t = None) ;
   assert (first_after 9 t = None) ;
   print_string "Success."
-
-(*
-let test_2 () =
-  let open Causal_core_util
-  let n = 100 in
-  let max = 1000 in
-  let l = random_int_list ~size:n max in
-  let t = from_list (zip_unit l) in
-  let l' =
-    range_list (-1) (max + 1)
-    |> List.map (fun i -> first_after i t)
-    |> flatten_list_option
-    |> List.map fst
-  in
-  assert (List.sort_uniq compare l = List.sort_uniq compare l') ;
-  print_string "Success."
-*)
