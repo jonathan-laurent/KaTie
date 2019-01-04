@@ -20,13 +20,13 @@ let pp_dline f = fprintf f "%s@;" dline
 let pp_dotline f = fprintf f "%s@;" dotline
 
 
-module type PRINTABLE = 
+module type PRINTABLE =
 sig
     type t
     val pp : formatter -> t -> unit
 end
 
-let pp_list_inline pp_elem fmt l = 
+let pp_list_inline pp_elem fmt l =
     let rec aux = function
      | [] -> ()
      | [x] -> fprintf fmt "%a" pp_elem x
@@ -35,27 +35,27 @@ let pp_list_inline pp_elem fmt l =
      aux l ;
      fprintf fmt "]"
 
-let pp_list pp_elem fmt l = 
+let pp_list pp_elem fmt l =
     List.iter (fun x -> fprintf fmt "%a@;" pp_elem x) l
 
-let pp_array pp_elem fmt tab = 
+let pp_array pp_elem fmt tab =
     Array.iteri (fun i x -> fprintf fmt "%d: %a@;" i pp_elem x) tab
 
 
-module PrintMap 
-    (E : Map.OrderedType) 
+module PrintMap
+    (E : Map.OrderedType)
     (M : Map.S with type key = E.t)
-    (Print : PRINTABLE with type t = E.t) = 
+    (Print : PRINTABLE with type t = E.t) =
 struct
-    let pp_map (type a) 
-        (pp_elem : formatter -> a -> unit) 
+    let pp_map (type a)
+        (pp_elem : formatter -> a -> unit)
         (fmt : formatter)
-        (map : a M.t) = 
-    map |> M.iter (fun k v -> 
+        (map : a M.t) =
+    map |> M.iter (fun k v ->
         fprintf fmt "%a: %a@;" Print.pp k pp_elem v );
 end
 
-module PrintInt = 
+module PrintInt =
 struct
     type t = int
     let pp fmt i = fprintf fmt "%d" i
@@ -92,17 +92,17 @@ let global_model : (Model.t option) ref = ref None
 
 open Query
 
-let box f msg = 
+let box f msg =
   pp_line f ;
   fprintf f "| %s@;" msg ;
   pp_line f
 
-let dbox f msg = 
+let dbox f msg =
   pp_dline f ;
   fprintf f "| %s@;" msg ;
   pp_dline f
 
-let dotbox f msg = 
+let dotbox f msg =
   pp_dotline f ;
   fprintf f "| %s@;" msg ;
   pp_dotline f
@@ -110,7 +110,7 @@ let dotbox f msg =
 let pp_newline f = fprintf f "@;"
 
 let rec expr_measures : type a . a expr -> (int * int) list
-  = fun (body, ty) ->
+  = fun (body, _ty) ->
   match body with
   | Const _ -> []
   | Unop (_, e) -> expr_measures e
@@ -124,21 +124,21 @@ let pp_expr f e =
   let mes = expr_measures e in
   fprintf f "expr involving measures %a" (pp_list_inline pp_int2) mes
 
-let rec pp_action f = function 
+let rec pp_action f = function
   | Print e -> pp_expr f e ; pp_newline f
   | If (cond, act) -> fprintf f "Test: %a@.Expr: %a@." pp_expr cond pp_action act
 
-let pp_rule f r = 
+let pp_rule f r =
   match !global_model with
-  | None -> Model.print_rule f r
-  | Some env -> Model.print_rule ~env f r
+  | None -> Model.print_rule ~noCounters:false f r
+  | Some env -> Model.print_rule ~noCounters:false ~env f r
 
-let pp_agent_kind f i = 
+let pp_agent_kind f i =
   match !global_model with
   | None -> fprintf f "%d" i
-  | Some env -> fprintf f "%a(%d)" 
+  | Some env -> fprintf f "%a(%d)"
                   (Signature.print_agent (Model.signatures env)) i i
-  
+
 let pp_rule_constraint f = function
   | Init -> fprintf f "init"
   | End_of_trace -> fprintf f "eot"
@@ -146,12 +146,12 @@ let pp_rule_constraint f = function
   | Rule rs -> fprintf f "rules[%d](%a)" (List.length rs) (pp_list_inline (pp_rule)) rs
 
 let pp_agent_descr f {agent_kind} = pp_agent_kind f agent_kind
-  
+
 let pp_site f (ag_id, s) =
   let site_name =
   match !global_model with
       | None -> asprintf "%d" s
-      | Some env -> asprintf "%d" s in
+      | Some _env -> asprintf "%d" s in
   fprintf f "(%d, %s)" ag_id site_name
 
 let pp_int_state = pp_int
@@ -183,7 +183,7 @@ let pp_measure_descr f = function
 
 let pp_measure f {measure_descr;_} = pp_measure_descr f measure_descr
 
-let pp_main_pattern f (p : pattern) = 
+let pp_main_pattern f (p : pattern) =
   fprintf f "agents:@;%a" (pp_array pp_agent_descr) p.agents ;
   pp_newline f ;
   fprintf f "ag-constraints:@;%a" (pp_int_map pp_int) p.agent_constraints ;
@@ -193,7 +193,7 @@ let pp_main_pattern f (p : pattern) =
   fprintf f "mods:@;%a" (pp_list pp_mod) p.mods
 
 let pp_event_pattern f {main_pattern; with_clause; rule_constraint} =
-  fprintf f "with-clause: %a@;" pp_expr with_clause ; 
+  fprintf f "with-clause: %a@;" pp_expr with_clause ;
   begin match rule_constraint with
   | None -> ()
   | Some rule_constraint ->
@@ -206,18 +206,18 @@ let pp_event f ev =
   box f (sprintf "[%d]" ev.event_id) ;
   fprintf f "captured-agents: %a@;"
     (pp_list_inline pp_int) ev.captured_agents ;
-  fprintf f "already-constrained: %a@;" 
+  fprintf f "already-constrained: %a@;"
     (pp_list_inline pp_int) ev.already_constrained_agents ;
   fprintf f "measures: %a@;"
     (pp_list_inline pp_measure) (Array.to_list ev.measures) ;
   pp_dotline f ;
   begin match ev.event_pattern with
     | None -> ()
-    | Some ep -> 
+    | Some ep ->
       dotbox f (asprintf "Event pattern") ;
       pp_event_pattern f ep
   end ;
-  let print_def_rel msg e ep = 
+  let print_def_rel msg e ep =
     dotbox f (asprintf "%s [%d]" msg e) ;
     pp_event_pattern f ep
   in
@@ -232,7 +232,7 @@ let rec pp_tree f (Tree (ag_id, children)) =
   let pp_child f (_rel, t) = pp_tree f t in
   fprintf f "{%d, %a}" ag_id (pp_list_inline pp_child) children
 
-let pp_trace_pattern f tp = 
+let pp_trace_pattern f tp =
   fprintf f "Agents@;" ;
   pp_line f ;
   pp_array pp_agent_kind f tp.agents ;
