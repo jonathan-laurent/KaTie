@@ -13,13 +13,14 @@ query 'first_phos.csv'
 match c:{ +s:S }
 and first p:{ s:S(x{/p}) } after c
 return time[p]
+*/
 
 query 'analyze_cycles.csv' {'substrate_id', 'binding_time', 'unbinding_time'}
 match b:{ s:S(d[/1]), k:K(d[/1], x{u}) }
 and first u:{ s:S(d[/.]) } after b
 when time[b] >= 5
 return (agent_id{s}, time[b], time[u])
-*/
+
 
 query 'trace.csv'
 match e return time[e], rule[e]
