@@ -57,7 +57,7 @@ let take_snapshot model state file =
         Data.snapshot_file = file ;
         Data.snapshot_event = state.Replay.event ;
         Data.snapshot_time = state.Replay.time  ;
-        Data.snapshot_agents = Snapshot.export ~debugMode:false signature snapshot ;
+        Data.snapshot_agents = Snapshot.export ~debugMode:true signature snapshot ;
         Data.snapshot_tokens = [||] } in
     let oc = open_out file in
     if !Tql_output.snapshots_native_format then begin
