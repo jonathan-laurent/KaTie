@@ -11,15 +11,6 @@ type window = {
     step_id : int ;
 }
 
-(* TODO: This is shameful... *)
-let extract_env trace_file =
-    Trace.fold_trace_file 
-        (fun _ _ _ -> ()) 
-        (fun _ -> ()) 
-        trace_file 
-    |> fst
-
-
 let fold_trace
     (type acc)
     ?(update_ccs=true)

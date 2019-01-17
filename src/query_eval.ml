@@ -461,6 +461,7 @@ let prepare_second_pass cms =
 
 
 let second_pass_process_step
+    ?(uuid : int option)
     (model : Model.t)
     (query : Query.query)
     (fmt : Format.formatter)
@@ -476,6 +477,7 @@ let second_pass_process_step
                     let cm = cms.(m_id) in
                     begin try
                     Measures.take_measures
+                        ?uuid
                         model
                         query.pattern.events.(ev_id)
                         cm.cm_agents
@@ -514,6 +516,7 @@ let print_legend (q, fmt) =
 
 
 let eval
+    ?(uuid : int option)
     (m : Model.t)
     (q : Query.query)
     (fmt : Format.formatter)
@@ -537,7 +540,7 @@ let eval
         ~update_ccs:true
         ~compute_previous_states:true
         trace_file
-        (second_pass_process_step m q fmt cms)
+        (second_pass_process_step ?uuid m q fmt cms)
         acc ;
     Format.fprintf fmt "@]"
 
@@ -545,6 +548,7 @@ let eval
 
 let eval_queries
     ?(skip_init_events=false)
+    ?(uuid : int option)
     (m : Model.t)
     (qs : (query * Format.formatter) list)
     (trace_file : string)
@@ -575,7 +579,7 @@ let eval_queries
     let step2 window () =
         queries |> Array.iteri (fun i q ->
             accs.(i) <- second_pass_process_step
-                m q fmts.(i) cms.(i) window accs.(i)
+                ?uuid m q fmts.(i) cms.(i) window accs.(i)
         ) in
 
     List.iter print_legend qs ;

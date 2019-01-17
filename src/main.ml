@@ -76,7 +76,7 @@ let main () =
     Arg.usage options usage
   else begin
 
-    let model = Streaming.extract_env !trace_file in
+    let (uuid,model) = Trace.get_headers_from_file !trace_file in
 
     let queries = parse_and_compile_queries model !query_file in
 
@@ -102,7 +102,7 @@ let main () =
 
     fmts |> List.iter (fun (_, fmt) -> Format.fprintf fmt "@[<v>") ;
     Query_eval.eval_queries 
-      ~skip_init_events:!skip_init_events
+      ~skip_init_events:!skip_init_events ?uuid
       model queries !trace_file ;
     fmts |> List.iter (fun (_, fmt) -> Format.fprintf fmt "@]@.") ;
     print_endline "Done."

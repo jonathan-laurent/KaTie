@@ -49,7 +49,7 @@ let int_state model ((ag_id, ag_kind), ag_site) state =
     let signature = Model.signatures model in
     Some (Val (Format.asprintf "%a" (Signature.print_internal_state signature ag_kind ag_site) st, String))
 
-let take_snapshot model state file =
+let take_snapshot ?uuid model state file =
     let graph = state.Replay.graph in
     let signature = Model.signatures model in
     let snapshot = Edges.build_snapshot signature graph in
@@ -62,7 +62,7 @@ let take_snapshot model state file =
     let oc = open_out file in
     if !Tql_output.snapshots_native_format then begin
         let fmt = Format.formatter_of_out_channel oc in
-        Data.print_snapshot fmt snapshot
+        Data.print_snapshot ?uuid fmt snapshot
     end
     else begin
         let outbuf = Bi_outbuf.create_channel_writer oc in
@@ -73,6 +73,7 @@ let take_snapshot model state file =
     close_out oc
 
 let take_measures
+    ?(uuid : int option)
     (model : Model.t)
     (ev : Query.event)
     (ag_matchings : int array)
@@ -98,7 +99,7 @@ let take_measures
                     int_state model ((ag_matchings.(ag_id), ag_kind), ag_site) state
                 | Snapshot ->
                     let filename = Tql_output.new_snapshot_file () in
-                    take_snapshot model state filename ;
+                    take_snapshot ?uuid model state filename ;
                     Some (Val (filename, String))
                 end
             | Event_measure (_ty, ev_measure) ->

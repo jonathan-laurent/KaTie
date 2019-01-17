@@ -1,6 +1,6 @@
 val eval :
-  Model.t -> Query.query -> Format.formatter -> string -> unit
+  ?uuid:int -> Model.t -> Query.query -> Format.formatter -> string -> unit
 
 val eval_queries :
-  ?skip_init_events:bool ->
+  ?skip_init_events:bool -> ?uuid:int ->
   Model.t -> (Query.query * Format.formatter) list -> string -> unit

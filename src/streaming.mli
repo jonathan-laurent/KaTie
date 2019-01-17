@@ -5,8 +5,6 @@ type window = {
   step_id : int;
 }
 
-val extract_env : string -> Model.t
-
 val fold_trace :
   ?update_ccs:bool ->
   ?compute_previous_states:bool ->
