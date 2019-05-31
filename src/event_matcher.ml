@@ -24,7 +24,7 @@ let meaningful_step = function
   | Trace.Subs _ | Trace.Dummy _ -> false
   | _ -> true
 
-let satisfy_rule_constraint cs _state step = 
+let satisfy_rule_constraint cs _state step =
   match cs with
   | None -> meaningful_step step
   | Some Init -> false (* TODO *)
@@ -34,7 +34,7 @@ let satisfy_rule_constraint cs _state step =
       | Trace.Obs (s', _, _) -> s = s'
       | _ -> false
     end
-  | Some (Rule rs) -> 
+  | Some (Rule rs) ->
     begin match step with
       | Trace.Rule (r, _, _) -> List.mem r rs
       | _ -> false
@@ -48,7 +48,7 @@ let pattern_tested_links pat =
     | _ -> []
   )
 
-let pattern_created_links pat = 
+let pattern_created_links pat =
   pat.main_pattern.mods |> Utils.concat_map (
     function
     | Mod_lnk_state (s, Bound_to s') -> [(s, s'); (s', s)]
@@ -60,7 +60,7 @@ let psite_ag_id (id, _) = id
 let agent_ty ag = snd ag
 let agent_id ag = fst ag
 
-let p_agent_ty pat ag_pid = 
+let p_agent_ty pat ag_pid =
   pat.main_pattern.agents.(ag_pid).agent_kind
 
 let rec fixpoint eq f x =
@@ -78,7 +78,7 @@ type partial_agents_matching = PAM of (int * int) list
 
 exception No_match
 
-(* Try to match the agents of [pat] in [w] by only looking at 
+(* Try to match the agents of [pat] in [w] by only looking at
    modifications and connectivity.
    only uses w.step (not the mixture) *)
 
@@ -88,10 +88,10 @@ let match_agents_in_pattern
   : (int array) option =
 
   if satisfy_rule_constraint pat.rule_constraint w.state w.step then try
-    
+
     let _tests, actions = extract_tests_actions w.step in
 
-    let compatible_agents ag_pid ag = 
+    let compatible_agents ag_pid ag =
        p_agent_ty pat ag_pid = agent_ty ag in
 
     let compatible_sites (ag_pid, s) (ag, s') =
@@ -104,7 +104,7 @@ let match_agents_in_pattern
       match pat_action, step_action with
       | Create ag_pid, Instantiation.Create (ag, _)
       | Destroy ag_pid, Instantiation.Remove ag ->
-        if compatible_agents ag_pid ag 
+        if compatible_agents ag_pid ag
         then [ PAM [ag_pid, agent_id ag] ]
         else []
       | Mod_int_state (site, st), Instantiation.Mod_internal (site', st') ->
@@ -115,37 +115,37 @@ let match_agents_in_pattern
         if compatible_sites site site'
         then [ PAM [psite_ag_id site, site_ag_id site'] ]
         else []
-      | Mod_lnk_state (s1, Bound_to s2), 
+      | Mod_lnk_state (s1, Bound_to s2),
         Instantiation.Bind (s1', s2')
-      | Mod_lnk_state (s1, Bound_to s2), 
+      | Mod_lnk_state (s1, Bound_to s2),
         Instantiation.Bind_to (s1', s2') ->
-        let aux s1 s2 s1' s2' = 
+        let aux s1 s2 s1' s2' =
           if compatible_sites s1 s1' && compatible_sites s2 s2'
           then  [ PAM [(psite_ag_id s1, site_ag_id s1') ;
                        (psite_ag_id s2, site_ag_id s2') ] ]
           else [] in
         aux s1 s2 s1' s2' @ aux s1 s2 s2' s1'
-      | Mod_lnk_state (s, Bound_to_any), 
+      | Mod_lnk_state (s, Bound_to_any),
         Instantiation.Bind (s1, s2)
-      | Mod_lnk_state (s, Bound_to_any), 
-        Instantiation.Bind_to (s1, s2) -> 
-        let aux s s' = 
-          if compatible_sites s s' 
-          then [ PAM [psite_ag_id s, site_ag_id s'] ] 
+      | Mod_lnk_state (s, Bound_to_any),
+        Instantiation.Bind_to (s1, s2) ->
+        let aux s s' =
+          if compatible_sites s s'
+          then [ PAM [psite_ag_id s, site_ag_id s'] ]
           else [] in
         aux s s1 @ aux s s2
-      | Mod_lnk_state (s, Bound_to_type t), 
+      | Mod_lnk_state (s, Bound_to_type t),
         Instantiation.Bind (s1, s2)
-      | Mod_lnk_state (s, Bound_to_type t), 
-        Instantiation.Bind_to (s1, s2) -> 
-        let aux s s1 s2 = 
+      | Mod_lnk_state (s, Bound_to_type t),
+        Instantiation.Bind_to (s1, s2) ->
+        let aux s s1 s2 =
           if compatible_sites s s1 && site_has_type t s2
-          then [ PAM [psite_ag_id s, site_ag_id s1] ] 
+          then [ PAM [psite_ag_id s, site_ag_id s1] ]
           else [] in
         aux s s1 s2 @ aux s s2 s1
       | _ -> [] in
 
-    let ag_matchings = 
+    let ag_matchings =
       pat.main_pattern.mods |> List.fold_left (fun acc pat_action ->
           match Utils.concat_map (match_actions pat_action) actions with
           | [] -> raise No_match
@@ -154,28 +154,32 @@ let match_agents_in_pattern
           | _ -> failwith "Ambiguity detected."
         ) IntMap.empty in
 
-    let known_links = pattern_tested_links pat @ pattern_created_links pat in
-
-    let translate_psite ms (ag_pid, s) = 
+    let translate_psite ms (ag_pid, s) =
       try Some (IntMap.find ag_pid ms, s)
       with Not_found -> None in
 
-    let add_neighborhood ms =
-      known_links |> List.fold_left (fun ms (s, s') ->
+    let propagate_link_constraints graph links ms =
+      links |> List.fold_left (fun ms (s, s') ->
           match translate_psite ms s with
           | None -> ms
           | Some (src_ag, src_s) ->
-            begin match Edges.link_destination src_ag src_s w.state.Replay.graph with
+            begin match Edges.link_destination src_ag src_s graph with
               | None -> raise No_match
               | Some dst ->
                 IntMap.add (psite_ag_id s') (site_ag_id dst) ms
             end
       ) ms in
 
+    let add_neighborhood ms = ms
+      |> propagate_link_constraints
+          w.previous_state.Replay.graph (pattern_tested_links pat)
+      |> propagate_link_constraints
+          w.state.Replay.graph (pattern_created_links pat) in
+
     let same_cardinal m m' = IntMap.cardinal m = IntMap.cardinal m' in
-    
+
     let ag_matchings = fixpoint same_cardinal add_neighborhood ag_matchings in
-    
+
     let n = Array.length pat.main_pattern.agents in
 
     let ag_matchings = Array.init n (fun i ->
@@ -184,10 +188,10 @@ let match_agents_in_pattern
       ) in
 
     Some ag_matchings
-    
+
   with No_match -> None
   else None
-  
+
 
 (* Once we have a mapping from the agents of [pat] to the agents of [w],
    this function tests that [pat] effectively matches [w] *)
@@ -206,7 +210,7 @@ let match_simple_pattern
     let same_agents ag_pid (ag_id, _) =
       translate_ag ag_pid = ag_id in
 
-    let same_sites (a, s) (a', s') = 
+    let same_sites (a, s) (a', s') =
       same_agents a a' && s = s' in
 
     let site_has_type (kind, s) ((_, kind'), s') =
@@ -223,11 +227,11 @@ let match_simple_pattern
         same_sites site site'
       | Mod_lnk_state (s1, Bound_to s2),
         Instantiation.Bind (s1', s2')
-      | Mod_lnk_state (s1, Bound_to s2), 
+      | Mod_lnk_state (s1, Bound_to s2),
         Instantiation.Bind_to (s1', s2') ->
         (same_sites s1 s1' && same_sites s2 s2') ||
         (same_sites s1 s2' && same_sites s2 s1')
-      | Mod_lnk_state (s, Bound_to_any), 
+      | Mod_lnk_state (s, Bound_to_any),
         Instantiation.Bind (s1, s2)
       | Mod_lnk_state (s, Bound_to_any),
         Instantiation.Bind_to (s1, s2) ->
@@ -239,7 +243,7 @@ let match_simple_pattern
         (same_sites s s1 && site_has_type t s2) ||
         (same_sites s s2 && site_has_type t s1)
       | _ -> false in
-    
+
     let mods_ok = pat.main_pattern.mods |> List.for_all (fun pat_action ->
       actions |> List.exists (match_action pat_action) ) in
 
@@ -252,12 +256,12 @@ let match_simple_pattern
         | Lnk_state_is ((ag_pid, s), Free) ->
           Edges.is_free (translate_ag ag_pid) s prev_mstate
         | Lnk_state_is ((ag_pid, s), Bound_to (ag_pid', s')) ->
-          Edges.link_exists 
-            (translate_ag ag_pid)  s 
+          Edges.link_exists
+            (translate_ag ag_pid)  s
             (translate_ag ag_pid') s' prev_mstate
-        | Lnk_state_is ((ag_pid, s), Bound_to_any) -> 
+        | Lnk_state_is ((ag_pid, s), Bound_to_any) ->
           not (Edges.is_free (translate_ag ag_pid) s prev_mstate)
-        | Lnk_state_is ((ag_pid, s), Bound_to_type (ag_kind', s')) -> 
+        | Lnk_state_is ((ag_pid, s), Bound_to_type (ag_kind', s')) ->
           begin match Edges.link_destination (translate_ag ag_pid) s prev_mstate with
           | None -> false
           | Some ((_, ag_kind''), s'') -> ag_kind' = ag_kind'' && s' = s''
@@ -265,12 +269,12 @@ let match_simple_pattern
         | Int_state_is ((ag_pid, s), st) ->
           Edges.get_internal (translate_ag ag_pid) s prev_mstate = st
       with _ -> false
-      (* TODO: this is extremely dirty. We are doing this in case some agent 
+      (* TODO: this is extremely dirty. We are doing this in case some agent
          does not exist in the previous state and KaSim throws an exception *)
     ) in
 
     if mods_ok && tests_ok then Some ag_matchings else None
-  end     
+  end
   | None -> None
 
 
@@ -285,12 +289,12 @@ let match_event
     : ev_matchings option =
 
     let main_pat_opt = ev.event_pattern in
-    let def_pat_opt  = 
+    let def_pat_opt  =
         match ev.defining_rel with
         | Some (First_after (_, pat)) | Some (Last_before (_, pat)) -> Some pat
         | _ -> None in
 
-    let qid_to_gid (pat, matchings) q_id = 
+    let qid_to_gid (pat, matchings) q_id =
       try
         let p_id = IntMap.find q_id pat.main_pattern.agent_constraints in
         Some matchings.(p_id)
@@ -298,12 +302,12 @@ let match_event
 
     let qid_to_gid' pm1 pm2_opt q_id =
       match pm2_opt with
-      | None -> 
+      | None ->
         begin match qid_to_gid pm1 q_id with
         | None -> assert false
         | Some gid -> gid
         end
-      | Some pm2 -> 
+      | Some pm2 ->
         begin match qid_to_gid pm1 q_id, qid_to_gid pm2 q_id with
         | None, Some gid | Some gid, None -> gid
         | Some gid, Some gid' -> assert (gid = gid') ; gid
@@ -315,11 +319,11 @@ let match_event
         ev_id_in_trace = w.step_id ;
         ev_id_in_query = ev.event_id;
         ev_time = w.state.Replay.time ;
-        indexing_ag_matchings = 
+        indexing_ag_matchings =
           List.map (qid_to_gid' pm1 pm2_opt) ev.already_constrained_agents
       } in
       let specific = {
-        new_ag_matchings = 
+        new_ag_matchings =
           List.map (qid_to_gid' pm1 pm2_opt) ev.captured_agents ;
         recorded_measures = IntMap.empty ;
       } in
@@ -335,9 +339,9 @@ let match_event
       | None -> None (* No matching at all *)
       | Some def_pat_matchings ->
         begin match match_simple_pattern main_pat w  with
-          | None -> 
+          | None ->
             Some (generate_matchings false (def_pat, def_pat_matchings) None)
-          | Some main_pat_matchings -> 
+          | Some main_pat_matchings ->
             Some (generate_matchings true (def_pat, def_pat_matchings) (Some (main_pat, main_pat_matchings)))
         end
       end
