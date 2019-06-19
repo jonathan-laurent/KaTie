@@ -2,10 +2,10 @@
 (* Parser                                                                    *)
 (*****************************************************************************)
 
-%{ 
+%{
 open Query_ast
 
-let make_site site_name = { 
+let make_site site_name = {
     site_name ;
     site_lnk_test = None ;
     site_lnk_mod  = None ;
@@ -28,7 +28,7 @@ let make_agent ag_mod id1 id2_opt ag_sites =
 %token OP_PAR CL_PAR OP_SQPAR CL_SQPAR OP_CURL CL_CURL BAR
 %token SLASH SHARP
 %token MATCH RETURN AND WITH LAST FIRST BEFORE AFTER WHEN
-%token TIME NPHOS RULE COUNT COMPONENT DIST SIZE INIT_EVENT
+%token TIME NPHOS RULE COUNT COMPONENT DIST SIZE INIT_EVENT PRINT_CC
 %token INT_STATE SIMILARITY AGENT_ID
 %token EVERY SECONDS
 %token SNAPSHOT
@@ -47,7 +47,7 @@ let make_agent ag_mod id1 id2_opt ag_sites =
 
 %type <Query_ast.mixture_pat> mixture_pat
 
-%start single_query 
+%start single_query
 %type <Query_ast.query> single_query
 
 %start queries
@@ -84,7 +84,7 @@ site:
   | name=string_or_int { make_site name }
   | name=string_or_int bond=lnk_state_attr { bond (make_site name) }
   | name=string_or_int intst=int_state_attr { intst (make_site name) }
-  | name=string_or_int bond=lnk_state_attr intst=int_state_attr 
+  | name=string_or_int bond=lnk_state_attr intst=int_state_attr
     { intst (bond (make_site name)) }
   | name=string_or_int intst=int_state_attr bond=lnk_state_attr
     { intst (bond (make_site name)) }
@@ -96,7 +96,7 @@ lnk_state_attr:
     { fun s -> { s with site_lnk_mod = Some bond } }
   | OP_SQPAR pre=lnk_state SLASH post=lnk_state CL_SQPAR
     { fun s -> { s with
-      site_lnk_test = Some pre ; 
+      site_lnk_test = Some pre ;
       site_lnk_mod = Some post } }
 
 lnk_state:
@@ -112,8 +112,8 @@ int_state_attr:
   | OP_CURL option(SHARP) SLASH st=string_or_int CL_CURL
     { fun s -> { s with site_int_mod = Some st } }
   | OP_CURL pre=string_or_int SLASH post=string_or_int CL_CURL
-    { fun s -> { s with 
-      site_int_test = Some pre ; 
+    { fun s -> { s with
+      site_int_test = Some pre ;
       site_int_mod = Some post } }
 
 
@@ -165,6 +165,8 @@ expr:
     { State_measure (st_expr, Nphos id) }
   | COMPONENT st_expr=st_measure_annot OP_CURL id=ID CL_CURL
     { State_measure (st_expr, Component id) }
+  | PRINT_CC st_expr=st_measure_annot OP_CURL id=ID CL_CURL
+    { State_measure (st_expr, Print_cc id) }
   | INT_STATE st_expr=st_measure_annot OP_CURL quark=quark CL_CURL
     { State_measure (st_expr, Int_state quark) }
   | SNAPSHOT st_expr=st_measure_annot
@@ -186,10 +188,10 @@ ev_name: id=ID COLON { id }
 
 with_clause: WITH e=expr { e }
 
-rule_constraint: 
+rule_constraint:
   | rs=separated_nonempty_list(BAR, STRING) { Rule rs }
 
-ev_pattern: 
+ev_pattern:
   | event_id=option(ev_name)
     OP_CURL rule_constraint=option(rule_constraint)
     main_pattern=mixture_pat
@@ -203,7 +205,7 @@ action: e=expr { Print e }
 
 query_legend: OP_CURL arg=separated_list(COMMA, STRING) CL_CURL { arg }
 
-query_header: 
+query_header:
   | {fun q -> q}
   | QUERY {fun q -> q}
   | QUERY name=STRING legend=option(query_legend)
@@ -219,7 +221,7 @@ float_or_int:
 
 every_clause: EVERY f=float_or_int SECONDS { f }
 
-query: 
+query:
   header=query_header pattern=pattern
   every_clause=option(every_clause)
   when_clause=option(when_clause)

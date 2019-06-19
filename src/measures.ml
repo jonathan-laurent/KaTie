@@ -72,6 +72,14 @@ let take_snapshot ?uuid model state file =
 
     close_out oc
 
+let print_cc model state ag_id =
+    let edges = state.Replay.graph in
+    let ugraph =
+        Edges.species ~debugMode:false (Model.signatures model) ag_id edges in
+    let str =
+        Format.asprintf "@[<h>%a@]" User_graph.print_cc ugraph in
+    Some (Val (str, String))
+
 let take_measures
     ?(uuid : int option)
     (model : Model.t)
@@ -101,6 +109,8 @@ let take_measures
                     let filename = Tql_output.new_snapshot_file () in
                     take_snapshot ?uuid model state filename ;
                     Some (Val (filename, String))
+                | Print_cc ag_id ->
+                    print_cc model state ag_matchings.(ag_id)
                 end
             | Event_measure (_ty, ev_measure) ->
                 begin match ev_measure with

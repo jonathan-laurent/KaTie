@@ -13,8 +13,8 @@ type site = {
 }
 
 and lnk_state =
-  | Free 
-  | Bound of int 
+  | Free
+  | Bound of int
   | Bound_to_type of (string * string) (* agent kind, site name *)
   | Bound_to_any
 
@@ -40,15 +40,16 @@ type state_expr = Before of event_expr | After of event_expr
 type state_measure =
   | Int_state of (identifier * identifier)
   | Component of identifier
+  | Print_cc of identifier
   | Nphos of identifier
   | Snapshot
 
-type event_measure = 
+type event_measure =
   | Time
   | Rule
   | Init_event
 
-type expr = 
+type expr =
   | Unop of unop * expr
   | Binop of expr * binop * expr
   | Concat of expr * expr
@@ -62,7 +63,7 @@ type expr =
 
 type rule_constraint = Rule of string list | Obs of string
 
-type event_pattern = { 
+type event_pattern = {
   event_id : identifier option ;
   with_clause : expr option ;
   main_pattern : mixture_pat ;
@@ -71,12 +72,12 @@ type event_pattern = {
 
 type trace_pattern = clause list
 
-and clause = 
+and clause =
   | Event of event_pattern
   | First_after of event_pattern * identifier
   | Last_before of event_pattern * identifier
 
-type action = 
+type action =
   | Print of expr
 
 type query = {

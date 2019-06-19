@@ -21,7 +21,7 @@ let usage =
 let options = [
   "-q", Arg.Set_string query_file, "query file" ;
   "-t", Arg.Set_string trace_file, "trace file" ;
-  "-o", Arg.Set_string default_out_file, 
+  "-o", Arg.Set_string default_out_file,
   "default output file (if not specified: `output.csv`)" ;
   "--debug", Arg.Set debug_mode, "set debug mode" ;
   "--skip-init-events", Arg.Set skip_init_events, "skip INIT events in the trace" ;
@@ -32,7 +32,7 @@ let options = [
   "--output-directory", Arg.String Tql_output.set_output_directory ,
   "set the output directory (default: '.')" ]
 
-let parse_and_compile_queries model file = 
+let parse_and_compile_queries model file =
   try
   let ic = open_in file in
   let lexbuf = Lexing.from_channel ic in
@@ -42,18 +42,18 @@ let parse_and_compile_queries model file =
     close_in ic ;
     queries
   with
-    | Query_parser.Error -> 
+    | Query_parser.Error ->
       raise (error_at (Lexing.lexeme_start_p lexbuf) Parse_error)
   end
   with Sys_error _ -> raise (error (File_not_found file))
 
-let with_file file f = 
+let with_file file f =
   let oc = open_out file in
   let fmt = Format.formatter_of_out_channel oc in
   f fmt ;
   close_out oc
 
-let formatter_of_file f = 
+let formatter_of_file f =
   Format.formatter_of_out_channel (open_out f)
 
 let query_output_file q =
@@ -62,7 +62,7 @@ let query_output_file q =
 
 
 let main () =
-  
+
   if !debug_mode then Printexc.record_backtrace true ;
 
   Arg.parse options (fun _ -> ()) usage ;
@@ -88,7 +88,7 @@ let main () =
           Debug_pp.pp_query fmt q
         ))
     end ;
-    
+
     let queries = queries
       |> List.map (fun q -> (q, query_output_file q)) in
 
@@ -96,17 +96,16 @@ let main () =
         |> List.map snd
         |> List.sort_uniq compare
         |> List.map (fun f -> (f, formatter_of_file (Tql_output.file f))) in
-        
+
     let queries = queries
       |> List.map (fun (q, f) -> (q, List.assoc f fmts) ) in
 
     fmts |> List.iter (fun (_, fmt) -> Format.fprintf fmt "@[<v>") ;
-    Query_eval.eval_queries 
+    Query_eval.eval_queries
       ~skip_init_events:!skip_init_events ?uuid
       model queries !trace_file ;
     fmts |> List.iter (fun (_, fmt) -> Format.fprintf fmt "@]@.") ;
     print_endline "Done."
-    
   end
 
 
@@ -117,5 +116,5 @@ let () =
   with
   | Error e -> Tql_error.print_error err_formatter e
   | Failure msg -> prerr_endline ("[Fatal error] " ^ msg)
-  | ExceptionDefn.Malformed_Decl msg -> 
+  | ExceptionDefn.Malformed_Decl msg ->
     prerr_endline ("[KaSim error] " ^ fst msg)

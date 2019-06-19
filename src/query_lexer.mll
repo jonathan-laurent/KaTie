@@ -8,28 +8,29 @@ open Lexing
 open Query_parser
 open Tql_error
 
-let keywords_list = 
+let keywords_list =
     [("match", MATCH); ("return", RETURN); ("do", RETURN); ("and", AND);
      ("with", WITH); ("last", LAST); ("first", FIRST); ("when", WHEN);
-     ("before", BEFORE); ("after", AFTER); 
+     ("before", BEFORE); ("after", AFTER);
      ("time", TIME); ("nphos", NPHOS); ("rule", RULE); ("count", COUNT);
      ("component", COMPONENT); ("dist", DIST); ("size", SIZE);
      ("query", QUERY); ("int_state", INT_STATE); ("similarity", SIMILARITY);
-     ("every", EVERY); ("seconds", SECONDS); ("agent_id", AGENT_ID); 
-     ("snapshot", SNAPSHOT); ("init_event", INIT_EVENT); ("not", NOT)]
+     ("every", EVERY); ("seconds", SECONDS); ("agent_id", AGENT_ID);
+     ("snapshot", SNAPSHOT); ("init_event", INIT_EVENT); ("not", NOT);
+     ("print_cc", PRINT_CC)]
 
-let ktab = 
-    let t = Hashtbl.create 20 in 
+let ktab =
+    let t = Hashtbl.create 20 in
     keywords_list |> List.iter (fun (k, v) ->
         Hashtbl.add t k v) ;
     t
 
-let kword_or_id s = 
+let kword_or_id s =
     try Hashtbl.find ktab s with Not_found -> ID s
 
 let newline lexbuf =
     let pos = lexbuf.lex_curr_p in
-    lexbuf.lex_curr_p <- 
+    lexbuf.lex_curr_p <-
       { pos with pos_lnum = pos.pos_lnum + 1; pos_bol = pos.pos_cnum }
 
 }
@@ -94,7 +95,7 @@ rule token = parse
   | "+" {PLUS}
   | "-" {MINUS}
   | "*" {MULT}
-  
+
   | float_number as s {FLOAT (float_of_string s)}
   | integer as s {INT (int_of_string s)}
   | ident as s {kword_or_id s}

@@ -40,7 +40,7 @@ and modification =
     | Mod_int_state of site * int_state
     | Mod_lnk_state of site * lnk_state
 
-and lnk_state = 
+and lnk_state =
   | Free
   | Bound_to of site
   | Bound_to_type of (agent_kind * site_name)
@@ -58,7 +58,7 @@ type (_, _, _) binop =
     | Binop : ('a -> 'b -> 'c) -> ('a, 'b, 'c) binop
     | Concat  : ('a, 'b, tuple) binop
 
-and (_, _) unop = 
+and (_, _) unop =
     | Unop : ('a -> 'b) -> ('a, 'b) unop
     | Count_agents : agent_kind list -> (agent_set, tuple) unop
 
@@ -79,33 +79,34 @@ type 'a expr = 'a expr_body * 'a expr_type
 
 and _ expr_body =
     | Const   : 'a -> 'a expr_body
-    | Measure : (event_id * measure_id) -> 'a expr_body 
+    | Measure : (event_id * measure_id) -> 'a expr_body
     | Binop   : 'a expr * ('a, 'b, 'c) binop * 'b expr -> 'c expr_body
     | Unop    : ('a, 'b) unop * 'a expr -> 'b expr_body
     | Agent_id : agent_id -> int expr_body
 
 (* Measures *)
 
-type _ event_measure = 
+type _ event_measure =
     | Time : float event_measure
     | Rule : string event_measure
     | Init_event : bool event_measure
 
-type _ state_measure = 
+type _ state_measure =
     | Int_state : (Agent.t * site_name) -> string state_measure
     | Count : pattern -> int state_measure
     | Component : agent_id -> agent_set state_measure
     | Nphos : agent_id -> int state_measure
     | Snapshot : string state_measure
+    | Print_cc : agent_id -> string state_measure
 
 type measure = {
     used_in_pattern : bool ;
     measure_descr : measure_descr }
 
 and measure_descr =
-    | State_measure : 
+    | State_measure :
         state_measure_time * 'a expr_type * 'a state_measure -> measure_descr
-    | Event_measure : 
+    | Event_measure :
         'a expr_type * 'a event_measure -> measure_descr
 
 and state_measure_time = Before | After
@@ -119,8 +120,8 @@ type event_pattern = {
     rule_constraint : rule_constraint option ;
 }
 
-and rule_constraint = 
-    | Init 
+and rule_constraint =
+    | Init
     | End_of_trace (* Not supported yet *)
     | Rule of int list
     | Obs of string
@@ -136,11 +137,11 @@ type event = {
     (*  Invariants:
         already_constrained_agents `union` captured_agents
         = keys of event_pattern.main_pattern.
-        The defining_rel pattern only constrains agents of 
+        The defining_rel pattern only constrains agents of
         already_constrained_agents. *)
 }
 
-and defining_relation = 
+and defining_relation =
     | First_after of event_id * event_pattern
     | Last_before of event_id * event_pattern
 
