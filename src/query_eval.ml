@@ -462,6 +462,7 @@ let prepare_second_pass cms =
 
 let second_pass_process_step
     ?(uuid : int option)
+    ~(matchings_processed : int -> unit)
     (model : Model.t)
     (query : Query.query)
     (fmt : Format.formatter)
@@ -475,6 +476,7 @@ let second_pass_process_step
                 (* Something interesting happens *)
                 begin
                     let cm = cms.(m_id) in
+                    matchings_processed(1);
                     begin try
                     Measures.take_measures
                         ?uuid
@@ -535,12 +537,14 @@ let eval
     let cms = extract_complete_matchings env in
     let acc = prepare_second_pass cms in
 
+    let matchings_processed(n) = () in
+
     Format.fprintf fmt "@[<v>" ;
     ignore @@ Streaming.fold_trace
         ~update_ccs:true
         ~compute_previous_states:true
         trace_file
-        (second_pass_process_step ?uuid m q fmt cms)
+        (second_pass_process_step ?uuid ~matchings_processed m q fmt cms)
         acc ;
     Format.fprintf fmt "@]"
 
@@ -576,20 +580,33 @@ let eval_queries
     let cms = Array.map extract_complete_matchings envs in
     let accs = Array.map prepare_second_pass cms in
 
-    let step2 window () =
-        queries |> Array.iteri (fun i q ->
-            accs.(i) <- second_pass_process_step
-                ?uuid m q fmts.(i) cms.(i) window accs.(i)
-        ) in
-
     List.iter print_legend qs ;
 
     let n_matchings = Utils.sum_array (Array.map (Array.length) cms) in
-
     (* cms |> Array.iter (Dbg.pp_complete_matchings Format.std_formatter) ; *)
-
     Printf.printf "Possible matchings found: %d\n" n_matchings;
     print_endline "Executing actions..." ;
+
+    (* Progress bar support  *)
+    let matchings_processed =
+        let processed = ref 0 in
+        let lastp = ref (-1) in
+        fun n -> begin
+            processed := !processed + n;
+            let p = (!processed * 100) / n_matchings in
+            if p > !lastp then begin
+                Printf.printf "Matchings processed: %d%% \r" p;
+                flush(stdout);
+                lastp := p
+            end
+        end
+    in
+
+    let step2 window () =
+    queries |> Array.iteri (fun i q ->
+        accs.(i) <- second_pass_process_step
+            ?uuid ~matchings_processed m q fmts.(i) cms.(i) window accs.(i)
+    ) in
 
     ignore @@ Streaming.fold_trace
         ~update_ccs:true
@@ -597,4 +614,5 @@ let eval_queries
         ~skip_init_events
         trace_file
         step2
-        ()
+        ();
+    print_newline ()
