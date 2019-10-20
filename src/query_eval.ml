@@ -548,7 +548,30 @@ let eval
         acc ;
     Format.fprintf fmt "@]"
 
+let progress_bar msg nsteps =
+    let processed = ref 0 in
+    let lastp = ref (-1) in
+    fun n -> begin
+        processed := !processed + n;
+        let p = (!processed * 100) / nsteps in
+        if p > !lastp then begin
+            Printf.printf "%s: %d%% \r" msg p;
+            flush(stdout);
+            lastp := p
+        end
+    end
 
+let open_progress_bar msg step =
+    let processed = ref 0 in
+    let last = ref (-step) in
+    fun n -> begin
+        if !processed >= !last + step then begin
+            Printf.printf "%s: %d \r" msg !processed;
+            flush(stdout);
+            last := !processed
+        end;
+        processed := !processed + n;
+    end
 
 let eval_queries
     ?(skip_init_events=false)
@@ -562,10 +585,13 @@ let eval_queries
     let fmts = Array.of_list (List.map snd qs) in
     let envs = Array.map (init_env m) queries in
 
-    let step1 window () =
+    let event_processed = open_progress_bar "Events processed" 10_000 in
+    let step1 window () = begin
+        event_processed 1 ;
         queries |> Array.iteri (fun i q ->
             ignore (first_pass_process_step q window envs.(i))
-        ) in
+        )
+    end in
 
     print_endline "Finding matchings..." ;
 
@@ -584,23 +610,12 @@ let eval_queries
 
     let n_matchings = Utils.sum_array (Array.map (Array.length) cms) in
     (* cms |> Array.iter (Dbg.pp_complete_matchings Format.std_formatter) ; *)
+    print_newline ();
     Printf.printf "Possible matchings found: %d\n" n_matchings;
     print_endline "Executing actions..." ;
 
     (* Progress bar support  *)
-    let matchings_processed =
-        let processed = ref 0 in
-        let lastp = ref (-1) in
-        fun n -> begin
-            processed := !processed + n;
-            let p = (!processed * 100) / n_matchings in
-            if p > !lastp then begin
-                Printf.printf "Matchings processed: %d%% \r" p;
-                flush(stdout);
-                lastp := p
-            end
-        end
-    in
+    let matchings_processed = progress_bar "Matchings processed" n_matchings in
 
     let step2 window () =
     queries |> Array.iteri (fun i q ->
