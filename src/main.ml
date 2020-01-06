@@ -112,9 +112,9 @@ let main () =
 let err_formatter = Format.formatter_of_out_channel stderr
 
 let () =
-  try main ()
+  try main (); exit 0
   with
-  | Error e -> Tql_error.print_error err_formatter e
-  | Failure msg -> prerr_endline ("[Fatal error] " ^ msg)
+  | Error e -> (Tql_error.print_error err_formatter e; exit 1)
+  | Failure msg -> (prerr_endline ("[Fatal error] " ^ msg); exit 1)
   | ExceptionDefn.Malformed_Decl msg ->
-    prerr_endline ("[KaSim error] " ^ fst msg)
+    (prerr_endline ("[KaSim error] " ^ fst msg); exit 1)
