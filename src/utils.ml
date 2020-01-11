@@ -2,7 +2,7 @@
 (* Utils                                                                     *)
 (*****************************************************************************)
 
-module Int = 
+module Int =
 struct
     type t = int
     let compare = compare
@@ -14,11 +14,11 @@ module IntMap = Map.Make (Int)
 
 module StringMap = Map.Make (String)
 
-let monadic_fold (type acc) (type b) 
-    (f : acc -> b -> acc list) 
-    (init : acc) 
+let monadic_fold (type acc) (type b)
+    (f : acc -> b -> acc list)
+    (init : acc)
     (l : b list) =
-    let f' (accs : acc list) (x : b) : acc list = 
+    let f' (accs : acc list) (x : b) : acc list =
         List.concat (List.map (fun acc -> f acc x) accs) in
     List.fold_left f' [init] l
 
@@ -26,17 +26,17 @@ let map_option f = function
     | Some x -> Some (f x)
     | None -> None
 
-let bind_option mx f = 
+let bind_option mx f =
     match mx with
     | Some x -> f x
     | None -> None
 
-let int_map_from_list l = 
+let int_map_from_list l =
     List.fold_left (fun acc (k, v) ->
         IntMap.add k v acc
     ) IntMap.empty l
 
-let update_int_map m m' = 
+let update_int_map m m' =
     IntMap.union (fun _ _x y -> Some y) m m'
 
 (* /!\ It is important to reverse the order of the list *)
@@ -46,7 +46,7 @@ let array_of_queue q = Array.of_list (list_of_queue q)
 
 let rec map_list_option f = function
   | [] -> []
-  | x :: xs -> 
+  | x :: xs ->
     begin match f x with
       | None -> map_list_option f xs
       | Some fx -> fx :: map_list_option f xs
