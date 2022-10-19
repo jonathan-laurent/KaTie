@@ -1,17 +1,15 @@
 BIN=query
 
-all:
-	ocamlbuild -use-ocamlfind main.native
-	mv main.native $(BIN)
+.PHONY: build clean test full-clean
 
-%.inferred.mli:
-	ocamlbuild -use-ocamlfind $@
-	cp _build/src/$@ src
+build:
+	dune build src/query.exe
+	mv _build/default/src/query.exe $(BIN)
 
 clean:
 	rm -rf _build $(BIN)
 
-test:
+test: build
 	cd tests/catphos ; make
 
 full-clean: clean

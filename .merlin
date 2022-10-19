@@ -1,7 +1,0 @@
-FLG -w +a-4-41-42 -strict-formats -safe-string
-PKG kappa-library.runtime
-
-S src
-B _build/src/
-
-FLG -open Kappa_generic_toolset -open Kappa_mixtures -open Kappa_terms -open Kappa_runtime

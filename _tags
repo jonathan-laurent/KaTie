@@ -1,5 +1,0 @@
-"src": include
-
-true: package(kappa-library.runtime), package(biniou), bin_annot, safe_string, debug
-true: open(Kappa_generic_toolset), open(Kappa_mixtures), open(Kappa_terms), open(Kappa_runtime)
-true: use_menhir, explain

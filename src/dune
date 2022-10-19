@@ -1,0 +1,11 @@
+(executable
+  (name query)
+  (libraries
+    kappa-library.generic
+    kappa-library.runtime
+    kappa-library.terms
+    kappa-library.mixtures)
+  (flags (:standard -w -34-37
+    -open Kappa_generic_toolset
+    -open Kappa_mixtures
+    -open Kappa_terms)))
