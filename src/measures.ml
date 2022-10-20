@@ -52,12 +52,12 @@ let int_state model ((ag_id, ag_kind), ag_site) state =
 let take_snapshot ?uuid model state file =
     let graph = state.Replay.graph in
     let signature = Model.signatures model in
-    let snapshot = Edges.build_snapshot signature graph in
+    let snapshot = Edges.build_snapshot ~raw:true signature graph in
     let snapshot = {
-        Data.snapshot_file = file ;
         Data.snapshot_event = state.Replay.event ;
         Data.snapshot_time = state.Replay.time  ;
-        Data.snapshot_agents = Snapshot.export ~debugMode:true signature snapshot ;
+        Data.snapshot_agents =
+            Snapshot.export ~raw:true ~debugMode:true signature snapshot ;
         Data.snapshot_tokens = [||] } in
     let oc = open_out file in
     if !Tql_output.snapshots_native_format then begin
