@@ -3,8 +3,8 @@ BIN=query
 .PHONY: build clean test full-clean
 
 build:
-	dune build src/query.exe
-	mv _build/default/src/query.exe $(BIN)
+	dune build src/main.exe
+	mv _build/default/src/main.exe $(BIN)
 
 clean:
 	rm -rf _build $(BIN)

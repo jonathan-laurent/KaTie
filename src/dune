@@ -1,11 +1,18 @@
 (executable
-  (name query)
+  (name main)
   (libraries
     kappa-library.generic
     kappa-library.runtime
     kappa-library.terms
     kappa-library.mixtures)
-  (flags (:standard -w -34-37
+  (flags (:standard -w -34-37-32-27
     -open Kappa_generic_toolset
     -open Kappa_mixtures
-    -open Kappa_terms)))
+    -open Kappa_terms
+    -open Kappa_runtime)))
+
+(menhir
+  (modules query_parser)
+  (flags --explain))
+
+(ocamllex query_lexer)
