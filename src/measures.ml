@@ -65,9 +65,11 @@ let take_snapshot ?uuid model state file =
         Data.print_snapshot ?uuid fmt snapshot
     end
     else begin
-        let outbuf = Bi_outbuf.create_channel_writer oc in
+        (* guesstimate buffer size: 10x the number of agents *)
+        let a_num = List.length snapshot.snapshot_agents in
+        let outbuf = Buffer.create (10 * a_num) in
         Data.write_snapshot outbuf snapshot ;
-        Bi_outbuf.flush_channel_writer outbuf
+        Buffer.output_buffer oc outbuf
     end ;
 
     close_out oc
