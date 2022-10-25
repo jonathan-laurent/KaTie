@@ -5,11 +5,11 @@
 
 (*  For a given event, a valuation maps every pinned-down agent
     to a concrete agent. *)
-    
+
 module Ag_valuation =
 struct
     type t = int list
-    let compare v v' = 
+    let compare v v' =
         assert (List.length v = List.length v') ;
         compare v v'
 end

@@ -1,8 +1,3 @@
-val take_measures :
-  ?uuid:int ->
-  Model.t ->
-  Query.event ->
-  int array ->
-  Streaming.window ->
-  (int -> Query.value option -> unit) ->
-  unit
+val take_measure:
+  ?uuid:int -> Model.t -> int array -> Streaming.window ->
+  Query.measure -> Query.value option

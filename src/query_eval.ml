@@ -198,17 +198,17 @@ let update_constrained_agents ev m pm =
 
 (* Complete matchings *)
 
-let cm_get_measure cm ev_id m_id =
-    try IntMap.find m_id cm.cm_events.(ev_id).specific.recorded_measures
-    with Not_found -> None
-
 let cm_get_agent_id cm qid =
     try Some (cm.cm_agents.(qid))
     with _ -> assert false
 
-let cm_set_measure cm ev_id m_id v =
+(* Returns [None] if not cached and [Some None] if cached but errored. *)
+let cm_get_measure cm ev_id i =
+    IntMap.find_opt i cm.cm_events.(ev_id).specific.recorded_measures
+
+let cm_set_measure cm ev_id i v =
     let ev = cm.cm_events.(ev_id) in
-    let recorded_measures = IntMap.add m_id v ev.specific.recorded_measures in
+    let recorded_measures = IntMap.add i v ev.specific.recorded_measures in
     cm.cm_events.(ev_id) <- {ev with specific={ev.specific with recorded_measures}}
 
 
@@ -421,9 +421,18 @@ let free_cm_memory (cm : complete_matching) =
                 recorded_measures = IntMap.empty}}
     done
 
+(* Read a measure in the cache if it is cached or compute it using
+   the current trace window otherwise *)
+let read_or_take_measure ?uuid model query ag_matchings window cm =
+    fun (ev_id, measure_id) ->
+    match cm_get_measure cm ev_id measure_id with
+    | Some x -> x
+    | None ->
+        let ev = query.pattern.events.(ev_id) in
+        let measure = ev.measures.(measure_id) in
+        Measures.take_measure ?uuid model ag_matchings window measure
 
-let execute_action (q : query) (fmt : Format.formatter) (cm : complete_matching) =
-    let read_measure (ev_id, measure_id) = cm_get_measure cm ev_id measure_id in
+let execute_action q fmt read_measure cm =
     let read_id = cm_get_agent_id cm in
     let rec aux = function
         | Print e ->
@@ -435,7 +444,6 @@ let execute_action (q : query) (fmt : Format.formatter) (cm : complete_matching)
             | Some b -> if b then aux action
             | None -> failwith "Invalid conditional."
             end
-
     in aux q.action ; free_cm_memory cm
 
 
@@ -477,18 +485,18 @@ let second_pass_process_step
                     let cm = cms.(m_id) in
                     matchings_processed(1);
                     let final_step = step_id = cm.cm_last_matched_step_id in
-                    (* We make all measures if this is not the final step *)
-                    begin try
-                    take_all_measures
-                        ?uuid model cm.cm_agents window
-                        (cm_set_measure cm ev_id)
-                        query.pattern.events.(ev_id)
-                    with _ -> begin
-                        Array.iter (Dbg.pp_event_matching Format.std_formatter) cm.cm_events
-                    end end;
-                    (* We perform the action if this is a final step *)
                     if final_step then begin
-                        execute_action query fmt cms.(m_id)
+                        (* Non-cached measures are computed using the current window. *)
+                        let read_or_take_measure =
+                            read_or_take_measure ?uuid model query cm.cm_agents window cm in
+                        execute_action query fmt read_or_take_measure cm
+                    end else begin
+                        (* We cache measures now since the result will
+                           only be used later (when the action is performed). *)
+                        take_all_measures
+                            ?uuid model cm.cm_agents window
+                            (cm_set_measure cm ev_id)
+                            query.pattern.events.(ev_id);
                     end;
                     (* We proceed with our todo list *)
                     process remaining
