@@ -82,45 +82,49 @@ let print_cc model state ag_id =
         Format.asprintf "@[<h>%a@]" User_graph.print_cc ugraph in
     Some (Val (str, String))
 
-let take_measures
+let take_measure
     ?(uuid : int option)
     (model : Model.t)
-    (ev : Query.event)
+    (ag_matchings : int array)
+    (w : Streaming.window)
+    {measure_descr; _}
+    : value option =
+    match measure_descr with
+    | State_measure (time, _ty, st_measure) ->
+        let state =
+            begin match time with
+            | Before -> w.previous_state
+            | After -> w.state
+            end in
+        begin match st_measure with
+        | Count _ -> None
+        | Component ag_id ->
+            component ag_matchings.(ag_id) state (* Absurd *)
+        | Nphos _ -> None
+        | Int_state ((ag_id, ag_kind), ag_site) ->
+            int_state model ((ag_matchings.(ag_id), ag_kind), ag_site) state
+        | Snapshot ->
+            let filename = Tql_output.new_snapshot_file () in
+            take_snapshot ?uuid model state filename ;
+            Some (Val (filename, String))
+        | Print_cc ag_id ->
+            print_cc model state ag_matchings.(ag_id)
+        end
+    | Event_measure (_ty, ev_measure) ->
+        begin match ev_measure with
+        | Time -> time w.state
+        | Rule -> rule_name model w.step
+        | Init_event -> Some (Val (Trace.step_is_init w.step, Bool))
+        end
+
+let take_all_measures
+    ?(uuid : int option)
+    (model : Model.t)
     (ag_matchings : int array)
     (w : Streaming.window)
     (set_measure : int -> value option -> unit)
+    (ev : Query.event)
     : unit =
-
-    let take_measure i {measure_descr;_} =
-        let v =
-            match measure_descr with
-            | State_measure (time, _ty, st_measure) ->
-                let state =
-                    begin match time with
-                    | Before -> w.previous_state
-                    | After -> w.state
-                    end in
-                begin match st_measure with
-                | Count _ -> None
-                | Component ag_id ->
-                    component ag_matchings.(ag_id) state (* Absurd *)
-                | Nphos _ -> None
-                | Int_state ((ag_id, ag_kind), ag_site) ->
-                    int_state model ((ag_matchings.(ag_id), ag_kind), ag_site) state
-                | Snapshot ->
-                    let filename = Tql_output.new_snapshot_file () in
-                    take_snapshot ?uuid model state filename ;
-                    Some (Val (filename, String))
-                | Print_cc ag_id ->
-                    print_cc model state ag_matchings.(ag_id)
-                end
-            | Event_measure (_ty, ev_measure) ->
-                begin match ev_measure with
-                | Time -> time w.state
-                | Rule -> rule_name model w.step
-                | Init_event -> Some (Val (Trace.step_is_init w.step, Bool))
-                end in
-            set_measure i v
-         in
-
-     Array.iteri take_measure ev.measures
+    ev.measures |> Array.iteri (fun i measure ->
+        let v = take_measure ?uuid model ag_matchings w measure in
+        set_measure i v)

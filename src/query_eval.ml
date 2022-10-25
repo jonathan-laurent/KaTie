@@ -452,6 +452,12 @@ let prepare_second_pass cms =
         ));
     List.sort triple_compare_on_first (Utils.list_of_queue q)
 
+(* Take all measures corresponding to an event and stores the result using
+   a provider setter. *)
+let take_all_measures ?uuid model ag_matchings window set_measure ev =
+    ev.measures |> Array.iteri (fun i measure ->
+        let v = Measures.take_measure ?uuid model ag_matchings window measure in
+        set_measure i v)
 
 let second_pass_process_step
     ?(uuid : int option)
@@ -470,20 +476,18 @@ let second_pass_process_step
                 begin
                     let cm = cms.(m_id) in
                     matchings_processed(1);
-                    (* We make all measures *)
+                    let final_step = step_id = cm.cm_last_matched_step_id in
+                    (* We make all measures if this is not the final step *)
                     begin try
-                    Measures.take_measures
-                        ?uuid
-                        model
-                        query.pattern.events.(ev_id)
-                        cm.cm_agents
-                        window
+                    take_all_measures
+                        ?uuid model cm.cm_agents window
                         (cm_set_measure cm ev_id)
+                        query.pattern.events.(ev_id)
                     with _ -> begin
                         Array.iter (Dbg.pp_event_matching Format.std_formatter) cm.cm_events
                     end end;
-                    (* We perform the action if this is a final event *)
-                    if step_id = cm.cm_last_matched_step_id then begin
+                    (* We perform the action if this is a final step *)
+                    if final_step then begin
                         execute_action query fmt cms.(m_id)
                     end;
                     (* We proceed with our todo list *)

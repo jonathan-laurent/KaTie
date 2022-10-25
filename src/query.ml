@@ -116,7 +116,7 @@ and state_measure_time = Before | After
 
 type event_pattern = {
     main_pattern : pattern ;
-    with_clause : bool expr ;
+    with_clause : bool expr ;  (* unsupported by the engine for now... *)
     rule_constraint : rule_constraint option ;
 }
 
