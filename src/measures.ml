@@ -91,7 +91,7 @@ let take_measures
     (set_measure : int -> value option -> unit)
     : unit =
 
-    let take_measure m_id {measure_descr;_} =
+    let take_measure i {measure_descr;_} =
         let v =
             match measure_descr with
             | State_measure (time, _ty, st_measure) ->
@@ -120,7 +120,7 @@ let take_measures
                 | Rule -> rule_name model w.step
                 | Init_event -> Some (Val (Trace.step_is_init w.step, Bool))
                 end in
-            set_measure m_id v
+            set_measure i v
          in
 
      Array.iteri take_measure ev.measures

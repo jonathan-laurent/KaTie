@@ -438,26 +438,19 @@ let execute_action (q : query) (fmt : Format.formatter) (cm : complete_matching)
 
     in aux q.action ; free_cm_memory cm
 
+
+(* Initialize the accumulator state for the second pass,
+   which consists in a list of [step_id, matching_id, event_id] triples sorted
+   by increasing [step_id] *)
 let prepare_second_pass cms =
-
     let triple_compare_on_first (x, _, _) (x', _, _) = compare x x' in
-    let pair_compare_on_first (x, _) (x', _) = compare x x' in
-
     let q = Queue.create () in
     cms |> Array.iteri (fun m_id m ->
         m.cm_events |> Array.iteri (fun ev_id ev ->
             let step_id = ev.common.ev_id_in_trace in
             Queue.push (step_id, m_id, ev_id) q
         ));
-
-    let to_watch = List.sort triple_compare_on_first (Utils.list_of_queue q) in
-
-    let actions_triggerings = cms
-        |> Array.mapi (fun m_id cm -> (cm.cm_last_matched_step_id, m_id))
-        |> Array.to_list
-        |> List.sort pair_compare_on_first in
-    (to_watch, actions_triggerings)
-
+    List.sort triple_compare_on_first (Utils.list_of_queue q)
 
 
 let second_pass_process_step
@@ -468,8 +461,8 @@ let second_pass_process_step
     (fmt : Format.formatter)
     (cms : complete_matching array) =
 
-    fun (window : window) (remaining_mes, remaining_acts) ->
-        let rec measure = function
+    fun (window : window) remaining ->
+        let rec process = function
             | [] -> [] (* There's nothing interesting in the trace anymore *)
             | (step_id, m_id, ev_id) :: remaining
                 when step_id = window.step_id ->
@@ -477,6 +470,7 @@ let second_pass_process_step
                 begin
                     let cm = cms.(m_id) in
                     matchings_processed(1);
+                    (* We make all measures *)
                     begin try
                     Measures.take_measures
                         ?uuid
@@ -488,21 +482,15 @@ let second_pass_process_step
                     with _ -> begin
                         Array.iter (Dbg.pp_event_matching Format.std_formatter) cm.cm_events
                     end end;
-                    measure remaining
+                    (* We perform the action if this is a final event *)
+                    if step_id = cm.cm_last_matched_step_id then begin
+                        execute_action query fmt cms.(m_id)
+                    end;
+                    (* We proceed with our todo list *)
+                    process remaining
                 end
             | remaining -> remaining in
-        let rec actions = function
-            | [] -> []
-            | (step_id, m_id) :: remaining when step_id = window.step_id ->
-                begin
-                    execute_action query fmt cms.(m_id) ;
-                    actions remaining
-                end
-            | remaining -> remaining in
-        let remaining_mes = measure remaining_mes in
-        let remaining_acts = actions remaining_acts in
-        (remaining_mes, remaining_acts)
-
+        process remaining
 
 
 (*****************************************************************************)
@@ -526,19 +514,15 @@ let eval
     : unit =
 
     let env = init_env m q in
-
     ignore @@ Streaming.fold_trace
         ~update_ccs:true
         ~compute_previous_states:true
         trace_file
         (first_pass_process_step q)
         env ;
-
     let cms = extract_complete_matchings env in
     let acc = prepare_second_pass cms in
-
     let matchings_processed(n) = () in
-
     Format.fprintf fmt "@[<v>" ;
     ignore @@ Streaming.fold_trace
         ~update_ccs:true
