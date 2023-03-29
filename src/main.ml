@@ -34,17 +34,17 @@ let options = [
 
 let parse_and_compile_queries model file =
   try
-  let ic = open_in file in
-  let lexbuf = Lexing.from_channel ic in
-  begin try
-    let asts = Query_parser.queries Query_lexer.token lexbuf in
-    let queries = List.map (Query_compile.compile model) asts in
-    close_in ic ;
-    queries
-  with
-    | Query_parser.Error ->
-      raise (error_at (Lexing.lexeme_start_p lexbuf) Parse_error)
-  end
+    let ic = open_in file in
+    let lexbuf = Lexing.from_channel ic in
+    begin try
+      let asts = Query_parser.queries Query_lexer.token lexbuf in
+      let queries = List.map (Query_compile.compile model) asts in
+      close_in ic ;
+      queries
+    with
+      | Query_parser.Error ->
+        raise (error_at (Lexing.lexeme_start_p lexbuf) Parse_error)
+    end
   with Sys_error _ -> raise (error (File_not_found file))
 
 let with_file file f =

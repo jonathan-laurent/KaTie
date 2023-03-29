@@ -268,9 +268,14 @@ let match_simple_pattern
           end
         | Int_state_is ((ag_pid, s), st) ->
           Edges.get_internal (translate_ag ag_pid) s prev_mstate = st
-      with _ -> false
-      (* TODO: this is extremely dirty. We are doing this in case some agent
-         does not exist in the previous state and KaSim throws an exception *)
+      with e ->
+        (* TODO: this is extremely dirty. We are doing this in case some agent
+           does not exist in the previous state and KaSim throws an exception *)
+        begin
+          Printf.printf "\nTODO: catch more specific exception in `match_simple_pattern`";
+          print_endline (Printexc.to_string e ^ "\n");
+          false
+        end
     ) in
 
     if mods_ok && tests_ok then Some ag_matchings else None

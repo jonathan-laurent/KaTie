@@ -200,7 +200,12 @@ let update_constrained_agents ev m pm =
 
 let cm_get_agent_id cm qid =
     try Some (cm.cm_agents.(qid))
-    with _ -> assert false
+    with e ->
+    begin
+        print_endline "TODO: catch a more specialized exception in cm_get_agent_id." ;
+        print_endline (Printexc.to_string e) ;
+        assert false
+    end
 
 (* Returns [None] if not cached and [Some None] if cached but errored. *)
 let cm_get_measure cm ev_id i =

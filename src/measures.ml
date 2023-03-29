@@ -41,7 +41,9 @@ let time state = Some (Val (state.Replay.time, Float))
 
 let int_state model ((ag_id, ag_kind), ag_site) state =
     let st = try Edges.get_internal ag_id ag_site state.Replay.graph
-        with _ -> begin
+        with e -> begin
+            Format.printf "\nTODO: make exception more specific in `int_state`.\n" ;
+            print_endline (Printexc.to_string e) ;
             Format.printf "(%d, %d), %d \n\n" ag_id ag_kind ag_site ;
             Format.printf "%d\n\n" state.Replay.event ;
             Edges.debug_print Format.std_formatter state.Replay.graph ;
