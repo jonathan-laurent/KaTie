@@ -392,8 +392,12 @@ let extract_complete_matchings env =
             let cm_last_matched_step_id = Utils.list_maximum matched_step_ids in
             {cm_agents ; cm_events ; cm_last_matched_step_id}
         with Not_found ->
-            begin Dbg.pp_partial_matching Format.std_formatter pm ;
-            assert false end in
+            begin
+                print_endline "\nUnable to finalize a partial matching:";
+                Dbg.pp_partial_matching Format.std_formatter pm ;
+                print_endline "";
+                assert false
+            end in
 
     let process_pm _ pm acc =
         match pm with

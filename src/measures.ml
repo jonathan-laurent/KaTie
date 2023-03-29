@@ -26,8 +26,10 @@ let component ag_id state =
         begin match Utils.bind_option cc_id (fun cc_id -> Mods.IntMap.find_option cc_id ccs) with
         | None ->
             begin
-                Printf.printf "`cc_id` is equal to None: %b\n" (cc_id = None) ;
-                assert false (* Bug from `Replay` ? *)
+                Printf.printf "Impossible to find the connected component of agent %d.\n" ag_id ;
+                Printf.printf "This may indicate a bug in `Replay`.\n" ;
+                Printf.printf "Info: `cc_id` is equal to None: %b\n" (cc_id = None) ;
+                assert false
             end
         | Some cc ->
             (* assert (Agent.SetMap.Set.exists (fun (ag_id', _) -> ag_id = ag_id') cc) ; *)
