@@ -268,9 +268,12 @@ let match_simple_pattern
           end
         | Int_state_is ((ag_pid, s), st) ->
           Edges.get_internal (translate_ag ag_pid) s prev_mstate = st
-      with e ->
-        (* TODO: this is extremely dirty. We are doing this in case some agent
-           does not exist in the previous state and KaSim throws an exception *)
+      with
+      (* TODO: this is dirty. We are doing this in case some agent
+         does not exist in the previous state and KaSim throws an exception.
+         KaSim should throw a more specific exception or expose a `valid_agent_id` API. *)
+      | Invalid_argument _ -> false
+      | e ->
         begin
           Printf.printf "\nTODO: catch more specific exception in `match_simple_pattern`";
           print_endline (Printexc.to_string e ^ "\n");
