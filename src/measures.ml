@@ -18,16 +18,6 @@ let rule_name model =
         | Trace.Pert  _ -> ret "_pert_"
         | Trace.Obs   _ -> ret "_obs_"
 
-let agent_id_exists ag_id graph =
-    (* This should really be part of the KaSim API... *)
-    try
-        ignore (Edges.get_sites ag_id graph) ; true
-    with e -> begin
-        Format.printf "\nTODO: make exception more specific in `agent_id_exists`.\n" ;
-        print_endline (Printexc.to_string e) ;
-        false
-    end
-
 let component ag_id state =
     match state.Replay.connected_components with
     | None -> Printf.printf "No connected component information available" ; None
@@ -39,7 +29,7 @@ let component ag_id state =
                 Printf.printf "Impossible to find the connected component of agent %d.\n" ag_id ;
                 Printf.printf "This may indicate a bug in `Replay`.\n" ;
                 Printf.printf "Info: `cc_id` is equal to None: %b.\n" (cc_id = None) ;
-                Printf.printf "Info: `ag_id` is a valid ID: %b.\n" (agent_id_exists ag_id state.Replay.graph) ;
+                Printf.printf "Info: `ag_id` is a valid ID: %b.\n" (Edges.is_agent_id ag_id state.Replay.graph) ;
                 assert false
             end
         | Some cc ->
