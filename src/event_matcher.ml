@@ -275,7 +275,7 @@ let match_simple_pattern
       | Invalid_argument _ -> false
       | e ->
         begin
-          Printf.printf "\nTODO: catch more specific exception in `match_simple_pattern`";
+          Printf.printf "\nTODO: catch more specific exception in `match_simple_pattern`: ";
           print_endline (Printexc.to_string e ^ "\n");
           false
         end

@@ -27,7 +27,6 @@ let component ag_id state =
         | None ->
             begin
                 Printf.printf "Impossible to find the connected component of agent %d.\n" ag_id ;
-                Printf.printf "This may indicate a bug in `Replay`.\n" ;
                 Printf.printf "Info: `cc_id` is equal to None: %b.\n" (cc_id = None) ;
                 Printf.printf "Info: `ag_id` is a valid ID: %b.\n" (Edges.is_agent_id ag_id state.Replay.graph) ;
                 assert false
