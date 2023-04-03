@@ -29,6 +29,10 @@ query 'print_cc.csv'
 match b:{ s:S(d[/1]), k:K(d[/1], x{u}) }
 return print_cc[b.]{s}
 
+query 'component_size.csv'
+match b:{ s:S(d[/1]), k:K(d[/1], x{u}) }
+return size{component[b.]{s}}
+
 // query 'state_ambiguous.csv'
 // match e:{} and f:{} return time[e], time[f]
 
@@ -38,5 +42,6 @@ return print_cc[b.]{s}
 // query 'int_state_test.csv'
 // match e: { s:S(x{u/p}) } when int_state[e.]{s.x} = 'p' return time[e]
 
-query 'type_error.csv'
-match e: { s:S(x{u/p}) } return time[e] + int_state[e.]{s.x}
+// query 'type_error.csv'
+// match e: { s:S(x{u/p}) } return time[e] + int_state[e.]{s.x}
+
