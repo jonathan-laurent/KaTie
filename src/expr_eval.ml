@@ -5,6 +5,7 @@
 open Query
 open Utils
 open Format
+open Debug_pp
 
 let expr_type : type a. a expr -> a expr_type = snd
 
@@ -36,8 +37,8 @@ let cast_to (type a) (t : a expr_type) (v : value) : a option =
     | Tuple,     Val (x, Tuple)     -> Some x
     | Tuple,     Val (x, ty)        -> Some [Val (x, ty)]
     | _ ->
-        Format.printf "Wrong cast attempt from `%a` to `%a`.\n"
-            print_value_type v print_type t ;
+        Log.(warn (fmt "Wrong cast attempt from `%a` to `%a`."
+            print_value_type v print_type t));
         None
 
 let rec compare_lists cmp xs ys =
@@ -92,7 +93,8 @@ let rec eval_expr : type a. measures_provider -> agent_ids_provider -> a expr ->
         | Some lhs, Binop op, Some rhs -> Some (op lhs rhs)
         | Some lhs, Eq, Some rhs -> Some (eval_eq (expr_type lhs_e) lhs rhs)
         | Some lhs, Concat, Some rhs -> Some (eval_concat (expr_type lhs_e) lhs (expr_type rhs_e) rhs)
-        | None, _, _ | _, _, None -> Printf.printf "Failed to eval expr.\n" ; None
+        | None, _, _ | _, _, None ->
+            Log.(info "Failed to evaluate expression." ~loc:__LOC__ ~details:[pp pp_expr expr]) ; None
         end
     | (Unop (Unop op, arg), ty) -> map_option op (eval_expr read_measure read_id arg)
     | (Unop (Count_agents ags, arg), ty) ->

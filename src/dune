@@ -4,7 +4,8 @@
     kappa-library.generic
     kappa-library.runtime
     kappa-library.terms
-    kappa-library.mixtures)
+    kappa-library.mixtures
+    ANSITerminal)
   (flags (:standard -w -34-37-32-27
     -open Kappa_generic_toolset
     -open Kappa_mixtures

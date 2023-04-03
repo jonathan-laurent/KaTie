@@ -1,27 +1,43 @@
-open Format
+(* User-facing errors raised by TQL *)
 
-type error_kind = 
+type error_kind =
     | Lexer_error
     | Parse_error
     | File_not_found of string
+    (* Query compilation errors *)
+    | No_root_event
+    | Disconnected_query_graph
+    (* Runtime errors *)
+    | Agent_ambiguity
 
-type error = error_kind * Lexing.position option
+type error = {kind: error_kind; loc: Lexing.position option; query: string option}
 
-exception Error of error
+exception User_error of error
 
-let error_at pos ek = Error (ek, Some pos)
+let fail ?loc kind =
+    let query = Log.get_current_query () in
+    raise (User_error {kind; loc; query})
 
-let error ek = Error (ek, None)
+let error_message = function
+    | Lexer_error -> ["Lexer error: an unknown symbol was encountered."]
+    | Parse_error -> ["Parse error."]
+    | File_not_found s -> [Log.fmt "File '%s' not found." s]
+    (* | Event_ambiguity -> [
+        "Ambiguity detected.";
+        "Hint: make sure that a root event exists in your query such that mapping this event to a trace event determines one matching at most."] *)
+    | Agent_ambiguity -> [
+        "Ambiguity detected.";
+        "Hint: make sure that a root event exists in your query such that mapping this event to a trace event determines one matching at most."]
+    | No_root_event -> ["The query has no root event."]
+    | Disconnected_query_graph -> ["The query's dependency graph is disconnected."]
 
-let print_error_kind f = function
-    | Lexer_error -> fprintf f "Unknown symbol."
-    | Parse_error -> fprintf f "Parse error."
-    | File_not_found fn -> fprintf f "File '%s' not found." fn
-
-
-let print_opt_pos f = function
-    | None -> ()
-    | Some pos -> fprintf f "[Line %d] " pos.Lexing.pos_lnum
-
-let print_error f (kind, pos) = 
-    fprintf f "@[<v>%a%a@]@." print_opt_pos pos print_error_kind kind
+let string_of_error {kind; loc; query} =
+    let opt x f = match x with None -> [] | Some x -> [f x]  in
+    let attributes =
+        opt loc (fun pos -> Log.fmt "line %d" pos.Lexing.pos_lnum) @
+        opt query (fun q -> q) in
+    let attributes =
+        match attributes with
+        | [] -> ""
+        | ss -> " (" ^ String.concat ", " ss ^ ")" in
+    String.concat "\n" (("User error" ^ attributes ^ ":") :: error_message kind)

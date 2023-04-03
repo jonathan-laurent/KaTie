@@ -268,7 +268,6 @@ let zip_with_fresh env pm l =
     You have to check that the event is watched indeed before calling. *)
 
 let rec process_matching env subs children (pm, m) =
-
     let i = m.common.ev_id_in_query in
     let pm = { pm with matched_events = IntMap.add i m pm.matched_events } in
     let pm = update_constrained_agents (get_event env i) m pm in
@@ -594,8 +593,9 @@ let eval_queries
     let step1 window () = begin
         event_processed 1 ;
         queries |> Array.iteri (fun i q ->
-            ignore (first_pass_process_step q window envs.(i))
-        )
+            Log.with_current_query q.title (fun () ->
+            ignore (first_pass_process_step q window envs.(i)))
+        );
     end in
 
     print_endline "Finding matchings..." ;
@@ -624,8 +624,9 @@ let eval_queries
 
     let step2 window () =
     queries |> Array.iteri (fun i q ->
+        Log.with_current_query q.title (fun () ->
         accs.(i) <- second_pass_process_step
-            ?uuid ~matchings_processed m q fmts.(i) cms.(i) window accs.(i)
+            ?uuid ~matchings_processed m q fmts.(i) cms.(i) window accs.(i));
     ) in
 
     ignore @@ Streaming.fold_trace

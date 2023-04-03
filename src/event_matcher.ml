@@ -151,7 +151,7 @@ let match_agents_in_pattern
           | [] -> raise No_match
           | (PAM eqs) :: [] -> eqs |> List.fold_left (fun acc (ag_pid, ag_id) ->
               IntMap.add ag_pid ag_id acc) acc
-          | _ -> failwith "Ambiguity detected."
+          | _ -> Tql_error.(fail Agent_ambiguity)
         ) IntMap.empty in
 
     let translate_psite ms (ag_pid, s) =
@@ -184,7 +184,7 @@ let match_agents_in_pattern
 
     let ag_matchings = Array.init n (fun i ->
         try IntMap.find i ag_matchings
-        with Not_found -> failwith "Ambiguity detected."
+        with Not_found -> Tql_error.(fail Agent_ambiguity)
       ) in
 
     Some ag_matchings
@@ -275,12 +275,11 @@ let match_simple_pattern
       | Invalid_argument _ -> false
       | e ->
         begin
-          Printf.printf "\nTODO: catch more specific exception in `match_simple_pattern`: ";
-          print_endline (Printexc.to_string e ^ "\n");
+          Log.warn "TODO: catch more specific exception."
+            ~loc:__LOC__ ~details:[Printexc.to_string e] ;
           false
         end
     ) in
-
     if mods_ok && tests_ok then Some ag_matchings else None
   end
   | None -> None

@@ -28,3 +28,12 @@ match e: { } when rule[e] = 'p' return time[e], rule[e]
 query 'print_cc.csv'
 match b:{ s:S(d[/1]), k:K(d[/1], x{u}) }
 return print_cc[b.]{s}
+
+// query 'state_ambiguous.csv'
+// match e:{} and f:{} return time[e], time[f]
+
+// query 'int_state_test_ambiguous.csv'
+// match e: { s:S(d) } when int_state[e.]{s.x} = 'p' return time[e]
+
+query 'int_state_test.csv'
+match e: { s:S(x{u/p}) } when int_state[e.]{s.x} = 'p' return time[e]

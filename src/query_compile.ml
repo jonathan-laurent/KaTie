@@ -630,8 +630,8 @@ let compute_traversal_tree (q : query) =
 
     let roots = Utils.list_of_queue roots in
     begin match roots with
-    | [] -> failwith "No root was provided."
-    | _ :: _ :: _ -> failwith "The query graph is not connected."
+    | [] -> Tql_error.(fail No_root_event)
+    | _ :: _ :: _ -> Tql_error.(fail Disconnected_query_graph)
     | [ root_id ] ->
         let rec build_tree i =
             let children =
@@ -682,12 +682,14 @@ let schedule_execution (q : query) =
     q
 
 let compile (model : Model.t) (q : Ast.query) =
-    let env = create_env model q in
-    (* Compile the action first so that no measure is missing in the pattern *)
-    let when_clause = Utils.map_option (compile_expr env true None) q.Ast.when_clause in
-    let action = compile_action env when_clause q.Ast.action in
-    let pattern = compile_trace_pattern env q.Ast.pattern in
     let title = q.Ast.query_name in
-    let legend = q.Ast.legend in
-    let every_clause = q.Ast.every_clause in
-    schedule_execution { pattern ; action ; title ; legend ; every_clause }
+    Log.with_current_query title (fun () ->
+        Log.set_current_query title;
+        let env = create_env model q in
+        (* Compile the action first so that no measure is missing in the pattern *)
+        let when_clause = Utils.map_option (compile_expr env true None) q.Ast.when_clause in
+        let action = compile_action env when_clause q.Ast.action in
+        let pattern = compile_trace_pattern env q.Ast.pattern in
+        let legend = q.Ast.legend in
+        let every_clause = q.Ast.every_clause in
+        schedule_execution { pattern ; action ; title ; legend ; every_clause })

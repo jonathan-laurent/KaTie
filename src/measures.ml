@@ -20,17 +20,17 @@ let rule_name model =
 
 let component ag_id state =
     match state.Replay.connected_components with
-    | None -> Printf.printf "No connected component information available" ; None
+    | None -> Log.warn "No connected component information available." ; None
     | Some ccs ->
         let cc_id = Edges.get_connected_component ag_id state.Replay.graph in
         begin match Utils.bind_option cc_id (fun cc_id -> Mods.IntMap.find_option cc_id ccs) with
-        | None ->
-            begin
-                Printf.printf "Impossible to find the connected component of agent %d.\n" ag_id ;
-                Printf.printf "Info: `cc_id` is equal to None: %b.\n" (cc_id = None) ;
-                Printf.printf "Info: `ag_id` is a valid ID: %b.\n" (Edges.is_agent_id ag_id state.Replay.graph) ;
-                assert false
-            end
+        | None -> Log.(
+            error (fmt "Impossible to find the connected component of agent %d." ag_id)
+                ~details:[
+                    fmt "`cc_id` is equal to None: %b." (cc_id = None) ;
+                    fmt "`ag_id` is a valid ID: %b."
+                        (Edges.is_agent_id ag_id state.Replay.graph)];
+            assert false)
         | Some cc ->
             (* assert (Agent.SetMap.Set.exists (fun (ag_id', _) -> ag_id = ag_id') cc) ; *)
             Some (Val (cc, Agent_set))
@@ -39,15 +39,16 @@ let component ag_id state =
 let time state = Some (Val (state.Replay.time, Float))
 
 
-let int_state model ((ag_id, ag_kind), ag_site) state =
+let [@warning "-21"] int_state model ((ag_id, ag_kind), ag_site) state =
     let st = try Edges.get_internal ag_id ag_site state.Replay.graph
         with e -> begin
-            Format.printf "\nTODO: make exception more specific in `int_state`.\n" ;
-            print_endline (Printexc.to_string e) ;
-            Format.printf "(%d, %d), %d \n\n" ag_id ag_kind ag_site ;
-            Format.printf "%d\n\n" state.Replay.event ;
-            Edges.debug_print Format.std_formatter state.Replay.graph ;
-            Format.printf "\n" ;
+            Log.warn "TODO: catch more specific exception."
+                ~loc:__LOC__ ~details:[Printexc.to_string e] ;
+            Log.(error "Unable to access agent's internal state" ~details:[
+                fmt "(%d, %d), %d" ag_id ag_kind ag_site;
+                fmt "%d" state.Replay.event;
+                pp Edges.debug_print state.Replay.graph
+            ]);
             assert false
         end in
     let signature = Model.signatures model in
