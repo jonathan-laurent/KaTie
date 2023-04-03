@@ -33,6 +33,7 @@ let log ?loc ?details:(ds=[]) ?exn ~kind msg =
 let info = log ~kind:"Info"
 let warn = log ~kind:"Warning"
 let error = log ~kind:"Error"
+let failwith ?details msg = error ?details msg; assert false
 
 (* Useful convenience shortcut for callers *)
 let fmt = Format.asprintf

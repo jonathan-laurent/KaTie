@@ -187,7 +187,7 @@ let eval_ev_expr env cur_ev_id = function
     | Ast.Ev name -> Dict.id_of_name env.query_events name
     | Ast.This ->
         begin match cur_ev_id with
-        | None -> failwith "Bad usage of `this`."
+        | None -> Log.failwith "Unexpected usage of Ast.This."
         | Some id -> id
     end
 
@@ -231,7 +231,7 @@ let tr_quark env (ag_name, site_name) =
     let ag_id = tr_agent env ag_name in
     let ag_kind_name =
         try SMap.find ag_name env.constrained_agents_types
-        with Not_found -> failwith "Illegal agent usage." in
+        with Not_found -> Log.failwith "Illegal agent usage." in
     let agent_kind = tr_agent_kind env ag_kind_name in
     let site_id = tr_site_name env agent_kind site_name in
     ((ag_id, agent_kind), site_id)
@@ -336,7 +336,8 @@ let combine_binop : type a . Ast.binop -> a expr -> a expr -> some_expr =
         fun op lhs rhs ->
         match expr_ty lhs with
         | Bool -> E (Binop (lhs, Binop op, rhs), Bool)
-        | _ -> failwith "Boolean combinator is given non-boolean arguments." in
+        | _ -> Tql_error.(fail (Type_error
+            "Boolean combinator is given non-boolean arguments.")) in
 
     fun op lhs rhs ->
         begin match op with
@@ -344,7 +345,8 @@ let combine_binop : type a . Ast.binop -> a expr -> a expr -> some_expr =
             | Ast.Similarity ->
                 begin match expr_ty lhs with
                 | Agent_set -> E (Binop (lhs, Binop set_similarity, rhs), Float)
-                | _ -> failwith "`similarity` expects agent sets as arguments."
+                | _ -> Tql_error.(fail (Type_error
+                    "The 'similarity' function expects agent sets as arguments."))
                 end
             | Ast.Add -> arith ( + ) ( +. ) lhs rhs
             | Ast.Mul -> arith ( * ) ( *. ) lhs rhs
@@ -375,14 +377,16 @@ let rec compile_expr env in_action cur_ev_id e =
         let E arg = compile_expr env in_action cur_ev_id arg_ast in
         begin match expr_ty arg with
         | Agent_set -> E (Unop (Unop Agent.SetMap.Set.size, arg), Int)
-        | _ -> failwith "`size` can only be applied to sets of agents."
+        | _ -> Tql_error.(fail (Type_error
+            "The 'size' function can only be applied to sets of agents."))
         end
     | Ast.Binop (lhs, op, rhs) ->
         let E lhs = compile_expr env in_action cur_ev_id lhs in
         let E rhs = compile_expr env in_action cur_ev_id rhs in
         begin match same_type lhs rhs with
         | Some (Same_type (lhs, rhs, _ty)) -> combine_binop op lhs rhs
-        | None -> failwith "Type error."
+        | None -> Tql_error.(fail (Type_error
+            "A binary operator is used with arguments of different types."))
         end
     | Ast.State_measure (st, m) ->
         compile_state_measure env in_action cur_ev_id st m
@@ -398,7 +402,8 @@ let rec compile_expr env in_action cur_ev_id e =
         | Agent_set ->
             let ags = List.map (tr_agent_kind env) ag_kinds in
             E (Unop (Count_agents ags, arg), Tuple)
-        | _ -> failwith "`count` expects a set of agents as its second argument."
+        | _ -> Tql_error.(fail (Type_error
+            "The 'count' function expects a set of agents as its second argument."))
         end
     | Ast.Agent_id ag_name ->
         E (Agent_id (tr_agent env ag_name), Int)
@@ -521,7 +526,7 @@ let compile_with_clause env name_opt = function
     | Some wc ->
         begin match compile_expr env false name_opt wc with
             | E (e, Bool) -> (e, Bool)
-            | _ -> failwith "A with clause should be of type `int`."
+            | _ -> Tql_error.(fail (Type_error "With-clauses must have type 'bool'."))
         end
 
 let compile_event_pattern env pat =
@@ -565,13 +570,15 @@ let make_event i tmp_ev = {
         begin match Utils.list_of_queue tmp_ev.tmp_main_pats with
         | [] -> None
         | [p] -> Some p
-        | _ -> failwith "There can be at most one main clause for every event."
+        | _ -> Tql_error.(fail (Compilation_error
+            "There can be at most one main clause for every event."))
         end ;
     defining_rel =
         begin match Utils.list_of_queue tmp_ev.tmp_def_rels with
         | [] -> None
         | [r] -> Some r
-        | _ -> failwith "There can be at most one defining relation for an event."
+        | _ -> Tql_error.(fail (Compilation_error
+            "There can be at most one defining relation for an event."))
         end ;
     measures = PreArray.to_array tmp_ev.tmp_ev_measures ;
     already_constrained_agents = [] ;
@@ -580,7 +587,7 @@ let make_event i tmp_ev = {
 
 let make_agent {tmp_ag_kind} =
     match tmp_ag_kind with
-    | None -> failwith "Unbound agent identifier."
+    | None -> Tql_error.(fail (Compilation_error "Unbound agent identifier."))
     | Some k -> k
 
 let compile_trace_pattern env tpat =
@@ -605,7 +612,8 @@ let compile_action env when_clause = function
         | None -> Print e
         | Some (E (b, Bool)) -> If ((b, Bool), Print e)
         | Some (E (_, _)) ->
-            failwith "The when clause should be of type `bool`."
+            Tql_error.(fail (Compilation_error
+                "The when clause should be of type 'bool'."))
         end
 
 (*****************************************************************************)

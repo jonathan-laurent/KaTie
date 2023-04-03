@@ -169,7 +169,7 @@ let indexing_ag_valuation env ev_id pm =
     let find_valuation ag =
         try
             IntMap.find ag pm.constrained_agents
-        with Not_found -> failwith (Format.sprintf "No mapping found for agent %d." ag) in
+        with Not_found -> Log.(failwith (fmt "No mapping found for agent %d." ag)) in
     List.map find_valuation val_ags
 
 let valuation_to_mapping ag_pm_labels v =
@@ -407,7 +407,6 @@ let extract_complete_matchings env =
         match pm with
             | Branched _ -> acc
             | Elem pm ->
-                (* Printf.printf "%d" (IntMap.cardinal pm.watched) ; *)
                 if IntMap.is_empty pm.watched then finalize pm :: acc
                 else acc in
 
@@ -450,7 +449,8 @@ let execute_action q fmt read_measure cm =
         | If (cond, action) ->
             begin match Expr_eval.eval_expr read_measure read_id cond with
             | Some b -> if b then aux action
-            | None -> failwith "Invalid conditional."
+            | None -> Tql_error.(fail (Expr_failure
+                "Failed to evaluate the guard of a conditional statement or 'when'-clause."))
             end
     in aux q.action ; free_cm_memory cm
 

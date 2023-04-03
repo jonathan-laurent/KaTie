@@ -8,11 +8,11 @@ let check_dir_exists dir =
   if not (Sys.file_exists dir && Sys.is_directory dir) then
   begin
     if Sys.command ("mkdir '" ^ dir ^ "'") <> 0 then
-      failwith ("Error: could not create directory '" ^ dir ^ "'.")
+      Tql_error.(fail (Sys_error ("Could not create directory '" ^ dir ^ "'.")))
   end
 
 let set_output_directory dir =
-  let dir = 
+  let dir =
     if dir = "" then "."
     else if String.get dir (String.length dir - 1) = '/' then
       String.sub dir 0 (String.length dir - 1)
@@ -32,10 +32,10 @@ let set_snapshots_name_format fmt =
       snapshot_prefix := pre ;
       snapshot_suffix := suf
     end
-  | _ -> failwith "Illegal snapshots name format."
+  | _ -> Tql_error.failwith "Illegal snapshots name format."
 
 let new_snapshot_file () =
-  let f = Format.asprintf "%s%d%s" 
+  let f = Format.asprintf "%s%d%s"
     !snapshot_prefix !snapshot_counter !snapshot_suffix in
   incr snapshot_counter ;
   file f

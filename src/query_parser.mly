@@ -156,7 +156,7 @@ expr:
     { Count_agents (agents, e) }
   | SIMILARITY OP_CURL e1=expr CL_CURL OP_CURL e2=expr CL_CURL
     { Binop (e1, Similarity, e2) }
-  | DIST { failwith "Not handled yet"}
+  | DIST { Tql_error.(fail (Unimplemented "'dist'"))}
   | TIME ev_expr=ev_measure_annot
     { Event_measure (ev_expr, Time) }
   | RULE ev_expr=ev_measure_annot

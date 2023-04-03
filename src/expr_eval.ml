@@ -55,7 +55,7 @@ let eval_compare : type a . a expr_type -> a -> a -> int =
     fun ty lhs rhs ->
     match ty with
         | Agent_set -> Agent.SetMap.Set.compare lhs rhs
-        | Tuple -> failwith "Cannot compare tuples."
+        | Tuple -> Tql_error.(fail (Type_error "Cannot compare tuples."))
         | _ -> compare lhs rhs
 
 
