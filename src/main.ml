@@ -9,6 +9,7 @@ let no_backtraces = ref false
 let debug_mode = ref false
 let snapshots_name_format = ref ""
 let skip_init_events = ref false
+let no_color = ref false
 
 let native_snapshots () =
   Tql_output.snapshots_native_format := true
@@ -19,18 +20,21 @@ let options = [
   "-q", Arg.Set_string query_file, "query file" ;
   "-t", Arg.Set_string trace_file, "trace file" ;
   "-o", Arg.Set_string default_out_file,
-  "default output file (if not specified: `output.csv`)" ;
+    "default output file (if not specified: `output.csv`)" ;
   "--no-backtraces", Arg.Set no_backtraces, "disable exception backtraces" ;
   "--debug", Arg.Set debug_mode, "enable debug mode" ;
   "--skip-init-events", Arg.Set skip_init_events, "skip INIT events in the trace" ;
   "--snapshots-names", Arg.Set_string snapshots_name_format,
-  "name format of generated snapshot files (default: 'snapshot.%.json' or 'snapshot.%.ka')" ;
+    "name format of generated snapshot files (default: 'snapshot.%.json' or 'snapshot.%.ka')" ;
   "--native-snapshots", Arg.Unit native_snapshots,
-  "dump snapshot using KaSim's native format" ;
+    "dump snapshot using KaSim's native format" ;
+  "--no-color", Arg.Set no_color, "disable colored output" ;
   "--output-directory", Arg.String Tql_output.set_output_directory ,
-  "set the output directory (default: '.')" ]
+    "set the output directory (default: '.')" ]
 
-let print_endline_styled s msg = ANSITerminal.(print_string s (msg ^ "\n"))
+let print_endline_styled s msg =
+  if !no_color then print_endline msg
+  else ANSITerminal.(print_string s (msg ^ "\n"))
 let red, green = ANSITerminal.(red, green)
 
 let parse_and_compile_queries model file =
@@ -95,7 +99,8 @@ let main () =
       ~skip_init_events:!skip_init_events ?uuid
       model queries !trace_file ;
     fmts |> List.iter (fun (_, fmt) -> Format.fprintf fmt "@]@.") ;
-    print_endline_styled [green] "Done! \u{1F389}"
+    let emoji = if !no_color then "" else " \u{1F389}" in
+    print_endline_styled [green] ("Done!" ^ emoji)
   end
 
 
