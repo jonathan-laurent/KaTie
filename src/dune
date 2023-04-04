@@ -1,23 +1,30 @@
 (executable
-  (name main)
-  (public_name KaTie)
-  (package kappa-tql)
-  (libraries
-    kappa-library.generic
-    kappa-library.runtime
-    kappa-library.terms
-    kappa-library.mixtures
-    fmt
-    ANSITerminal)
-  (preprocess (pps ppx_deriving.show))
-  (flags (:standard
-    -open Kappa_generic_toolset
-    -open Kappa_mixtures
-    -open Kappa_terms
-    -open Kappa_runtime)))
+ (name main)
+ (public_name KaTie)
+ (package kappa-tql)
+ (libraries
+  kappa-library.generic
+  kappa-library.runtime
+  kappa-library.terms
+  kappa-library.mixtures
+  fmt
+  ppx_yojson_conv_lib
+  ANSITerminal)
+ (preprocess
+  (pps ppx_deriving.show ppx_yojson_conv))
+ (flags
+  (:standard
+   -open
+   Kappa_generic_toolset
+   -open
+   Kappa_mixtures
+   -open
+   Kappa_terms
+   -open
+   Kappa_runtime)))
 
 (menhir
-  (modules query_parser)
-  (flags --explain))
+ (modules query_parser)
+ (flags --explain))
 
 (ocamllex query_lexer)
