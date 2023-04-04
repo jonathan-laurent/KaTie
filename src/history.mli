@@ -19,3 +19,5 @@ val add_list : (int * 'a) list -> 'a t -> 'a t
 val last_before : int -> 'a t -> (int * 'a) option
 
 val first_after : int -> 'a t -> (int * 'a) option
+
+val run_tests : unit -> unit

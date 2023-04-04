@@ -68,7 +68,6 @@ let rec fixpoint eq f x =
   if eq x fx then x else fixpoint eq f fx
 
 
-
 (*****************************************************************************)
 (* Main procedures                                                           *)
 (*****************************************************************************)
@@ -79,13 +78,12 @@ type partial_agents_matching = PAM of (int * int) list
 exception No_match
 
 (* Try to match the agents of [pat] in [w] by only looking at
-   modifications and connectivity.
-   only uses w.step (not the mixture) *)
+   modifications and connectivity. Only uses w.step (not the mixture) *)
 
 let match_agents_in_pattern
   (pat : Query.event_pattern)
-  (w : Streaming.window)
-  : (int array) option =
+  (w : Streaming.window):
+  (int array) option =
 
   if satisfy_rule_constraint pat.rule_constraint w.state w.step then try
 
@@ -100,6 +98,11 @@ let match_agents_in_pattern
     let site_has_type (kind, s) ((_, kind'), s') =
       kind = kind' && s = s' in
 
+    (* Take a pattern action and a step action and return all partial agent matchings
+       that are induced by this pair. For example, the binding action in the
+       event pattern {s1:S(x[./1]), s2:S(x[./1])}, when matching with a concrete
+       binding action involving agents a1 and a2 in the trace, induces two
+       matchings {s1->a1, s2->a2} and {s1->a2, s2->a1}. *)
     let match_actions pat_action step_action =
       match pat_action, step_action with
       | Create ag_pid, Instantiation.Create (ag, _)
@@ -145,7 +148,17 @@ let match_agents_in_pattern
         aux s s1 s2 @ aux s s2 s1
       | _ -> [] in
 
-    let ag_matchings =
+    (* Each action from the pattern must induce only one partial matching. *)
+    (* Can several actions constrain the same agent in incompatible ways? *)
+
+    (* In this example, what is happening? *)
+    (* S(a[u/p],b[u,p]), S(c[u/p],d[u,p]) *)
+
+    (* Compute a matching implied by the modifications that may still be incomplete. *)
+    (* Is it possible there may be something unsound here? *)
+    (* What if {a1->a2} *)
+    (* CEX: {S(x[u/p]), S(x[u/p],y[u/p])}: this is going to be rejected *)
+    let ag_matching =
       pat.main_pattern.mods |> List.fold_left (fun acc pat_action ->
           match Utils.concat_map (match_actions pat_action) actions with
           | [] -> raise No_match
@@ -178,16 +191,17 @@ let match_agents_in_pattern
 
     let same_cardinal m m' = IntMap.cardinal m = IntMap.cardinal m' in
 
-    let ag_matchings = fixpoint same_cardinal add_neighborhood ag_matchings in
+    let ag_matching = fixpoint same_cardinal add_neighborhood ag_matching in
 
     let n = Array.length pat.main_pattern.agents in
 
-    let ag_matchings = Array.init n (fun i ->
-        try IntMap.find i ag_matchings
+    (* This fails if the identity of an agent could not be uniquely determined. *)
+    let ag_matching = Array.init n (fun i ->
+        try IntMap.find i ag_matching
         with Not_found -> Tql_error.(fail Agent_ambiguity)
       ) in
 
-    Some ag_matchings
+    Some ag_matching
 
   with No_match -> None
   else None

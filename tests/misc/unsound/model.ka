@@ -1,0 +1,6 @@
+%agent: S(x, a{u,p}, b{u,p})
+
+'b' S(x[./1]), S(x[./1]) @ 1.0
+'p' S(x[1], a{u/p}), S(x[1], b{u/p}) @ 1.0
+
+%init: 4 S(a{u}, b{u})

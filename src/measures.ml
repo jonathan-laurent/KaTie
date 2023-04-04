@@ -121,15 +121,3 @@ let take_measure
         | Rule -> rule_name model w.step
         | Init_event -> Some (Val (Trace.step_is_init w.step, Bool))
         end
-
-let take_all_measures
-    ?(uuid : int option)
-    (model : Model.t)
-    (ag_matchings : int array)
-    (w : Streaming.window)
-    (set_measure : int -> value option -> unit)
-    (ev : Query.event)
-    : unit =
-    ev.measures |> Array.iteri (fun i measure ->
-        let v = take_measure ?uuid model ag_matchings w measure in
-        set_measure i v)

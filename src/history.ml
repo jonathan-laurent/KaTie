@@ -113,7 +113,7 @@ let from_list l =
 
 let zip_unit l = List.map (fun i -> (i, ())) l
 
-let test_1 () =
+let run_tests () =
   let t = from_list (zip_unit [0;1;3;4;6;8]) in
   assert (size t = 6) ;
   assert (first_after 4 t = Some (6, ())) ;

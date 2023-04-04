@@ -1,12 +1,14 @@
 (executable
   (name main)
+  (public_name KaTie)
+  (package kappa-tql)
   (libraries
     kappa-library.generic
     kappa-library.runtime
     kappa-library.terms
     kappa-library.mixtures
     ANSITerminal)
-  (flags (:standard -w -34-37-32-27
+  (flags (:standard
     -open Kappa_generic_toolset
     -open Kappa_mixtures
     -open Kappa_terms

@@ -5,3 +5,5 @@
 *~
 _build/
 arch/*
+out/
+trace.json

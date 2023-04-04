@@ -1,0 +1,7 @@
+// query 'trace.csv'
+// match e:{ }
+// return time[e], rule[e]
+
+query 'weird.csv'
+match e:{S(a{u/p}, b{u/p})}
+return time[e]

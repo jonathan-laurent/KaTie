@@ -20,7 +20,7 @@ type event_recorder = {
 }
 
 and recorder_status =
-    | Disabled
+    (* | Disabled *) (* TODO: dead constructor *)
     | Enabled
     | Root
 
@@ -31,9 +31,9 @@ type partial_matching = {
     watched : (matching_tree) IntMap.t ;
 }
 
-type env = {
+type [@warning "-69"] env = {
     query : query ;
-    model : Model.t ;
+    model : Model.t ;  (* Not used but kept around for debugging *)
     recorders : event_recorder array ;
     mutable partial_matchings : (partial_matching branchings_memory) IntMap.t ;
     mutable next_fresh_id: int ;
@@ -70,7 +70,7 @@ let pp_event_matching f m =
     pp_event_matching_common f m.common ;
     pp_event_matching_specific f m.specific
 
-let pp_event_matchings f ems =
+let [@warning "-32"] pp_event_matchings f ems =
     pp_event_matching_common f ems.common_to_all ;
     List.iter (pp_event_matching_specific_only f) ems.matchings
 
@@ -94,7 +94,7 @@ let pp_complete_matching f cm =
     ) ;
     fprintf f "@]"
 
-let pp_complete_matchings f cms =
+let [@warning "-32"] pp_complete_matchings f cms =
     cms |> Array.iter (fun cm ->
         fprintf f "%a" pp_complete_matching cm ;
         pp_dline f ;
@@ -183,10 +183,6 @@ let valuation_to_mapping ag_pm_labels v =
 
 
 (* Partial matchings *)
-
-let is_watched ev_id pm =
-    try ignore (IntMap.find ev_id pm.watched) ; true
-    with Not_found -> false
 
 let update_constrained_agents ev m pm =
     let constrained_agents =
@@ -355,7 +351,7 @@ let is_delay_respected env cur_time =
 let first_pass_process_step query window env =
     query.pattern.events |> Array.iteri (fun ev_id ev ->
         match recorder_status env ev_id with
-        | Disabled -> ()
+        (* | Disabled -> () *)
         | Enabled ->
           begin
             match Event_matcher.match_event ev window with
@@ -542,7 +538,7 @@ let eval
         env ;
     let cms = extract_complete_matchings env in
     let acc = prepare_second_pass cms in
-    let matchings_processed(n) = () in
+    let matchings_processed _n = () in
     Format.fprintf fmt "@[<v>" ;
     ignore @@ Streaming.fold_trace
         ~update_ccs:true

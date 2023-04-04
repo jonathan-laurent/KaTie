@@ -1,0 +1,47 @@
+/*
+query 'lifespan_phos.csv'
+match b:{ s:S(d[/1]), k:K(d[/1], x{p}) }
+and first u:{ s:S(d[/.]) } after b
+return (time[u] - time[b])
+
+query 'lifespan_unphos.csv'
+match b:{ s:S(d[/1]), k:K(d[/1], x{u}) }
+and first u:{ s:S(d[/.]) } after b
+return (time[u] - time[b])
+
+query 'first_phos.csv'
+match c:{ +s:S }
+and first p:{ s:S(x{/p}) } after c
+return time[p]
+*/
+/*
+query 'analyze_cycles.csv' {'substrate_id', 'binding_time', 'unbinding_time'}
+match b:{ s:S(d[/1]), k:K(d[/1], x{u}) }
+and first u:{ s:S(d[/.]) } after b
+when time[b] >= 5
+return (agent_id{s}, time[b], time[u])
+*/
+
+query 'trace.csv'
+match e: { } when rule[e] = 'p' return time[e], rule[e]
+
+query 'print_cc.csv'
+match b:{ s:S(d[/1]), k:K(d[/1], x{u}) }
+return print_cc[b.]{s}
+
+query 'component_size.csv'
+match b:{ s:S(d[/1]), k:K(d[/1], x{u}) }
+return size{component[b.]{s}}
+
+// query 'state_ambiguous.csv'
+// match e:{} and f:{} return time[e], time[f]
+
+// query 'int_state_test_ambiguous.csv'
+// match e: { s:S(d) } when int_state[e.]{s.x} = 'p' return time[e]
+
+// query 'int_state_test.csv'
+// match e: { s:S(x{u/p}) } when int_state[e.]{s.x} = 'p' return time[e]
+
+// query 'type_error.csv'
+// match e: { s:S(x{u/p}) } return time[e] + int_state[e.]{s.x}
+

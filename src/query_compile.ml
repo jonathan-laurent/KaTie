@@ -133,8 +133,6 @@ let constrained_agents_types q =
         ) acc
     ) SMap.empty
 
-let single_clause q = List.length q.Ast.pattern = 1
-
 (*****************************************************************************)
 (* Compilation environment                                                   *)
 (*****************************************************************************)
@@ -155,7 +153,6 @@ type env = {
     model : Model.t ;
     model_signature : Signature.s ;
     constrained_agents_types : string SMap.t ;
-    single_clause : bool ;
 }
 
 let create_env (model : Model.t) (q : Ast.query) =
@@ -171,7 +168,6 @@ let create_env (model : Model.t) (q : Ast.query) =
         query_events = Dict.create create_event ;
         constrained_agents_types =
             constrained_agents_types q ;
-        single_clause = single_clause q ;
     }
 
 (*****************************************************************************)
@@ -261,11 +257,7 @@ let compile_state_measure env in_action cur_ev_id st_expr m =
 (* Compile expressions                                                       *)
 (*****************************************************************************)
 
-let expr_not i = if i = 0 then 1 else 0
-
 let expr_ty = snd
-
-let expr_body = fst
 
 type same_type = Same_type : 'a expr * 'a expr * 'a expr_type -> same_type
 
@@ -287,10 +279,6 @@ fun lhs rhs ->
         Some (Same_type (lhs, rhs, Float))
 
     | _ -> None
-
-let int_of_bool = function
-    | true -> 1
-    | false -> 0
 
 
 module IntSet = Utils.IntSet

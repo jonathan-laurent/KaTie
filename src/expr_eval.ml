@@ -41,16 +41,6 @@ let cast_to (type a) (t : a expr_type) (v : value) : a option =
             print_value_type v print_type t));
         None
 
-let rec compare_lists cmp xs ys =
-    match xs, ys with
-    | [], [] -> 0
-    | [], _::_ -> -1
-    | _::_, [] -> 1
-    | x::xs, y::ys ->
-        let c = cmp x y in
-        if c = 0 then compare_lists cmp xs ys
-        else c
-
 let eval_compare : type a . a expr_type -> a -> a -> int =
     fun ty lhs rhs ->
     match ty with
@@ -88,7 +78,7 @@ let rec eval_expr : type a. measures_provider -> agent_ids_provider -> a expr ->
     match expr with
     | (Const x, _) -> Some x
     | (Measure id, ty) -> bind_option (read_measure id) (cast_to ty)
-    | (Binop (lhs_e, op, rhs_e), ty) ->
+    | (Binop (lhs_e, op, rhs_e), _ty) ->
         begin match eval_expr read_measure read_id lhs_e, op, eval_expr read_measure read_id rhs_e with
         | Some lhs, Binop op, Some rhs -> Some (op lhs rhs)
         | Some lhs, Eq, Some rhs -> Some (eval_eq (expr_type lhs_e) lhs rhs)
@@ -96,8 +86,8 @@ let rec eval_expr : type a. measures_provider -> agent_ids_provider -> a expr ->
         | None, _, _ | _, _, None ->
             Log.(info "Failed to evaluate expression." ~loc:__LOC__ ~details:[pp pp_expr expr]) ; None
         end
-    | (Unop (Unop op, arg), ty) -> map_option op (eval_expr read_measure read_id arg)
-    | (Unop (Count_agents ags, arg), ty) ->
+    | (Unop (Unop op, arg), _ty) -> map_option op (eval_expr read_measure read_id arg)
+    | (Unop (Count_agents ags, arg), _ty) ->
         let cc = eval_expr read_measure read_id arg in
         cc |> Utils.map_option (count_agents ags)
     | (Agent_id qid, _) -> read_id qid
