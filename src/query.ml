@@ -82,12 +82,6 @@ and _ expr_body =
   | Unop : ('a, 'b) unop * 'a expr -> 'b expr_body
   | Agent_id : agent_id -> int expr_body
 
-(* Conversion to JSON *)
-
-module ExprToJSON = struct
-  (* let conv *)
-end
-
 (* Measures *)
 
 type _ event_measure =
