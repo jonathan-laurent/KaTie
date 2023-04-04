@@ -80,9 +80,9 @@ let count_agents ags cc =
   |> List.map (fun ag -> AgSet.size (AgSet.filter (has_type ag) cc))
   |> List.map (fun i -> Val (i, Int))
 
-type measures_provider = event_id * measure_id -> value option
+type measures_provider = local_event_id * measure_id -> Query.value option
 
-type agent_ids_provider = int -> int option
+type agent_ids_provider = local_agent_id -> global_agent_id option
 
 let rec eval_expr :
     type a. measures_provider -> agent_ids_provider -> a expr -> a option =

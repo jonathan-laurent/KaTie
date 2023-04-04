@@ -1,8 +1,8 @@
 open Aliases
 
-type measures_provider = event_id * measure_id -> Query.value option
+type measures_provider = local_event_id * measure_id -> Query.value option
 
-type agent_ids_provider = int -> int option
+type agent_ids_provider = local_agent_id -> global_agent_id option
 
 val eval_expr :
   measures_provider -> agent_ids_provider -> 'a Query.expr -> 'a option

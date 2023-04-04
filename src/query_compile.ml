@@ -442,7 +442,8 @@ let compile_mixture_pattern env ags =
                 acc )
          acc
   in
-  let bonds : (int, site) Hashtbl.t = Hashtbl.create 10 in
+  (* TODO: int*int==state but what type of site? *)
+  let bonds : (int, int * int) Hashtbl.t = Hashtbl.create 10 in
   let tests =
     fold_sites
       (fun acc ag_id ag_kind_id _ag site_id ast_site ->

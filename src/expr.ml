@@ -18,5 +18,5 @@ type t =
   | Int_const of int
   | Float_const of float
   | String_const of string
-  | Measure of event_id
-  | Agent_id of agent_id
+  | Measure of local_event_id * measure_id
+  | Agent_id of local_agent_id

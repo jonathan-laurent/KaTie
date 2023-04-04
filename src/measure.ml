@@ -7,8 +7,8 @@ let f () = print_endline "Hello !"
 open Aliases
 
 type state_measure =
-  | Int_state of agent_id * site_id
-  | Component of agent_id
+  | Int_state of local_agent_id * site_id
+  | Component of local_agent_id
   | Print_cc of site_id
   | Snapshot
 
