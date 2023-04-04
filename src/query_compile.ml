@@ -122,6 +122,8 @@ let constrained_agents_types q =
 (* Compilation environment                                                   *)
 (*****************************************************************************)
 
+open Aliases
+
 type tmp_event =
   { tmp_ev_measures: measure PreArray.t
   ; tmp_main_pats: event_pattern Queue.t

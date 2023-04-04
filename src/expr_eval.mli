@@ -1,4 +1,6 @@
-type measures_provider = Query.event_id * Query.measure_id -> Query.value option
+open Aliases
+
+type measures_provider = event_id * measure_id -> Query.value option
 
 type agent_ids_provider = int -> int option
 

@@ -3,6 +3,7 @@
 (*****************************************************************************)
 
 open Query
+open Aliases
 open Format
 open Debug_pp
 

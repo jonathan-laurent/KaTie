@@ -2,26 +2,12 @@
 (* Compiled query                                                            *)
 (*****************************************************************************)
 
-type agent_id = int [@@deriving show, yojson]
-
-type event_id = int [@@deriving show, yojson]
-
-type measure_id = int [@@deriving show, yojson]
-
-type agent_kind = int [@@deriving show, yojson]
-
-type site_name = int [@@deriving show, yojson]
-
-type int_state = int [@@deriving show, yojson]
-
-type site = agent_id * site_name [@@deriving show, yojson]
-
-type agent_spec = {agent_kind: agent_kind} [@@deriving show, yojson]
+open Aliases
 
 type lnk_state =
   | Free
   | Bound_to of site
-  | Bound_to_type of (agent_kind * site_name)
+  | Bound_to_type of (agent_kind * site_id)
   | Bound_to_any
 [@@deriving show, yojson]
 
@@ -37,6 +23,8 @@ type modification =
   | Mod_int_state of site * int_state
   | Mod_lnk_state of site * lnk_state
 [@@deriving show, yojson]
+
+type agent_spec = {agent_kind: agent_kind} [@@deriving show, yojson]
 
 type pattern =
   { agents: agent_spec array
@@ -90,7 +78,7 @@ type _ event_measure =
   | Init_event : bool event_measure
 
 type _ state_measure =
-  | Int_state : (Agent.t * site_name) -> string state_measure
+  | Int_state : (Agent.t * site_id) -> string state_measure
   | Count : pattern -> int state_measure
   | Component : agent_id -> agent_set state_measure
   | Nphos : agent_id -> int state_measure

@@ -2,6 +2,8 @@
 (* Kappa Trace Query Engine                                                  *)
 (*****************************************************************************)
 
+let () = Measure.f () ; Expr.f ()
+
 let trace_file = ref ""
 
 let query_file = ref ""
