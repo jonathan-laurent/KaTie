@@ -2,7 +2,7 @@
 (* State and Event Measures                                                  *)
 (*****************************************************************************)
 
-let f () = print_endline "Hello !"
+let f () = ()
 
 open Aliases
 
@@ -23,8 +23,8 @@ type measure =
 (* Measure implementations *)
 
 let rule_name model event =
-  let name =
-    match event with
+  Value.String
+    ( match event with
     | Trace.Rule (r, _, _) ->
         let name =
           Fmt.to_to_string (Model.print_rule ~noCounters:false ~env:model) r
@@ -39,15 +39,12 @@ let rule_name model event =
     | Trace.Pert _ ->
         "_pert_"
     | Trace.Obs _ ->
-        "_obs_"
-  in
-  Some (Value.String name)
+        "_obs_" )
 
 let component ag_id state =
   match state.Replay.connected_components with
   | None ->
-      Log.warn "No connected component information available." ;
-      None
+      Log.failwith "No connected component information available."
   | Some ccs -> (
       let cc_id = Edges.get_connected_component ag_id state.Replay.graph in
       match
@@ -63,9 +60,9 @@ let component ag_id state =
                 ; fmt "`ag_id` is a valid ID: %b."
                     (Edges.is_agent_id ag_id state.Replay.graph) ] )
       | Some cc ->
-          Some (Value.Agent_set cc) )
+          Value.Agent_set cc )
 
-let time state = Some (Value.Float state.Replay.time)
+let time state = Value.Float state.Replay.time
 
 let int_state model (ag_id, ag_site) state =
   let graph = state.Replay.graph in
@@ -84,11 +81,10 @@ let int_state model (ag_id, ag_site) state =
       assert false
   in
   let signature = Model.signatures model in
-  Some
-    (Value.String
-       (Fmt.to_to_string
-          (Signature.print_internal_state signature ag_kind ag_site)
-          st ) )
+  Value.String
+    (Fmt.to_to_string
+       (Signature.print_internal_state signature ag_kind ag_site)
+       st )
 
 let take_snapshot ?uuid model state file =
   let graph = state.Replay.graph in
@@ -118,12 +114,12 @@ let print_cc model state ag_id =
   let ugraph =
     Edges.species ~debugMode:false (Model.signatures model) ag_id edges
   in
-  Some (Value.String (Fmt.str "@[<h>%a@]" User_graph.print_cc ugraph))
+  Value.String (Fmt.str "@[<h>%a@]" User_graph.print_cc ugraph)
 
 (* Measure interpreter *)
 
 let take_measure ?(uuid : int option) (model : Model.t)
-    (ag_matchings : int array) (w : Streaming.window) measure : Value.t option =
+    (ag_matchings : int array) (w : Streaming.window) measure : Value.t =
   match measure with
   | State_measure (time, measure) -> (
       let state =
@@ -137,7 +133,7 @@ let take_measure ?(uuid : int option) (model : Model.t)
       | Snapshot ->
           let filename = Tql_output.new_snapshot_file () in
           take_snapshot ?uuid model state filename ;
-          Some (Value.String filename)
+          Value.String filename
       | Print_cc ag_id ->
           print_cc model state ag_matchings.(ag_id) )
   | Event_measure measure -> (
@@ -147,4 +143,4 @@ let take_measure ?(uuid : int option) (model : Model.t)
     | Rule ->
         rule_name model w.step
     | Init_event ->
-        Some (Value.Bool (Trace.step_is_init w.step)) )
+        Value.Bool (Trace.step_is_init w.step) )
