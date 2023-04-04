@@ -19,6 +19,7 @@ TESTS_DIR = "tests"
 
 
 def run(dir):
+    clean(dir)
     model = join(dir, MODEL_FILE)
     kasim_out = join(dir, KASIM_OUT_DIR)
     katie_out = join(dir, KATIE_OUT_DIR)
@@ -57,17 +58,14 @@ def test_dirs(args):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) <= 1:
-        pass  # run all tests
-    else:
-        cmd = sys.argv[1]
-        args = sys.argv[2:]
-        if cmd == "clean":
-            for dir in test_dirs(args):
-                clean(dir)
-        elif cmd == "run":
-            for dir in test_dirs(args):
-                run(dir)
-        elif cmd == "list":
-            for dir in find_all_test_dirs():
-                print(dir)
+    cmd = sys.argv[1] if len(sys.argv) >= 1 else "run"
+    args = sys.argv[2:]
+    if cmd == "clean":
+        for dir in test_dirs(args):
+            clean(dir)
+    elif cmd == "run":
+        for dir in test_dirs(args):
+            run(dir)
+    elif cmd == "list":
+        for dir in find_all_test_dirs():
+            print(dir)
