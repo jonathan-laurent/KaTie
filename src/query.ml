@@ -16,33 +16,35 @@ type int_state = int [@@deriving show, yojson]
 
 type site = agent_id * site_name [@@deriving show, yojson]
 
-type pattern =
-  { agents: agent_spec array
-  ; tests: test list
-  ; mods: modification list
-  ; (* Maps trace-pattern agent ids to constrained local agents *)
-    agent_constraints: agent_id Utils.int_map }
-[@@deriving show, yojson]
+type agent_spec = {agent_kind: agent_kind} [@@deriving show, yojson]
 
-and agent_spec =
-  {agent_kind: agent_kind (* agent_neighbors : (site_name * site) list ; *)}
-
-and test =
-  | Agent_exists of agent_id
-  | Lnk_state_is of site * lnk_state
-  | Int_state_is of site * int_state
-
-and modification =
-  | Create of agent_id
-  | Destroy of agent_id
-  | Mod_int_state of site * int_state
-  | Mod_lnk_state of site * lnk_state
-
-and lnk_state =
+type lnk_state =
   | Free
   | Bound_to of site
   | Bound_to_type of (agent_kind * site_name)
   | Bound_to_any
+[@@deriving show, yojson]
+
+type test =
+  | Agent_exists of agent_id
+  | Lnk_state_is of site * lnk_state
+  | Int_state_is of site * int_state
+[@@deriving show, yojson]
+
+type modification =
+  | Create of agent_id
+  | Destroy of agent_id
+  | Mod_int_state of site * int_state
+  | Mod_lnk_state of site * lnk_state
+[@@deriving show, yojson]
+
+type pattern =
+  { agents: agent_spec array
+  ; tests: test list
+  ; mods: modification list
+  ; agent_constraints: agent_id Utils.int_map
+        (* Maps trace-pattern agent ids to constrained local agents *) }
+[@@deriving show, yojson]
 
 (* Expressions *)
 
@@ -80,7 +82,11 @@ and _ expr_body =
   | Unop : ('a, 'b) unop * 'a expr -> 'b expr_body
   | Agent_id : agent_id -> int expr_body
 
-let x = [%of_yojson: [`A | `B]]
+(* Conversion to JSON *)
+
+module ExprToJSON = struct
+  (* let conv *)
+end
 
 (* Measures *)
 
