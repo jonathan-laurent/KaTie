@@ -1,9 +1,6 @@
 .DS_Store
 .vscode
-*.byte
-*.native
 *~
 _build/
-arch/*
-out/
-trace.json
+kasim-output/
+katie-output/
