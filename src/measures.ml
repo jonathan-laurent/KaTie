@@ -23,7 +23,7 @@ let component ag_id state =
     | None -> Log.warn "No connected component information available." ; None
     | Some ccs ->
         let cc_id = Edges.get_connected_component ag_id state.Replay.graph in
-        begin match Utils.bind_option cc_id (fun cc_id -> Mods.IntMap.find_option cc_id ccs) with
+        begin match Option.bind cc_id (fun cc_id -> Mods.IntMap.find_option cc_id ccs) with
         | None -> Log.(
             error (fmt "Impossible to find the connected component of agent %d." ag_id)
                 ~details:[

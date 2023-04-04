@@ -7,7 +7,9 @@
     kappa-library.runtime
     kappa-library.terms
     kappa-library.mixtures
+    fmt
     ANSITerminal)
+  (preprocess (pps ppx_deriving.show))
   (flags (:standard
     -open Kappa_generic_toolset
     -open Kappa_mixtures

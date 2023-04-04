@@ -2,6 +2,10 @@
 (*  Pretty printers for debugging purposes                                   *)
 (*****************************************************************************)
 
+type typ = {
+  x: int
+} [@@deriving show]
+
 open Format
 
 let line =
@@ -63,7 +67,7 @@ end
 
 let pp_int = PrintInt.pp
 
-module PrintIntMap = PrintMap (Utils.Int) (Utils.IntMap) (PrintInt)
+module PrintIntMap = PrintMap (Int) (Utils.IntMap) (PrintInt)
 
 let pp_int_map = PrintIntMap.pp_map
 

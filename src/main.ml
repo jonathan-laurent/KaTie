@@ -62,7 +62,7 @@ let formatter_of_file f =
   Format.formatter_of_out_channel (open_out f)
 
 let query_output_file q =
-  let title = Utils.default !default_out_file q.Query.title in
+  let title = Option.value ~default:!default_out_file q.Query.title in
   Format.sprintf "%s" title
 
 let main () =

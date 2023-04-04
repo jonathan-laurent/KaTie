@@ -154,7 +154,7 @@ let store_in_cache env ev_id (ms : ev_matchings) =
 
 let access_cache f env ev_id v ref_step_id =
     let cache = env.recorders.(ev_id).cache in
-    try map_option snd (f ref_step_id (ValMap.find v cache))
+    try Option.map snd (f ref_step_id (ValMap.find v cache))
     with Not_found -> None
 
 let first_after_in_cache = access_cache History.first_after
@@ -439,7 +439,7 @@ let execute_action q fmt read_measure cm =
     let read_id = cm_get_agent_id cm in
     let rec aux = function
         | Print e ->
-            let _ = Expr_eval.eval_expr_to_value read_measure read_id e |> map_option (fun v ->
+            let _ = Expr_eval.eval_expr_to_value read_measure read_id e |> Option.map (fun v ->
                 Format.fprintf fmt "%a@;" Expr_eval.print_value v ) in
             ()
         | If (cond, action) ->

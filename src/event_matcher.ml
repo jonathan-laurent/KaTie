@@ -42,14 +42,14 @@ let satisfy_rule_constraint cs _state step =
 
 (* For each pair in the result, its symmetric is also in it *)
 let pattern_tested_links pat =
-  pat.main_pattern.tests |> Utils.concat_map (
+  pat.main_pattern.tests |> List.concat_map (
     function
     | Lnk_state_is (s, Bound_to s') -> [(s, s'); (s', s)]
     | _ -> []
   )
 
 let pattern_created_links pat =
-  pat.main_pattern.mods |> Utils.concat_map (
+  pat.main_pattern.mods |> List.concat_map (
     function
     | Mod_lnk_state (s, Bound_to s') -> [(s, s'); (s', s)]
     | _ -> []
@@ -160,7 +160,7 @@ let match_agents_in_pattern
     (* CEX: {S(x[u/p]), S(x[u/p],y[u/p])}: this is going to be rejected *)
     let ag_matching =
       pat.main_pattern.mods |> List.fold_left (fun acc pat_action ->
-          match Utils.concat_map (match_actions pat_action) actions with
+          match List.concat_map (match_actions pat_action) actions with
           | [] -> raise No_match
           | (PAM eqs) :: [] -> eqs |> List.fold_left (fun acc (ag_pid, ag_id) ->
               IntMap.add ag_pid ag_id acc) acc

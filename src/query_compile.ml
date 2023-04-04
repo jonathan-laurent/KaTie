@@ -502,7 +502,7 @@ let compile_mixture_pattern env ags =
 
 let compile_rule_constraint env = function
     | Some (Ast.Rule rs) ->
-        Some (Rule (Utils.concat_map
+        Some (Rule (List.concat_map
             (fun r -> Model.nums_of_rule r env.model) rs))
     | Some (Ast.Obs s) -> Some (Obs s)
     | None -> None
@@ -683,7 +683,7 @@ let compile (model : Model.t) (q : Ast.query) =
         Log.set_current_query title;
         let env = create_env model q in
         (* Compile the action first so that no measure is missing in the pattern *)
-        let when_clause = Utils.map_option (compile_expr env true None) q.Ast.when_clause in
+        let when_clause = Option.map (compile_expr env true None) q.Ast.when_clause in
         let action = compile_action env when_clause q.Ast.action in
         let pattern = compile_trace_pattern env q.Ast.pattern in
         let legend = q.Ast.legend in
