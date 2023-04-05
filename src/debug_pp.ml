@@ -2,8 +2,6 @@
 (*  Pretty printers for debugging purposes                                   *)
 (*****************************************************************************)
 
-type typ = {x: int} [@@deriving show]
-
 open Format
 
 let line =
