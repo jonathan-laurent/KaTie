@@ -1,6 +1,6 @@
 query 'match_basic_trace.csv'
 match e:{ }
-return time[e], rule[e], debug_event[e]
+return time[e], rule[e]
 
 query 'create_S__matches_1__all_true.csv'
 match e:{ +s:S() }
@@ -92,3 +92,122 @@ return rule[e] = 'S.K'
 query 'bind_SK_2__matches_1__all_true.csv'
 match e:{ S(d[/_]) }
 return rule[e] = 'S.K'
+
+// Testing rule constraints
+
+query 'rule_1__all_true.csv'
+match e: { 'Sp' }
+return rule[e] = 'Sp'
+
+query 'rule_2__matches_2__all_true.csv'
+match e: { 'Sp' | '-Sp' }
+return rule[e] = 'Sp' || rule[e] = '-Sp'
+
+query 'rule_3__matches_1__all_true.csv'
+match e: { 'Sp' | '-Sp' -S()}
+return rule[e] = '-Sp'
+
+query 'rule_4__matches_0.csv'
+match e: { 'Sp' | '-Sp' +S()}
+return 1
+
+// Testing the 'every' clause
+// All these tests are tied to a specific random seed for KaSim and may break.
+// Underlying trace:
+// 0, '_init_'
+// 0, '_init_'
+// 0, '_init_'
+// 0.8967991814821501, 'Kp'
+// 0.9146156615284573, 'S.K'
+// 2.0125168701922966, 'U1..U2'
+// 2.9382127269136644, 'Sp'
+// 4.2105040485343181, '-Sp'
+
+query 'every_3__matches_1.csv'
+match e:{} every 10 seconds
+return time[e]
+
+query 'every_2__matches_3.csv'
+match e:{} every 1.0 seconds
+return time[e]
+
+query 'every_3__matches_5.csv'
+match e:{} every 0.1 seconds
+return time[e]
+
+query 'every_rconstr__matches_2.csv'
+match e:{'Kp' | 'Sp' | 'S.K'} every 0.1 seconds
+return time[e]
+
+// Testing the when clause
+
+query 'when_1__matches_5__all_true.csv'
+match e:{ }
+when time[e] > 0
+return not (rule[e] = "_init_")
+
+query 'when_2__matches_0.csv'
+match e:{ S(x{/p}) }
+when not (rule[e] = "Sp")
+return 1
+
+// Warning: the 'every' clause is agnostic of 'when'.
+// This is why it must be placed before it syntactically
+query 'every_when_1__matches_0.csv'
+match e:{}
+every 1 seconds
+when rule[e] = 'S.K'
+return 1
+
+query 'every_when_2__matches_1.csv'
+match e:{ 'S.K' }
+every 1 seconds
+return 1
+
+// Testing queries involving multiple events.
+
+query 'multi_1__matches_1__all_true.csv'
+match e:{ '-Sp' }
+and last f:{ 'Sp' } before e
+return time[f] < time[e]
+
+query 'multi_2__matches_1__all_true.csv'
+match f:{ 'Sp' }
+and first e:{ '-Sp' } after f
+return time[f] < time[e]
+
+// Bug: two matches?
+// The second match gives the same time for e and f
+query 'multi_3__matches_2.csv'
+match e:{ '-Sp' }
+and last f:{ 'Sp' } before e
+and first g: { '-Sp' } after f
+return time[e] = time[g], time[e], time[f]
+
+// Bug
+// Exact same result as before
+query 'multi_3_bis__matches_2.csv'
+match e:{ '-Sp' -s:S() }
+and last f:{ 'Sp' s:S(x{/p}) } before e
+and first g: { '-Sp' -s:S() } after f
+return time[e] = time[g], time[e], time[f]
+
+// Bug: two matches again?
+// The second match gives the same time for e and f
+query 'multi_4__matches_2.csv'
+match e:{ '-Sp' }
+and last f:{ 'Sp' } before e
+and first g:{ '-Sp' } after e
+return time[e], time[f], time[g]
+
+// OK
+query 'multi_5__matches_1__all_true.csv'
+match e:{ s:S(x{/p}, d[1]), k:K(d[1]) }
+and last f:{ k:K(x{/p}) } before e
+return rule[f] = 'Kp', rule[e] = 'Sp'
+
+// OK
+query 'multi_5_bis__matches_1__all_true.csv'
+match f:{ k:K(x{/p}) }
+and first e:{ S(x{/p}, d[1]), k:K(d[1]) } after f
+return rule[f] = 'Kp', rule[e] = 'Sp'
