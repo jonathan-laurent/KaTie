@@ -15,12 +15,12 @@ module AgentSet = struct
 end
 
 type t =
-  | Bool of bool
-  | Int of int
-  | Float of float
-  | String of string
-  | Agent_set of AgentSet.t
-  | Tuple of t list
+  | VBool of bool
+  | VInt of int
+  | VFloat of float
+  | VString of string
+  | VAgentSet of AgentSet.t
+  | VTuple of t list
 [@@deriving show, yojson_of]
 
 type _ value_type =
@@ -33,18 +33,18 @@ type _ value_type =
 
 type any_value_type = T : 'a value_type -> any_value_type
 
-let value_type = function
-  | Bool _ ->
+let typeof = function
+  | VBool _ ->
       T TBool
-  | Int _ ->
+  | VInt _ ->
       T TInt
-  | Float _ ->
+  | VFloat _ ->
       T TFloat
-  | String _ ->
+  | VString _ ->
       T TString
-  | Agent_set _ ->
+  | VAgentSet _ ->
       T TAgentSet
-  | Tuple _ ->
+  | VTuple _ ->
       T TTuple
 
 let value_type_to_string = function
@@ -62,37 +62,68 @@ let value_type_to_string = function
       "tuple"
 
 let rec to_string = function
-  | Bool b ->
+  | VBool b ->
       Int.to_string (Utils.int_of_bool b)
-  | Int x ->
+  | VInt x ->
       Int.to_string x
-  | Float x ->
+  | VFloat x ->
       Fmt.str "%.17g" x
-  | String s ->
+  | VString s ->
       s
-  | Agent_set _ ->
+  | VAgentSet _ ->
       "<agents>"
-  | Tuple xs ->
+  | VTuple xs ->
       String.concat ", " (List.map to_string xs)
 
-type cast_error = {expected: string; got: string}
+let int_of_bool = function true -> 1 | false -> 0
 
-let cast : type a. a value_type -> t -> (cast_error, a) Either.t =
+let cast : type a. a value_type -> t -> a option =
  fun ty v ->
   match (ty, v) with
-  | TBool, Bool b ->
-      Either.right b
-  | TInt, Int n ->
-      Either.right n
-  | TFloat, Float x ->
-      Either.right x
-  | TString, String s ->
-      Either.right s
-  | TAgentSet, Agent_set ags ->
-      Either.right ags
-  | TTuple, Tuple t ->
-      Either.right t
+  | TBool, VBool b ->
+      Some b
+  | TInt, VInt n ->
+      Some n
+  | TInt, VBool b ->
+      Some (int_of_bool b)
+  | TFloat, VFloat x ->
+      Some x
+  | TFloat, VInt x ->
+      Some (float_of_int x)
+  | TString, VString s ->
+      Some s
+  | TAgentSet, VAgentSet ags ->
+      Some ags
+  | TTuple, VTuple t ->
+      Some t
   | _, _ ->
-      let expected = value_type_to_string (T ty) in
-      let got = value_type_to_string (value_type v) in
-      Either.left {expected; got}
+      None
+
+let rec equal v v' =
+  match (v, v') with
+  | VBool b, VBool b' ->
+      Some (Bool.equal b b')
+  | VInt n, VInt n' ->
+      Some (Int.equal n n')
+  | VFloat x, VFloat x' ->
+      Some (Float.equal x x')
+  | VInt n, VFloat x | VFloat x, VInt n ->
+      Some (Float.equal x (float_of_int n))
+  | VString s, VString s' ->
+      Some (String.equal s s')
+  | VAgentSet s, VAgentSet s' ->
+      Some (AgentSet.equal s s')
+  | VTuple t, VTuple t' ->
+      equal_tuples t t'
+  | _, _ ->
+      None
+
+and equal_tuples ts ts' =
+  match (ts, ts') with
+  | [], [] ->
+      Some true
+  | t :: ts, t' :: ts' ->
+      Option.bind (equal t t') (fun b ->
+          Option.bind (equal_tuples ts ts') (fun bs -> Some (b && bs)) )
+  | _, _ ->
+      None

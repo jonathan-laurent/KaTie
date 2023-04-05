@@ -5,6 +5,7 @@
 let f () = ()
 
 open Aliases
+open Value
 
 type state_measure =
   | Int_state of local_agent_id * site_id
@@ -23,7 +24,7 @@ type measure =
 (* Measure implementations *)
 
 let rule_name model event =
-  Value.String
+  VString
     ( match event with
     | Trace.Rule (r, _, _) ->
         let name =
@@ -60,9 +61,9 @@ let component ag_id state =
                 ; fmt "`ag_id` is a valid ID: %b."
                     (Edges.is_agent_id ag_id state.Replay.graph) ] )
       | Some cc ->
-          Value.Agent_set cc )
+          VAgentSet cc )
 
-let time state = Value.Float state.Replay.time
+let time state = VFloat state.Replay.time
 
 let int_state model (ag_id, ag_site) state =
   let graph = state.Replay.graph in
@@ -81,7 +82,7 @@ let int_state model (ag_id, ag_site) state =
       assert false
   in
   let signature = Model.signatures model in
-  Value.String
+  VString
     (Fmt.to_to_string
        (Signature.print_internal_state signature ag_kind ag_site)
        st )
@@ -114,7 +115,7 @@ let print_cc model state ag_id =
   let ugraph =
     Edges.species ~debugMode:false (Model.signatures model) ag_id edges
   in
-  Value.String (Fmt.str "@[<h>%a@]" User_graph.print_cc ugraph)
+  VString (Fmt.str "@[<h>%a@]" User_graph.print_cc ugraph)
 
 (* Measure interpreter *)
 
@@ -134,7 +135,7 @@ let take_measure ?(uuid : int option) (model : Model.t)
       | Snapshot ->
           let filename = Tql_output.new_snapshot_file () in
           take_snapshot ?uuid model state filename ;
-          Value.String filename
+          VString filename
       | Print_cc ag_id ->
           print_cc model state ag_matchings.(ag_id) )
   | Event_measure measure -> (
@@ -144,4 +145,4 @@ let take_measure ?(uuid : int option) (model : Model.t)
     | Rule ->
         rule_name model w.step
     | Init_event ->
-        Value.Bool (Trace.step_is_init w.step) )
+        VBool (Trace.step_is_init w.step) )
