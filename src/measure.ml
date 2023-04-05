@@ -12,14 +12,16 @@ type state_measure =
   | Component of local_agent_id
   | Print_cc of site_id
   | Snapshot
+[@@deriving show, yojson_of]
 
-type event_measure = Time | Rule | Init_event
+type event_measure = Time | Rule | Init_event [@@deriving show, yojson_of]
 
-type state_measure_time = Before | After
+type state_measure_time = Before | After [@@deriving show, yojson_of]
 
 type measure =
   | State_measure of state_measure_time * state_measure
   | Event_measure of event_measure
+[@@deriving show, yojson_of]
 
 (* Measure implementations *)
 
