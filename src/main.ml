@@ -113,7 +113,7 @@ let () =
   (* Internal errors *)
   | (Failure _ | Assert_failure _) as exn ->
       Log.error "A top-level exception was caught." ~exn ;
-      exit 1
+      exit 2
   | ExceptionDefn.Malformed_Decl _ as exn ->
       Log.error "A KaSim internal exception was raised." ~exn ;
-      exit 1
+      exit 2
