@@ -2,5 +2,6 @@
 .vscode
 *~
 _build/
+.mypy_cache
 kasim-output/
 katie-output/
