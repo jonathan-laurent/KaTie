@@ -1,0 +1,5 @@
+%agent: S(x{u,p})
+
+'create' . -> S(x{u}) @ 1.0
+
+%mod: |S()| > 0 do $STOP ;

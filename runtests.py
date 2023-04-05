@@ -4,11 +4,14 @@ A script for running the TQL test suite.
 Usage: python runtests.py {run,clean,diff,promote} [test_subdir].
 """
 
+import csv
 import os
+import re
 import shutil
 import sys
 import subprocess
 from os.path import join
+import argparse
 
 KATIE_EXE = ["dune", "exec", "KaTie", "--"]
 KASIM_EXE = ["KaSim"]
@@ -22,6 +25,17 @@ STDERR_FILE = "stderr.txt"
 TESTS_DIR = "tests"
 EXPECTED_DIR = "expected"
 
+VERBOSE = False  # overriden by the --verbose option
+
+
+# We do not want to introduce Python dependencies
+def red(s):
+    return "\x1b[1;31m" + s + "\x1b[0m"
+
+
+def green(s):
+    return "\x1b[1;32m" + s + "\x1b[0m"
+
 
 def expected_files(dir):
     for f in os.listdir(dir):
@@ -29,6 +43,34 @@ def expected_files(dir):
             yield f
         elif f == STDOUT_FILE:
             yield f
+
+
+def correct_csv(file, *, num_matches=None, all_ones=False):
+    with open(file, "r") as f:
+        lines = list(csv.reader(f))
+        if num_matches is not None:
+            if len(lines) != num_matches + 1:  # // KaTie adds a blank line at the end
+                return False
+        if all_ones:
+            if not all(all(x.strip() == "1" for x in l) for l in lines):
+                return False
+    return True
+
+
+def autocheck_result(dir):
+    out = join(dir, KATIE_OUT_DIR)
+    for f in expected_files(out):
+        if m := re.search(r"__matches_(\d+)", f):
+            num_matches = int(m.group(1))
+        else:
+            num_matches = None
+        all_ones = bool(re.search(r"__all_true", f))
+        if num_matches is not None or all_ones:
+            ok = correct_csv(join(out, f), num_matches=num_matches, all_ones=all_ones)
+            if ok and VERBOSE:
+                print(green(f"Autocheck '{f}': OK."))
+            if not ok:
+                print(red(f"Autocheck '{f}': FAIL."))
 
 
 def update_expected(dir):
@@ -65,10 +107,15 @@ def run_cmd(cmd):
 
 def run_cmd_saving_output(cmd, stdout_file, stderr_file):
     status, stdout, stderr = run_cmd(cmd)
+    os.makedirs(os.path.dirname(stdout_file), exist_ok=True)
+    os.makedirs(os.path.dirname(stderr_file), exist_ok=True)
     with open(stdout_file, "w") as f:
         f.write(stdout)
     with open(stderr_file, "w") as f:
         f.write(stderr)
+    if VERBOSE:
+        print(stdout)
+        print(stderr, file=sys.stderr)
     return status
 
 
@@ -95,6 +142,9 @@ def run(dir):
         stderr_file=join(katie_out, STDERR_FILE),
     )
     print(f"KaTie return code: {katie_ret}")
+    if katie_ret != 0:
+        print(f"  See {join(katie_out, STDOUT_FILE)}")
+        print(f"  See {join(katie_out, STDERR_FILE)}")
 
 
 def clean(dir):
@@ -126,23 +176,38 @@ def test_dirs(args):
 
 
 if __name__ == "__main__":
-    cmd = sys.argv[1] if len(sys.argv) >= 1 else "run"
-    args = sys.argv[2:]
-    if cmd == "clean":
-        for dir in test_dirs(args):
+    parser = argparse.ArgumentParser(
+        prog="runtests.py", description="Test launcher for KaTie."
+    )
+    parser.add_argument(
+        "command",
+        choices=["run", "clean", "diff", "promote"],
+        help="Command to execute",
+    )
+    parser.add_argument(
+        "tests",
+        nargs="*",
+        metavar="TEST",
+        help="List of tests to run the command on (everything by default)",
+    )
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", help="Increase output verbosity"
+    )
+    args = parser.parse_args()
+    VERBOSE = args.verbose
+    if args.command == "clean":
+        for dir in test_dirs(args.tests):
             clean(dir)
-    elif cmd == "run":
-        for dir in test_dirs(args):
+    elif args.command == "run":
+        for dir in test_dirs(args.tests):
             run(dir)
-    elif cmd == "list":
+            autocheck_result(dir)
+    elif args.command == "list":
         for dir in find_all_test_dirs():
             print(dir)
-    elif cmd == "diff":
-        for dir in test_dirs(args):
+    elif args.command == "diff":
+        for dir in test_dirs(args.tests):
             check_diff(dir)
-    elif cmd == "promote":
-        for dir in test_dirs(args):
+    elif args.command == "promote":
+        for dir in test_dirs(args.tests):
             update_expected(dir)
-    else:
-        print("Invalid command: " + cmd)
-        exit(1)

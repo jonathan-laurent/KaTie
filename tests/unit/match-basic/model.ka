@@ -1,0 +1,24 @@
+// We do something very simple here
+
+// 1. Very simple kinase/substrate
+// Rules apply once each, in the provided order
+
+%agent: S(x{u,p}, d)
+%agent: K(x{u,p}, d)
+
+'Kp' K(x{u/p}) @ 1
+'S.K' S(d[./1]), K(d[./1],x{p}) @ 1
+'Sp' S(d[1],x{u/p}), K(d[1]) @ 1
+'-Sp' S(x{p}) -> . @ 1
+
+%init: 1 S(x{u}, d)
+%init: 1 K(x{u}, d)
+
+// 2. Unbinding
+
+%agent: U1(x)
+%agent: U2(x)
+
+'U1..U2' U1(x[1/.]), U2(x[1/.]) @ 1
+
+%init: 1 U1(x[1]), U2(x[1])

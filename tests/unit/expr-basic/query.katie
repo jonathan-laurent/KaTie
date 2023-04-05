@@ -1,0 +1,36 @@
+// If all goes well, this query is supposed to match a single
+// event and output all ones.
+
+query 'expr_basic__matches_1__all_true.csv'
+match e:{ +s:S() }
+return
+    // Testing basic measures
+    time[e] > 0,
+    rule[e] = 'create',
+    int_state[e.]{s.x} = 'u',
+    agent_id{s} = 0, // first created agent
+    size{component[e.]{s}} = 1,
+    count{'S','S'}{component[e.]{s}}, // returns the (1, 1) tuple
+    similarity{component[e.]{s}}{component[e.]{s}} = 1.0,
+    print_cc[e.]{s} = 'x0:S(x{u}[.])',
+    snapshot[.e] = 'tests/unit/expr-basic/katie-output/snapshot.0.json',
+    snapshot[e.] = 'tests/unit/expr-basic/katie-output/snapshot.1.json',
+    // int_state[.e]{s.x} = 'u', // this crashes the TQL
+    // Testing arithmetic and promotions
+    1 + 1.0 = 2,
+    1 - 1 = 0,
+    2.0 * 4 = 8,
+    not (1 > 1),
+    2 > 1,
+    1 >= 1,
+    2 >= 1,
+    not (1 < 1),
+    1 < 2,
+    1.0 <= 1,
+    1 < 2.0,
+    "aa" = "aa",
+    not ("aa" = "bb"),
+    (1 = 1 && 2 = 2),
+    not (1 = 1 && 1 = 2),
+    (1 = 1 || 1 = 2),
+    not (1 = 2 || 2 = 3)
