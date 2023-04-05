@@ -27,12 +27,17 @@ type modification =
 type agent_spec = {agent_kind: agent_kind} [@@deriving show, yojson]
 
 type pattern =
-  { agents: agent_spec array
+  { agents: agent_spec array (* Agents are indexed by their [pat_agent_id] *)
   ; tests: test list
   ; mods: modification list
-  ; agent_constraints: local_agent_id Utils.int_map
-        (* Maps trace-pattern agent ids to constrained local agents *) }
-[@@deriving show, yojson]
+  ; agent_constraints: pat_agent_id local_agent_id_map
+        (* Maps [local_agent_ids] that are constrained in this pattern
+           to [pat_agent_ids]. For example, if 'k' is compiled to local
+           agent id 7, then in event { S(d[/1]), k:K(d[/1]) },
+           [agent_constraints: 7 -> 1] (since 'k' names the second agent
+           in the pattern) *)
+        (* rename [constrained_agents]? *) }
+[@@deriving show, yojson_of]
 
 (* Expressions *)
 
@@ -100,7 +105,10 @@ and state_measure_time = Before | After
 
 type event_pattern =
   { main_pattern: pattern
-  ; with_clause: bool expr (* unsupported by the engine for now... *)
+  ; with_clause: bool expr
+        (* This is unsupported by the engine for now. When-clauses are
+           available but they do not work the same way: they are just
+           syntactic sugar for adding conditionals in actions. *)
   ; rule_constraint: rule_constraint option }
 
 and rule_constraint =
@@ -114,14 +122,18 @@ type event =
   ; event_pattern: event_pattern option
   ; defining_rel: defining_relation option
   ; measures: measure array
+        (* During compilation, measures are extracted from expressions
+           and given an ID ([measure_id]) corresponding to their index
+           in this array. *)
   ; already_constrained_agents: local_agent_id list
   ; captured_agents: local_agent_id list
-        (* Invariants:
-           already_constrained_agents `union` captured_agents
-           = keys of event_pattern.main_pattern.
-           The defining_rel pattern only constrains agents of
+        (* The two fields above are computed with the traversal tree. *)
+        (* Invariants: already_constrained_agents `union`
+           captured_agents = keys of event_pattern.main_pattern. The
+           defining_rel pattern only constrains agents of
            already_constrained_agents. *) }
 
+(* Why event_pattern? Why copies? WTF?? *)
 and defining_relation =
   | First_after of local_event_id * event_pattern
   | Last_before of local_event_id * event_pattern
@@ -134,16 +146,17 @@ type ('a, 'b) tree = Tree of 'a * ('b * ('a, 'b) tree) list
 type matching_tree = (local_event_id, defining_relation) tree
 
 type trace_pattern =
-  { agents: agent_kind array
-  ; events: event array
-  ; traversal_tree: matching_tree
-        (* equality_constraints : (event_id * event_id) list ; *) }
+  { agents: agent_kind array (* Question: all agents or some? *)
+  ; events: event array (* Indexed by [local_event_id] *)
+  ; traversal_tree: matching_tree }
+
+(* TODO: add equality_constraints: (event_id * event_id) list ; *)
 
 type action = Print : 'a expr -> action | If : bool expr * action -> action
 
 type query =
   { title: string option
-  ; legend: string list option
+  ; legend: string list option (* Used as headers for the resulting CSV file. *)
   ; pattern: trace_pattern
   ; action: action
   ; every_clause: float option }

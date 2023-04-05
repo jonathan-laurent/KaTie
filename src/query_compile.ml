@@ -22,6 +22,8 @@ module SMap = Utils.StringMap
 (*****************************************************************************)
 
 module PreArray = struct
+  (* A queue-like structure to build arrays, where the final ID of each
+     agent is known from the moment it is added into the queue. *)
   type 'a t = {elems: 'a Queue.t; mutable next_fresh_id: int}
 
   let create () = {elems= Queue.create (); next_fresh_id= 0}
@@ -39,9 +41,15 @@ module PreArray = struct
 end
 
 module Dict = struct
-  (* Invariant:
-     + For every i in [0,next_fresh_id)] and no other,
-       `elems` maps i to an element *)
+  (* A datastructure to maintain a collection of mutable elements
+     indexed by both numerical ids and (optionally) string ids. When an
+     element is accessed using a numerical id, it is created and
+     initialized if it does not exist already. Numerical ids can be
+     obtained from string names (using [id_of_name]) or by creating new
+     anonymous elements explicitly (using [new_anonymous]). *)
+  (* Invariant: For every i in [0,next_fresh_id) and no other, `elems`
+     maps i to an element. For the invariant to hold, ids need to be
+     obtained using `id_of_name` and `new_anonymous`. *)
   type 'a t =
     { name_to_id: (string, int) Hashtbl.t
     ; mutable next_fresh_id: int
@@ -59,14 +67,15 @@ module Dict = struct
     t.next_fresh_id <- id + 1 ;
     id
 
-  (* Creates anonymous *)
+  (* Creates an anonymous element and returns its numerical id. *)
   let new_anonymous t =
     let id = fresh_id t in
     let elem = t.create_elem () in
     t.elems <- IntMap.add id elem t.elems ;
     id
 
-  (* Creates a new element if needed *)
+  (* Get a mutable element from the table, creating it if it does not
+     exist already. *)
   let get t id =
     try IntMap.find id t.elems
     with Not_found ->
@@ -74,7 +83,8 @@ module Dict = struct
       t.elems <- IntMap.add id elem t.elems ;
       elem
 
-  (* Creates a fresh id if needed *)
+  (* Access the numerical id associated to a name and create a fresh id
+     with this name if necessary. *)
   let id_of_name t name =
     try Hashtbl.find t.name_to_id name
     with Not_found ->
@@ -93,6 +103,7 @@ end
 (* Parse whole query to find constrained agent's types                       *)
 (*****************************************************************************)
 
+(* This will go away *)
 let clause_pattern = function
   | Ast.Event e ->
       e
@@ -101,6 +112,8 @@ let clause_pattern = function
   | Ast.Last_before (e, _) ->
       e
 
+(* This is needed because Int_state_measure used to store an agent_kind
+   but won't be needed anymore. *)
 let constrained_agents_types q =
   q.Ast.pattern
   |> List.fold_left
@@ -132,11 +145,10 @@ type tmp_event =
 type tmp_agent = {mutable tmp_ag_kind: agent_kind option}
 
 type env =
-  { query_agents: tmp_agent Dict.t
+  { model: Model.t
+  ; query_agents: tmp_agent Dict.t
   ; query_events: tmp_event Dict.t
-  ; model: Model.t
-  ; model_signature: Signature.s
-  ; constrained_agents_types: string SMap.t }
+  ; constrained_agents_types: string SMap.t (* TODO: remove*) }
 
 let create_env (model : Model.t) (q : Ast.query) =
   let create_agent () = {tmp_ag_kind= None} in
@@ -146,7 +158,6 @@ let create_env (model : Model.t) (q : Ast.query) =
     ; tmp_def_rels= Queue.create () }
   in
   { model
-  ; model_signature= Model.signatures model
   ; query_agents= Dict.create create_agent
   ; query_events= Dict.create create_event
   ; constrained_agents_types= constrained_agents_types q }
@@ -199,16 +210,17 @@ let compile_event_measure env in_action cur_ev_id ev_expr m =
 let tr_agent env ag_name = Dict.id_of_name env.query_agents ag_name
 
 let tr_agent_kind env s =
-  Signature.num_of_agent (Locality.dummy_annot s) env.model_signature
+  Signature.num_of_agent (Locality.dummy_annot s) (Model.signatures env.model)
 
 let tr_site_name env ag_kind_id s =
   Signature.num_of_site (Locality.dummy_annot s)
-    (Signature.get env.model_signature ag_kind_id)
+    (Signature.get (Model.signatures env.model) ag_kind_id)
 
 let tr_int_state env ag_id s_id st =
   Signature.num_of_internal_state s_id (Locality.dummy_annot st)
-    (Signature.get env.model_signature ag_id)
+    (Signature.get (Model.signatures env.model) ag_id)
 
+(* A quark is something like k.x int int_state[]{k.x} *)
 let tr_quark env (ag_name, site_name) =
   let ag_id = tr_agent env ag_name in
   let ag_kind_name =
@@ -444,7 +456,7 @@ let compile_mixture_pattern env ags =
                 acc )
          acc
   in
-  (* TODO: int*int==state but what type of site? *)
+  (* bond_id -> (pat_agent_id, site_id) *)
   let bonds : (int, int * int) Hashtbl.t = Hashtbl.create 10 in
   let tests =
     fold_sites
@@ -533,15 +545,15 @@ let compile_mixture_pattern env ags =
   let agent_constraints =
     ags_array
     |> Array.fold_left
-         (fun acc (ag_id, ag) ->
+         (fun acc (pat_ag_id, ag) ->
            match ag.Ast.ag_constr with
            | None ->
                acc
            | Some name ->
                let qid = Dict.id_of_name env.query_agents name in
                (Dict.get env.query_agents qid).tmp_ag_kind <-
-                 Some agents.(ag_id).agent_kind ;
-               IntMap.add qid ag_id acc )
+                 Some agents.(pat_ag_id).agent_kind ;
+               IntMap.add qid pat_ag_id acc )
          IntMap.empty
   in
   {agents; tests; mods; agent_constraints}
@@ -585,6 +597,7 @@ let compile_event_pattern env pat =
   let main_pattern = compile_mixture_pattern env pat.Ast.main_pattern in
   (cur_ev_id, {main_pattern; with_clause; rule_constraint})
 
+(* We compile a trace pattern by going over each clause sequentially. *)
 let process_clauses env (tpat : Ast.clause list) =
   tpat
   |> List.iter (function
@@ -670,6 +683,15 @@ let compile_action env when_clause = function
 (* Compile queries                                                           *)
 (*****************************************************************************)
 
+(* We first compute a dependency graph for the query. *)
+(* This graph is a tree since nodes have at most one predecessor and
+   there can only be one root. *)
+
+(* A, last B before A, last C before B *)
+(* A <- B <- C *)
+
+(* For every clause "last e: {} before f", then f is a predecessor of e
+   in the dependency graph (it must be resolved before e). *)
 let predecessor ev =
   match ev.defining_rel with
   | None ->
@@ -681,6 +703,8 @@ let predecessor ev =
 
 let compute_traversal_tree (q : query) =
   let roots = Queue.create () in
+  (* We compute the inverse of the precedence relation. *)
+  (* Note that hash-tables in OCaml can map each key to several values. *)
   let succs = Hashtbl.create 100 in
   q.pattern.events
   |> Array.iteri (fun ev_id ev ->
@@ -689,6 +713,8 @@ let compute_traversal_tree (q : query) =
              Queue.push ev_id roots
          | Some (rel, pred_id) ->
              Hashtbl.add succs pred_id (rel, ev_id) ) ;
+  (* The roots are the nodes without predecessor. We only accept queries
+     with a single root. *)
   let roots = Utils.list_of_queue roots in
   match roots with
   | [] ->
@@ -720,6 +746,7 @@ let opt_pattern_constrained_agents = function
   | Some p ->
       List.map fst (IntMap.bindings p.main_pattern.agent_constraints)
 
+(* The agents constrained by an event are those *)
 let constrained_agents (ev : event) =
   IntSet.of_list
   @@ opt_pattern_constrained_agents ev.event_pattern
@@ -750,7 +777,8 @@ let compile (model : Model.t) (q : Ast.query) =
   Log.with_current_query title (fun () ->
       Log.set_current_query title ;
       let env = create_env model q in
-      (* Compile the action first so that no measure is missing in the pattern *)
+      (* Compile the action first so that no measure is missing in the
+         pattern *)
       let when_clause =
         Option.map (compile_expr env true None) q.Ast.when_clause
       in
