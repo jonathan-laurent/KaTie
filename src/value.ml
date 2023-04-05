@@ -24,41 +24,41 @@ type t =
 [@@deriving show, yojson_of]
 
 type _ value_type =
-  | Ty_Bool : bool value_type
-  | Ty_Int : int value_type
-  | Ty_Float : float value_type
-  | Ty_String : string value_type
-  | Ty_Agent_set : AgentSet.t value_type
-  | Ty_Tuple : t list value_type
+  | TBool : bool value_type
+  | TInt : int value_type
+  | TFloat : float value_type
+  | TString : string value_type
+  | TAgentSet : AgentSet.t value_type
+  | TTuple : t list value_type
 
-type packed_value_type = Ty : 'a value_type -> packed_value_type
+type any_value_type = T : 'a value_type -> any_value_type
 
 let value_type = function
   | Bool _ ->
-      Ty Ty_Bool
+      T TBool
   | Int _ ->
-      Ty Ty_Int
+      T TInt
   | Float _ ->
-      Ty Ty_Float
+      T TFloat
   | String _ ->
-      Ty Ty_String
+      T TString
   | Agent_set _ ->
-      Ty Ty_Agent_set
+      T TAgentSet
   | Tuple _ ->
-      Ty Ty_Tuple
+      T TTuple
 
 let value_type_to_string = function
-  | Ty Ty_Bool ->
+  | T TBool ->
       "bool"
-  | Ty Ty_Int ->
+  | T TInt ->
       "int"
-  | Ty Ty_Float ->
+  | T TFloat ->
       "float"
-  | Ty Ty_String ->
+  | T TString ->
       "string"
-  | Ty Ty_Agent_set ->
+  | T TAgentSet ->
       "agents"
-  | Ty Ty_Tuple ->
+  | T TTuple ->
       "tuple"
 
 let rec to_string = function
@@ -80,19 +80,19 @@ type cast_error = {expected: string; got: string}
 let cast : type a. a value_type -> t -> (cast_error, a) Either.t =
  fun ty v ->
   match (ty, v) with
-  | Ty_Bool, Bool b ->
+  | TBool, Bool b ->
       Either.right b
-  | Ty_Int, Int n ->
+  | TInt, Int n ->
       Either.right n
-  | Ty_Float, Float x ->
+  | TFloat, Float x ->
       Either.right x
-  | Ty_String, String s ->
+  | TString, String s ->
       Either.right s
-  | Ty_Agent_set, Agent_set ags ->
+  | TAgentSet, Agent_set ags ->
       Either.right ags
-  | Ty_Tuple, Tuple t ->
+  | TTuple, Tuple t ->
       Either.right t
   | _, _ ->
-      let expected = value_type_to_string (Ty ty) in
+      let expected = value_type_to_string (T ty) in
       let got = value_type_to_string (value_type v) in
       Either.left {expected; got}

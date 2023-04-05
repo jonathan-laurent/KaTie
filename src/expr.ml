@@ -51,5 +51,7 @@ let cast : type a. string -> a value_type -> Value.t -> a =
    let rec eval = function
      | Unop (Not, e) ->
          Bool (not (cast "not" Ty_Bool (eval e)))
+     | Unop (Size, e) ->
+         Int (AgentSet.size (cast "size" Ty_Agent_set (eval e)))
    in
    eval *)

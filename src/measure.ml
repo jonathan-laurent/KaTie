@@ -118,6 +118,7 @@ let print_cc model state ag_id =
 
 (* Measure interpreter *)
 
+(* TODO: ag_matching: local -> global *)
 let take_measure ?(uuid : int option) (model : Model.t)
     (ag_matchings : int array) (w : Streaming.window) measure : Value.t =
   match measure with
