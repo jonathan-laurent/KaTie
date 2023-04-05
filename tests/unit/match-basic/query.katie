@@ -1,15 +1,22 @@
 query 'match_basic_trace.csv'
 match e:{ }
-return time[e], rule[e]
+return time[e], rule[e], debug_event[e]
 
 query 'create_S__matches_1__all_true.csv'
 match e:{ +s:S() }
 return int_state[e.]{s.x} = "u", rule[e] = "_init_"
 
-// This only matches INIT? Interesting...
-// Is this a BUG?
-query 's_freed__matches_1__all_true.csv'
-match e:{ S(d[/.]) }
+// This only matches INIT.
+// This is because KaTIE does not take side effects into account.
+//
+// The '-Sp' event is as follows:
+//     Is_Here(S/*0*/)
+//     Has_Internal(S/*0*/.x{p})
+//     Remove(S/*0*/)
+//     Side_effects(S_0.x,*)
+//     Side_effects(S_0.d,*)
+query 'k_freed__matches_1__all_true.csv'
+match e:{ K(d[/.]) }
 return rule[e] = "_init_"
 
 // In contrast, this works as expected:

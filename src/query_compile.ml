@@ -191,6 +191,8 @@ let compile_event_measure env in_action cur_ev_id ev_expr m =
         (Event_measure (String, Rule), ST String)
     | Ast.Init_event ->
         (Event_measure (Bool, Init_event), ST Bool)
+    | Ast.Debug_event ->
+        (Event_measure (String, Debug_event), ST String)
   in
   register_measure in_action cur_ev_id ev_id ev measure_descr ty
 

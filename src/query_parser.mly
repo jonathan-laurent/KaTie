@@ -28,7 +28,7 @@ let make_agent ag_mod id1 id2_opt ag_sites =
 %token OP_PAR CL_PAR OP_SQPAR CL_SQPAR OP_CURL CL_CURL BAR
 %token SLASH SHARP
 %token MATCH RETURN AND WITH LAST FIRST BEFORE AFTER WHEN
-%token TIME NPHOS RULE COUNT COMPONENT DIST SIZE INIT_EVENT PRINT_CC
+%token TIME NPHOS RULE COUNT COMPONENT DIST SIZE INIT_EVENT PRINT_CC DEBUG_EVENT
 %token INT_STATE SIMILARITY AGENT_ID
 %token EVERY SECONDS
 %token SNAPSHOT
@@ -174,6 +174,8 @@ expr:
   | AGENT_ID OP_CURL id=ID CL_CURL { Agent_id id }
   | INIT_EVENT ev_expr=ev_measure_annot
     {Event_measure (ev_expr, Init_event) }
+  | DEBUG_EVENT ev_expr=ev_measure_annot
+    {Event_measure (ev_expr, Debug_event)}
 
 
 

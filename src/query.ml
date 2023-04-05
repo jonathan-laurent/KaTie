@@ -75,6 +75,7 @@ and _ expr_body =
 type _ event_measure =
   | Time : float event_measure
   | Rule : string event_measure
+  | Debug_event : string event_measure
   | Init_event : bool event_measure
 
 type _ state_measure =

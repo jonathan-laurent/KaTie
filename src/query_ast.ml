@@ -48,7 +48,8 @@ type state_measure =
   | Snapshot
 [@@deriving show, yojson]
 
-type event_measure = Time | Rule | Init_event [@@deriving show, yojson]
+type event_measure = Time | Rule | Debug_event | Init_event
+[@@deriving show, yojson]
 
 type expr =
   | Unop of unop * expr

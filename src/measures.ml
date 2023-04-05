@@ -133,4 +133,11 @@ let take_measure ?(uuid : int option) (model : Model.t)
     | Rule ->
         rule_name model w.step
     | Init_event ->
-        Some (Val (Trace.step_is_init w.step, Bool)) )
+        Some (Val (Trace.step_is_init w.step, Bool))
+    | Debug_event ->
+        Some
+          (Val
+             ( Fmt.str "@[<h>%a@]"
+                 (Trace.print_step ~compact:false ~env:model)
+                 w.step
+             , String ) ) )

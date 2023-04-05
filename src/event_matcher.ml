@@ -11,6 +11,7 @@ open Streaming
 (* Simple utilities                                                          *)
 (*****************************************************************************)
 
+(* Crucially, we are ignoring side effects. *)
 let extract_tests_actions = function
   | Trace.Subs _ ->
       ([], [])

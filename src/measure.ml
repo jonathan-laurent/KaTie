@@ -14,7 +14,8 @@ type state_measure =
   | Snapshot
 [@@deriving show, yojson_of]
 
-type event_measure = Time | Rule | Init_event [@@deriving show, yojson_of]
+type event_measure = Time | Rule | Debug_event | Init_event
+[@@deriving show, yojson_of]
 
 type state_measure_time = Before | After [@@deriving show, yojson_of]
 
@@ -147,4 +148,6 @@ let take_measure ?(uuid : int option) (model : Model.t)
     | Rule ->
         rule_name model w.step
     | Init_event ->
-        VBool (Trace.step_is_init w.step) )
+        VBool (Trace.step_is_init w.step)
+    | Debug_event ->
+        VString (Fmt.to_to_string (Trace.print_step ~env:model) w.step) )
