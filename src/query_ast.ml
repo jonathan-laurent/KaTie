@@ -27,9 +27,10 @@ and agent_mod = Create | Erase
 
 type mixture_pat = agent list
 
-type unop = Not | Size
+type unop = Not | Size [@@deriving show, yojson]
 
 type binop = Eq | Add | Mul | Sub | Gt | Ge | Lt | Le | Similarity | And | Or
+[@@deriving show, yojson]
 
 type event_expr = This | Ev of identifier
 
