@@ -103,6 +103,12 @@ and state_measure_time = Before | After
 
 (* Trace patterns *)
 
+type rule_constraint =
+  | Init
+  | End_of_trace (* Not supported yet *)
+  | Rule of int list
+  | Obs of string
+
 type event_pattern =
   { main_pattern: pattern
   ; with_clause: bool expr
@@ -111,12 +117,31 @@ type event_pattern =
            syntactic sugar for adding conditionals in actions. *)
   ; rule_constraint: rule_constraint option }
 
-and rule_constraint =
-  | Init
-  | End_of_trace (* Not supported yet *)
-  | Rule of int list
-  | Obs of string
+type defining_relation =
+  | First_after of local_event_id * event_pattern
+  | Last_before of local_event_id * event_pattern
 
+(* Each event is associated to either one or two patterns. The pattern
+   in [event.defining_rel] is mandatory for all events except the root.
+   It is used to uniquely map events in the trace from the mapping of
+   its predecessors in the dependency graph. For non-root nodes,
+   [event.event_pattern] can define additional constraints and constrain
+   additional agents. For example, in the example below:
+
+       match b:{ S(d[/1]), k:K(d[/1]) }
+       and first u:{ k:K(d[/.]) } after b
+       and u:{ k:K(x{p}) }
+       return (time[u] - time[b])
+
+   local event 'b' has one 'event_pattern' and local event 'b' has both
+   a 'defining_rel' and an 'event_pattern'. Right now, the engine does
+   not handle such a query though since it would try and match u's
+   nondefining pattern to a trace step without context and find
+   ambiguitites (since it does not feature any action). In the future,
+   it is debatable whether we should improve this or just drop support
+   for having several patterns for actions altogether (most use-cases
+   for this can be handled by reformulating the query or using
+   'when'-clauses anyway.). *)
 type event =
   { event_id: local_event_id (* Index in query.pattern.events *)
   ; event_pattern: event_pattern option
@@ -127,22 +152,23 @@ type event =
            in this array. *)
   ; already_constrained_agents: local_agent_id list
   ; captured_agents: local_agent_id list
-        (* The two fields above are computed with the traversal tree. *)
-        (* Invariants: already_constrained_agents `union`
-           captured_agents = agents of event_pattern.main_pattern. The
-           defining_rel pattern only constrains agents of
-           already_constrained_agents. *) }
-
-(* Why event_pattern? Why copies? WTF?? *)
-and defining_relation =
-  | First_after of local_event_id * event_pattern
-  | Last_before of local_event_id * event_pattern
+        (* The two fields above are computed with the traversal tree.
+           They partition the set of [local_agent_id] constrained by the
+           event (a local agent is constrained if it occurs either in
+           the [defining_rel] pattern or in the [event_pattern]) into
+           two parts. [already_constrained_agents] are local_agents that
+           will have been already mapped to global agents in the trace
+           when the event is attempted to be matched. [captured_agents]
+           are agents whose identity is to be figured out by matching
+           this specific event. *)
+        (* We further assume that the
+           [defining_rel] pattern can only feature already constrained
+           agents. TODO: why this assumption? Do we need it? *) }
 
 type ('a, 'b) tree = Tree of 'a * ('b * ('a, 'b) tree) list
 
-(* A tree that tells in what order events should be discovered.
-   The root of this tree corresponds to the root of the trace
-   pattern. *)
+(* A tree that tells in what order events should be discovered. The root
+   of this tree corresponds to the root of the trace pattern. *)
 type matching_tree = (local_event_id, defining_relation) tree
 
 type trace_pattern =
