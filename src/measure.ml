@@ -2,7 +2,10 @@
 (* State and Event Measures                                                  *)
 (*****************************************************************************)
 
-let f () = ()
+(* This module is part of a refactor in progress and not currently used in
+   the tool. *)
+
+let please_compile_me () = ()
 
 open Aliases
 open Value

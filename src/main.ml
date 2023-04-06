@@ -2,7 +2,11 @@
 (* Kappa Trace Query Engine                                                  *)
 (*****************************************************************************)
 
-let () = Measure.f () ; Expr.f ()
+(* Make sure to compile these dead modules as part of the current
+   refactoring *)
+let () =
+  Measure.please_compile_me () ;
+  Expr.please_compile_me ()
 
 let trace_file = ref ""
 
