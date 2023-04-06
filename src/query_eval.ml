@@ -16,6 +16,7 @@ type pm_id = int
 type event_recorder =
   { recorder_status: recorder_status
   ; mutable cache: ev_matchings History.t ValMap.t
+        (* For every event, we map a valuation of [already_constrained_agents] to  *)
   ; mutable subscribed: pm_id list ValMap.t }
 
 and recorder_status =

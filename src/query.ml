@@ -129,7 +129,7 @@ type event =
   ; captured_agents: local_agent_id list
         (* The two fields above are computed with the traversal tree. *)
         (* Invariants: already_constrained_agents `union`
-           captured_agents = keys of event_pattern.main_pattern. The
+           captured_agents = agents of event_pattern.main_pattern. The
            defining_rel pattern only constrains agents of
            already_constrained_agents. *) }
 

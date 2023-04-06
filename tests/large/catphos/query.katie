@@ -1,4 +1,5 @@
-/*
+// Analysis of a substrate-kinase model, as done in the original paper
+
 query 'lifespan_phos.csv'
 match b:{ s:S(d[/1]), k:K(d[/1], x{p}) }
 and first u:{ s:S(d[/.]) } after b
@@ -13,35 +14,35 @@ query 'first_phos.csv'
 match c:{ +s:S }
 and first p:{ s:S(x{/p}) } after c
 return time[p]
-*/
-/*
+
 query 'analyze_cycles.csv' {'substrate_id', 'binding_time', 'unbinding_time'}
 match b:{ s:S(d[/1]), k:K(d[/1], x{u}) }
 and first u:{ s:S(d[/.]) } after b
 when time[b] >= 5
 return (agent_id{s}, time[b], time[u])
-*/
 
-query 'trace.csv'
-match e: { } when rule[e] = 'p' return time[e], rule[e]
 
-query 'print_cc.csv'
-match b:{ s:S(d[/1]), k:K(d[/1], x{u}) }
-return print_cc[b.]{s}
+// Below, we consider variants of the bond lifespan analysis
+// where we test the state of the kinase when the bond breaks
+// and not when it forms (results should be similar but not identical)
+// All variants 1, 2 and 3 should give equivalent results and variant
+// 3 is currently unsupported by the engine.
 
-query 'component_size.csv'
-match b:{ s:S(d[/1]), k:K(d[/1], x{u}) }
-return size{component[b.]{s}}
+query 'lifespan_variant_1.csv'
+match b:{ S(d[/1]), k:K(d[/1]) }
+and first u:{ k:K(d[/.]) } after b
+when int_state[.u]{k.x} = 'p'
+return (time[u] - time[b])
 
-// query 'state_ambiguous.csv'
-// match e:{} and f:{} return time[e], time[f]
+query 'lifespan_variant_2.csv'
+match u:{ k:K(x{p}, d[/.]) }
+and last b:{ k:K(d[/d.S]) } before u
+return (time[u] - time[b])
 
-// query 'int_state_test_ambiguous.csv'
-// match e: { s:S(d) } when int_state[e.]{s.x} = 'p' return time[e]
-
-// query 'int_state_test.csv'
-// match e: { s:S(x{u/p}) } when int_state[e.]{s.x} = 'p' return time[e]
-
-// query 'type_error.csv'
-// match e: { s:S(x{u/p}) } return time[e] + int_state[e.]{s.x}
-
+// // Not supported because of ambiguity in the third u event
+// // This could be improved since we know what k is from the defining relation of u.
+// query 'variant_3.csv'
+// match b:{ S(d[/1]), k:K(d[/1]) }
+// and first u:{ k:K(d[/.]) } after b
+// and u:{ k:K(x{p}) }
+// return (time[u] - time[b])

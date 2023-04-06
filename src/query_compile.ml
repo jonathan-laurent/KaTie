@@ -746,7 +746,8 @@ let opt_pattern_constrained_agents = function
   | Some p ->
       List.map fst (IntMap.bindings p.main_pattern.agent_constraints)
 
-(* The agents constrained by an event are those *)
+(* The agents constrained by an event are those constrained by its main
+   pattern and dependency?? *)
 let constrained_agents (ev : event) =
   IntSet.of_list
   @@ opt_pattern_constrained_agents ev.event_pattern

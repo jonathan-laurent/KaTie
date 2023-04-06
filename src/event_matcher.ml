@@ -86,7 +86,10 @@ type partial_agents_matching = PAM of (int * int) list
 exception No_match
 
 (* Try to match the agents of [pat] in [w] by only looking at
-   modifications and connectivity. Only uses w.step (not the mixture) *)
+   modifications and connectivity. Only uses w.step (not the mixture)
+   This returns an array that should be interpreted as a map from
+   `pat_agent_id` to `global_agent_id`.
+*)
 
 let match_agents_in_pattern (pat : Query.event_pattern) (w : Streaming.window) :
     int array option =
@@ -278,9 +281,11 @@ let match_simple_pattern (pat : Query.event_pattern) (w : Streaming.window) :
                  | Int_state_is ((ag_pid, s), st) ->
                      Edges.get_internal (translate_ag ag_pid) s prev_mstate = st
                with
-               (* TODO: this is dirty. We are doing this in case some agent
-                      does not exist in the previous state and KaSim throws an exception.
-                      KaSim should throw a more specific exception or expose a `valid_agent_id` API. *)
+               (* TODO: this is dirty. We are doing this in case some
+                      agent does not exist in the previous state and
+                      KaSim throws an exception. KaSim should throw a
+                      more specific exception or expose a
+                      `valid_agent_id` API. *)
                | Invalid_argument _ ->
                    false
                | e ->
@@ -307,6 +312,7 @@ let match_event (ev : Query.event) (w : Streaming.window) : ev_matchings option
     | _ ->
         None
   in
+  (* local_id -> global_id *)
   let qid_to_gid (pat, matchings) q_id =
     try
       let p_id = IntMap.find q_id pat.main_pattern.agent_constraints in
