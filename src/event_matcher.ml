@@ -2,6 +2,11 @@
 (* Event matcher                                                             *)
 (*****************************************************************************)
 
+(* TODO: This is not exactly the right interface. What would be better
+   is a function that takes a matching of already captured agents as an
+   argument and returns a matching of agents to be captured in return.
+*)
+
 open Matchings
 open Query
 open Utils
@@ -297,11 +302,11 @@ let match_simple_pattern (pat : Query.event_pattern) (w : Streaming.window) :
   | None ->
       None
 
-(* How to combine the matchings of both ?
-   + The main is used as a reference
-   + Otherwise, look at the other
-   + If no pattern is provided ? Impossible, we cancel *)
-
+(* This function returns:
+   - [None] if the event does not match
+   - An [event_matchings] object with 0 matchings if the defining relation
+     matches but the main pattern does not.
+*)
 let match_event (ev : Query.event) (w : Streaming.window) : ev_matchings option
     =
   let main_pat_opt = ev.event_pattern in

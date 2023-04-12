@@ -34,6 +34,8 @@ type ev_matching_specific_part =
 type ev_matching =
   {specific: ev_matching_specific_part; common: ev_matching_common_part}
 
+(* List of possible matchings that only differ in the identity of
+   captured agents. TODO: this should probably be simplified. *)
 type ev_matchings =
   {common_to_all: ev_matching_common_part; matchings: ev_matching list}
 

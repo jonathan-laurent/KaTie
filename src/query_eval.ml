@@ -251,28 +251,27 @@ let init_env model query =
 
 (* [first_pass_process_step] should be read first. *)
 
-(* Overwrite all partial matching ids with a distinct fresh id. *)
-let zip_with_fresh env pm l =
-  match l with
-  | [] ->
-      []
-  | [x] ->
-      [(pm, x)]
-  | l ->
+let zip_with_fresh _env pm l =
+  match l with [] -> [] | [x] -> [(pm, x)] | _l -> assert false
+
+(* The current code never takes advantage of branching and so the last
+   case of the function above can be ommited:
+
       l
       |> List.map (fun x ->
              let id = fresh_id env in
-             ({pm with partial_matching_id= id}, x) )
+             ({pm with partial_matching_id= id}, x) ) *)
 
 (* Does the following:
+
    - Check that the registration is legitimate: at least one matching
    - Update the `matched_events` map
    - Look for the Last_before children of `ev` and add them
    - Add the First_after children to the watch list
    - Suscribe to the recorder for these children
-   You have to check that all children are watched indeed before calling.
 
-   TODO: what does this return? *)
+   You have to check that all children are watched indeed before
+   calling. TODO: what does this return? *)
 let rec process_matching env subs children (pm, m) =
   let i = m.common.ev_id_in_query in
   let pm = {pm with matched_events= IntMap.add i m pm.matched_events} in
@@ -316,7 +315,9 @@ and process_matchings env subs pm ms =
       (* The matched event is not watched so we do nothing. *)
       [pm]
 
-(* Update a partial matching after observing matchings for an event. *)
+(* Update a partial matching after observing matchings for an event.
+   This is called right after
+*)
 let rec update_partial_matching env ms pm_id =
   (* If the mentioned partial matching has been branched,
      redirect the call to its children *)
