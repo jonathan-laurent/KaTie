@@ -2,24 +2,60 @@
 (* Utils                                                                     *)
 (*****************************************************************************)
 
+(* An improved Map module that is augmented with new features. *)
+module MapV2 = struct
+  module type OrderedType = sig
+    include Map.OrderedType
+
+    val pp : t Fmt.t
+
+    val t_of_yojson : Yojson.Safe.t -> t
+
+    val yojson_of_t : t -> Yojson.Safe.t
+  end
+
+  module Make (Elt : OrderedType) = struct
+    include Map.Make (Elt)
+    open Ppx_yojson_conv_lib.Yojson_conv
+
+    let from_list l = of_seq (List.to_seq l)
+
+    let to_list m = List.of_seq (to_seq m)
+
+    let pp pp_elt = Fmt.iter_bindings iter Fmt.(pair Elt.pp pp_elt)
+
+    let t_of_yojson elt_of_yojson json =
+      from_list
+        (list_of_yojson (pair_of_yojson Elt.t_of_yojson elt_of_yojson) json)
+
+    let yojson_of_t yojson_of_elt m =
+      (yojson_of_list (yojson_of_pair Elt.yojson_of_t yojson_of_elt))
+        (to_list m)
+
+    let overriding_update m m' = union (fun _ _x y -> Some y) m m'
+  end
+end
+
+(* Map.OrderedType *)
+
 open Ppx_yojson_conv_lib.Yojson_conv
 module IntSet = Set.Make (Int)
-module IntMap = Map.Make (Int)
-module StringMap = Map.Make (String)
 
-type 'a int_map = 'a IntMap.t
+module IntMap = MapV2.Make (struct
+  type t = int [@@deriving yojson]
 
-let int_map_from_list l = IntMap.of_seq (List.to_seq l)
+  let pp = Fmt.int
 
-let pp_int_map pp_elt = Fmt.(iter_bindings IntMap.iter (pair int pp_elt))
+  let compare = Int.compare
+end)
 
-let int_map_of_yojson elt_of_yojson json =
-  int_map_from_list
-    (list_of_yojson (pair_of_yojson int_of_yojson elt_of_yojson) json)
+module StringMap = MapV2.Make (struct
+  type t = string [@@deriving yojson]
 
-let yojson_of_int_map yojson_of_elt m =
-  (yojson_of_list (yojson_of_pair yojson_of_int yojson_of_elt))
-    (List.of_seq (IntMap.to_seq m))
+  let pp = Fmt.string
+
+  let compare = String.compare
+end)
 
 let monadic_fold (type acc b) (f : acc -> b -> acc list) (init : acc)
     (l : b list) =
@@ -27,8 +63,6 @@ let monadic_fold (type acc b) (f : acc -> b -> acc list) (init : acc)
     List.concat (List.map (fun acc -> f acc x) accs)
   in
   List.fold_left f' [init] l
-
-let update_int_map m m' = IntMap.union (fun _ _x y -> Some y) m m'
 
 let list_of_queue q = List.of_seq (Queue.to_seq q)
 

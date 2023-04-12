@@ -187,14 +187,14 @@ let valuation_to_mapping ag_pm_labels v =
     | _ ->
         assert false
   in
-  int_map_from_list (zip ag_pm_labels v)
+  IntMap.from_list (zip ag_pm_labels v)
 
 (* Partial matchings *)
 
 (* Update a partial matching with the captures of an event matching. *)
 let update_constrained_agents ev m pm =
   let constrained_agents =
-    Utils.update_int_map pm.constrained_agents
+    IntMap.overriding_update pm.constrained_agents
       (valuation_to_mapping ev.captured_agents m.specific.new_ag_matchings)
   in
   {pm with constrained_agents}

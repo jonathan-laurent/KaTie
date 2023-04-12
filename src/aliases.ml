@@ -22,4 +22,4 @@ type local_site = local_agent_id * site_id [@@deriving show, yojson]
 
 type global_site = global_agent_id * site_id [@@deriving show, yojson]
 
-type 'a local_agent_id_map = 'a Utils.int_map [@@deriving show, yojson_of]
+type 'a local_agent_id_map = 'a Utils.IntMap.t [@@deriving show, yojson_of]
