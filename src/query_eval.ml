@@ -306,6 +306,27 @@ let is_delay_respected env cur_time =
   | Some delta ->
       cur_time -. env.last_root_matching_time >= delta
 
+(* Wrapper to recover the old interface *)
+let match_event ev w =
+  match Event_matcher.match_event ev w with
+  | No_match ->
+      None
+  | Match {index; status} -> (
+      let common_to_all =
+        { ev_id_in_trace= w.step_id
+        ; ev_id_in_query= ev.event_id
+        ; ev_time= w.state.Replay.time
+        ; indexing_ag_matchings= index }
+      in
+      match status with
+      | Failure ->
+          Some {common_to_all; matchings= []}
+      | Success {captured} ->
+          let specific =
+            {new_ag_matchings= captured; recorded_measures= IntMap.empty}
+          in
+          Some {common_to_all; matchings= [{common= common_to_all; specific}]} )
+
 (* Main function that is called on every trace event during the first pass. *)
 (* - If the root of the query matches the current event, then we create
      a new partial matching (unless prohibited by the 'every' clause).
@@ -320,7 +341,7 @@ let first_pass_process_step query window env =
          match recorder_status env ev_id with
          (* | Disabled -> () *)
          | Enabled -> (
-           match Event_matcher.match_event ev window with
+           match match_event ev window with
            | Some ms ->
                store_in_cache env ev_id ms ;
                let subscribtions =
@@ -331,7 +352,7 @@ let first_pass_process_step query window env =
            | None ->
                () )
          | Root -> (
-           match Event_matcher.match_event ev window with
+           match match_event ev window with
            | Some ms ->
                let cur_time = ms.common_to_all.ev_time in
                if is_delay_respected env cur_time then (

@@ -5,9 +5,11 @@
 (* TODO: This is not exactly the right interface. What would be better
    is a function that takes a matching of already captured agents as an
    argument and returns a matching of agents to be captured in return.
+
+   It returns event_matching or nothing.
 *)
 
-open Matchings
+open Aliases
 open Query
 open Utils
 open Streaming
@@ -307,13 +309,18 @@ let match_simple_pattern (pat : Query.event_pattern) (w : Streaming.window) :
   | None ->
       None
 
+type status = Failure | Success of {captured: global_agent_id list}
+[@@deriving show, yojson_of]
+
+type result = No_match | Match of {index: global_agent_id list; status: status}
+[@@deriving show, yojson_of]
+
 (* This function returns:
    - [None] if the event does not match
    - An [event_matchings] object with 0 matchings if the defining relation
      matches but the main pattern does not.
 *)
-let match_event (ev : Query.event) (w : Streaming.window) : ev_matchings option
-    =
+let match_event (ev : Query.event) (w : Streaming.window) : result =
   let main_pat_opt = ev.event_pattern in
   let def_pat_opt =
     match ev.defining_rel with
@@ -343,40 +350,35 @@ let match_event (ev : Query.event) (w : Streaming.window) : ev_matchings option
       | None, None ->
           assert false )
   in
-  let generate_matchings effective pm1 pm2_opt =
-    let common =
-      { ev_id_in_trace= w.step_id
-      ; ev_id_in_query= ev.event_id
-      ; ev_time= w.state.Replay.time
-      ; indexing_ag_matchings=
-          List.map (qid_to_gid' pm1 pm2_opt) ev.already_constrained_agents }
+  let generate_matching effective pm1 pm2_opt =
+    let index =
+      List.map (qid_to_gid' pm1 pm2_opt) ev.already_constrained_agents
     in
-    let specific =
-      { new_ag_matchings= List.map (qid_to_gid' pm1 pm2_opt) ev.captured_agents
-      ; recorded_measures= IntMap.empty }
+    let status =
+      if effective then
+        Success {captured= List.map (qid_to_gid' pm1 pm2_opt) ev.captured_agents}
+      else Failure
     in
-    if effective then {common_to_all= common; matchings= [{common; specific}]}
-    else {common_to_all= common; matchings= []}
+    Match {index; status}
   in
   match (def_pat_opt, main_pat_opt) with
   | Some def_pat, Some main_pat -> (
     match match_simple_pattern def_pat w with
     | None ->
-        None (* No matching at all *)
+        No_match (* No matching at all *)
     | Some def_pat_matchings -> (
       match match_simple_pattern main_pat w with
       | None ->
-          Some (generate_matchings false (def_pat, def_pat_matchings) None)
+          generate_matching false (def_pat, def_pat_matchings) None
       | Some main_pat_matchings ->
-          Some
-            (generate_matchings true
-               (def_pat, def_pat_matchings)
-               (Some (main_pat, main_pat_matchings)) ) ) )
+          generate_matching true
+            (def_pat, def_pat_matchings)
+            (Some (main_pat, main_pat_matchings)) ) )
   | Some pat, None | None, Some pat -> (
     match match_simple_pattern pat w with
     | None ->
-        None
+        No_match
     | Some pat_matchings ->
-        Some (generate_matchings true (pat, pat_matchings) None) )
+        generate_matching true (pat, pat_matchings) None )
   | _ ->
-      None
+      No_match
