@@ -67,12 +67,12 @@ let pp_int_map = PrintIntMap.pp_map
 open Matchings
 
 module PrintAgVal = struct
-  type t = Ag_valuation.t
+  type t = AgentValuation.t
 
   let pp = pp_list_inline PrintInt.pp
 end
 
-module PrintAgValMap = PrintMap (Ag_valuation) (ValMap) (PrintAgVal)
+module PrintAgValMap = PrintMap (AgentValuation) (ValMap) (PrintAgVal)
 
 let pp_ag_val_map = PrintAgValMap.pp_map
 

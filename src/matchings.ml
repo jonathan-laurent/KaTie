@@ -4,27 +4,30 @@
 
 open Aliases
 
-module Ag_valuation = struct
+module AgentValuation = struct
   (* local_agent_id -> global_agent_id *)
-  type t = int list
+  type t = int list [@@deriving yojson]
+
+  let pp = Fmt.(list int)
 
   let compare v v' =
     assert (List.length v = List.length v') ;
     compare v v'
 end
 
-module ValMap = Map.Make (Ag_valuation)
+module ValMap = Utils.MapV2.Make (AgentValuation)
 
 type ev_matching_common_part =
   { ev_id_in_trace: global_event_id
   ; ev_id_in_query: local_event_id
   ; ev_time: float
-  ; indexing_ag_matchings: Ag_valuation.t
+  ; indexing_ag_matchings: AgentValuation.t
         (* Maps [local_agent_id]s from [event.already_constrained_agents]
            to [global_agent_id] *) }
+[@@deriving show, yojson_of]
 
 type ev_matching_specific_part =
-  { new_ag_matchings: Ag_valuation.t
+  { new_ag_matchings: AgentValuation.t
         (* Maps [local_agent_id]s from [event.captured_agents] to
            [global_agent_id] *)
   ; recorded_measures: Query.value option Utils.IntMap.t
