@@ -14,6 +14,20 @@ let rec size = function
   | Empty ->
       0
 
+let rec to_alist = function
+  | Cat (_, _, _, l, r) ->
+      to_alist l @ to_alist r
+  | Leaf (x, v) ->
+      [(x, v)]
+  | Empty ->
+      []
+
+let pp pp_elt = Fmt.(using to_alist (list (pair int pp_elt)))
+
+let yojson_of_t yojson_of_elt h =
+  let open Ppx_yojson_conv_lib.Yojson_conv in
+  yojson_of_list (yojson_of_pair yojson_of_int yojson_of_elt) (to_alist h)
+
 let range = function Cat (a, _, c, _, _) -> c - a | Leaf _ -> 1 | Empty -> 0
 
 let init' (a, b) =

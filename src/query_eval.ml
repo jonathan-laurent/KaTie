@@ -14,13 +14,14 @@ open Matchings
 (* Types                                                                     *)
 (*****************************************************************************)
 
-type pm_id = int
+type pm_id = int [@@deriving show, yojson_of]
 
 type recorder_status =
   (* | Disabled *)
   (* TODO: dead constructor *)
   | Enabled
   | Root
+[@@deriving show, yojson_of]
 
 type event_recorder =
   { recorder_status: recorder_status
@@ -38,6 +39,7 @@ type event_recorder =
 
            then once the root event b is matched, it captures agents s
            and subscribes to event u with a valuation [s -> ...]. *) }
+[@@deriving show, yojson_of]
 
 type partial_matching =
   { partial_matching_id: int
@@ -46,18 +48,19 @@ type partial_matching =
   ; watched: matching_tree IntMap.t
         (* Maps local event ids to matching trees. TODO: is this the
            right datastructure? *) }
+[@@deriving show, yojson_of]
 
 type 'a branchings_memory = Elem of 'a | Branched of int list
+[@@deriving show, yojson_of]
 
 type env =
   { query: query
-  ; model: Model.t (* Not used but kept around for debugging *)
   ; recorders: event_recorder array
   ; mutable partial_matchings: partial_matching branchings_memory IntMap.t
         (* Partial matchings are indexed by [pm_id]s *)
   ; mutable next_fresh_id: int
   ; mutable last_root_matching_time: float }
-[@@warning "-69"]
+[@@deriving show, yojson_of]
 
 (*****************************************************************************)
 (* Simple operations on those types                                          *)
@@ -178,9 +181,8 @@ let get_event env ev_id = env.query.pattern.events.(ev_id)
 
 let recorder_status env ev_id = env.recorders.(ev_id).recorder_status
 
-let init_env model query =
+let init_env query =
   { query
-  ; model
   ; recorders=
       Array.init (number_of_events query) (fun i ->
           let status = if i = query_root_event query then Root else Enabled in
@@ -485,7 +487,7 @@ let print_legend (q, fmt) =
 
 let eval ?(uuid : int option) (m : Model.t) (q : Query.query)
     (fmt : Format.formatter) (trace_file : string) : unit =
-  let env = init_env m q in
+  let env = init_env q in
   ignore
   @@ Streaming.fold_trace ~update_ccs:true ~compute_previous_states:true
        trace_file
@@ -527,7 +529,7 @@ let eval_queries ?(skip_init_events = false) ?(uuid : int option) (m : Model.t)
     (qs : (query * Format.formatter) list) (trace_file : string) : unit =
   let queries = Array.of_list (List.map fst qs) in
   let fmts = Array.of_list (List.map snd qs) in
-  let envs = Array.map (init_env m) queries in
+  let envs = Array.map init_env queries in
   let event_processed = open_progress_bar "Events processed" 10_000 in
   let step1 window () =
     event_processed 1 ;

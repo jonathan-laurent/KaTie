@@ -8,3 +8,5 @@ val eval_queries :
   -> (Query.query * Format.formatter) list
   -> string
   -> unit
+
+type env [@@deriving show, yojson_of]
