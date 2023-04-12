@@ -21,7 +21,6 @@ let actions_from_side_effects ev =
   List.map (fun (s, _) -> Free s) ev.side_effects_src
   @ List.map (fun s -> Free s) ev.side_effects_dst
 
-(* Crucially, we are ignoring side effects. *)
 let extract_tests_actions = function
   | Trace.Subs _ ->
       ([], [])
