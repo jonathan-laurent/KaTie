@@ -7,7 +7,6 @@
 
 open Utils
 open Query
-open Streaming
 open Matchings
 
 (*****************************************************************************)
@@ -444,8 +443,8 @@ let take_all_measures ?uuid model ag_matchings window set_measure ev =
 
 let second_pass_process_step ?(uuid : int option)
     ~(matchings_processed : int -> unit) (model : Model.t) (query : Query.query)
-    (fmt : Format.formatter) (cms : complete_matching array) (window : window)
-    remaining =
+    (fmt : Format.formatter) (cms : complete_matching array)
+    (window : Streaming.window) remaining =
   let rec process = function
     | [] ->
         [] (* There's nothing interesting in the trace anymore *)
