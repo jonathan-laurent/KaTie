@@ -87,10 +87,12 @@ let main () =
     let queries = parse_and_compile_queries model !query_file in
     print_endline "Queries successfully compiled." ;
     if !debug_mode then
-      with_file (Tql_output.file "compiled-query") (fun fmt ->
+      with_file (Tql_output.file "compiled-query.json") (fun fmt ->
           queries
           |> List.iter (fun q ->
-                 Yojson.Safe.pretty_print fmt (Query.yojson_of_query q) ) ) ;
+                 Format.fprintf fmt "%a@.}"
+                   (Yojson.Safe.pretty_print ~std:false)
+                   (Query.yojson_of_query q) ) ) ;
     let queries = queries |> List.map (fun q -> (q, query_output_file q)) in
     let fmts =
       queries |> List.map snd |> List.sort_uniq compare
