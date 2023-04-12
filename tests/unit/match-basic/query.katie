@@ -6,8 +6,7 @@ query 'create_S__matches_1__all_true.csv'
 match e:{ +s:S() }
 return int_state[e.]{s.x} = "u", rule[e] = "_init_"
 
-// This only matches INIT.
-// This is because KaTIE does not take side effects into account.
+// This one has a side effect.
 //
 // The '-Sp' event is as follows:
 //     Is_Here(S/*0*/)
@@ -15,9 +14,9 @@ return int_state[e.]{s.x} = "u", rule[e] = "_init_"
 //     Remove(S/*0*/)
 //     Side_effects(S_0.x,*)
 //     Side_effects(S_0.d,*)
-query 'k_freed__matches_1__all_true.csv'
+query 'k_freed__matches_2__all_true.csv'
 match e:{ K(d[/.]) }
-return rule[e] = "_init_"
+return rule[e] = "_init_" || rule[e] = "-Sp"
 
 // In contrast, this works as expected:
 query 'unbinding__matches_1.csv'

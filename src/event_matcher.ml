@@ -16,12 +16,18 @@ open Streaming
 (* Simple utilities                                                          *)
 (*****************************************************************************)
 
+let actions_from_side_effects ev =
+  let open Instantiation in
+  List.map (fun (s, _) -> Free s) ev.side_effects_src
+  @ List.map (fun s -> Free s) ev.side_effects_dst
+
 (* Crucially, we are ignoring side effects. *)
 let extract_tests_actions = function
   | Trace.Subs _ ->
       ([], [])
   | Trace.Rule (_, ev, _) ->
-      (ev.Instantiation.tests, ev.Instantiation.actions)
+      ( ev.Instantiation.tests
+      , ev.Instantiation.actions @ actions_from_side_effects ev )
   | Trace.Pert (_, ev, _) ->
       (ev.Instantiation.tests, ev.Instantiation.actions)
   | Trace.Init acts ->
