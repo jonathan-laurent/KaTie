@@ -2,19 +2,19 @@
 (* Utils                                                                     *)
 (*****************************************************************************)
 
+module type ShowableOrderedType = sig
+  include Map.OrderedType
+
+  val pp : t Fmt.t
+
+  val t_of_yojson : Yojson.Safe.t -> t
+
+  val yojson_of_t : t -> Yojson.Safe.t
+end
+
 (* An improved Map module that is augmented with new features. *)
 module MapV2 = struct
-  module type OrderedType = sig
-    include Map.OrderedType
-
-    val pp : t Fmt.t
-
-    val t_of_yojson : Yojson.Safe.t -> t
-
-    val yojson_of_t : t -> Yojson.Safe.t
-  end
-
-  module Make (Elt : OrderedType) = struct
+  module Make (Elt : ShowableOrderedType) = struct
     include Map.Make (Elt)
     open Ppx_yojson_conv_lib.Yojson_conv
 
@@ -36,9 +36,6 @@ module MapV2 = struct
   end
 end
 
-(* Map.OrderedType *)
-
-open Ppx_yojson_conv_lib.Yojson_conv
 module IntSet = Set.Make (Int)
 
 module IntMap = MapV2.Make (struct
