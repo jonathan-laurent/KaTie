@@ -39,68 +39,6 @@ type pattern =
         (* rename [constrained_agents]? *) }
 [@@deriving show, yojson_of]
 
-(* Expressions *)
-
-module AgentSet = Agent.SetMap.Set
-
-type agent_set = AgentSet.t
-
-type (_, _, _) binop =
-  | Eq : ('a, 'a, bool) binop
-  | Binop : ('a -> 'b -> 'c) -> ('a, 'b, 'c) binop
-  | Concat : ('a, 'b, tuple) binop
-
-and (_, _) unop =
-  | Unop : ('a -> 'b) -> ('a, 'b) unop
-  | Count_agents : agent_kind list -> (agent_set, tuple) unop
-
-and _ expr_type =
-  | Bool : bool expr_type
-  | Int : int expr_type
-  | Float : float expr_type
-  | String : string expr_type
-  | Agent_set : agent_set expr_type
-  | Tuple : tuple expr_type
-
-and value = Val : 'a * 'a expr_type -> value
-
-and tuple = value list
-
-type 'a expr = 'a expr_body * 'a expr_type
-
-and _ expr_body =
-  | Const : 'a -> 'a expr_body
-  | Measure : (local_event_id * measure_id) -> 'a expr_body
-  | Binop : 'a expr * ('a, 'b, 'c) binop * 'b expr -> 'c expr_body
-  | Unop : ('a, 'b) unop * 'a expr -> 'b expr_body
-  | Agent_id : local_agent_id -> int expr_body
-
-(* Measures *)
-
-type _ event_measure =
-  | Time : float event_measure
-  | Rule : string event_measure
-  | Debug_event : string event_measure
-  | Init_event : bool event_measure
-
-type _ state_measure =
-  | Int_state : (Agent.t * site_id) -> string state_measure
-  | Count : pattern -> int state_measure
-  | Component : local_agent_id -> agent_set state_measure
-  | Nphos : local_agent_id -> int state_measure
-  | Snapshot : string state_measure
-  | Print_cc : local_agent_id -> string state_measure
-
-type measure = {used_in_pattern: bool; measure_descr: measure_descr}
-
-and measure_descr =
-  | State_measure :
-      state_measure_time * 'a expr_type * 'a state_measure
-      -> measure_descr
-  | Event_measure : 'a expr_type * 'a event_measure -> measure_descr
-
-and state_measure_time = Before | After
-
 (* Trace patterns *)
 
 type rule_constraint =
@@ -108,18 +46,24 @@ type rule_constraint =
   | End_of_trace (* Not supported yet *)
   | Rule of int list
   | Obs of string
+[@@deriving show, yojson_of]
 
 type event_pattern =
   { main_pattern: pattern
-  ; with_clause: bool expr
+  ; with_clause: Expr.t option
         (* This is unsupported by the engine for now. When-clauses are
            available but they do not work the same way: they are just
            syntactic sugar for adding conditionals in actions. *)
   ; rule_constraint: rule_constraint option }
+[@@deriving show, yojson_of]
 
 type defining_relation =
   | First_after of local_event_id * event_pattern
   | Last_before of local_event_id * event_pattern
+[@@deriving show, yojson_of]
+
+type measure_descr = {measure: Measure.t; used_in_pattern: bool}
+[@@deriving show, yojson_of]
 
 (* Each event is associated to either one or two patterns. The pattern
    in [event.defining_rel] is mandatory for all events except the root.
@@ -146,7 +90,7 @@ type event =
   { event_id: local_event_id (* Index in query.pattern.events *)
   ; event_pattern: event_pattern option
   ; defining_rel: defining_relation option
-  ; measures: measure array
+  ; measures: measure_descr array
         (* During compilation, measures are extracted from expressions
            and given an ID ([measure_id]) corresponding to their index
            in this array. *)
@@ -164,21 +108,26 @@ type event =
         (* We further assume that the
            [defining_rel] pattern can only feature already constrained
            agents. TODO: why this assumption? Do we need it? *) }
+[@@deriving show, yojson_of]
 
 type ('a, 'b) tree = Tree of 'a * ('b * ('a, 'b) tree) list
+[@@deriving show, yojson_of]
 
 (* A tree that tells in what order events should be discovered. The root
    of this tree corresponds to the root of the trace pattern. *)
 type matching_tree = (local_event_id, defining_relation) tree
+[@@deriving show, yojson_of]
 
 type trace_pattern =
   { agents: agent_kind array (* Question: all agents or some? *)
   ; events: event array (* Indexed by [local_event_id] *)
   ; traversal_tree: matching_tree }
+[@@deriving show, yojson_of]
 
 (* TODO: add equality_constraints: (event_id * event_id) list ; *)
 
-type action = Print : 'a expr -> action | If : bool expr * action -> action
+type action = Print of Expr.t | If of Expr.t * action
+[@@deriving show, yojson_of]
 
 type query =
   { title: string option
@@ -186,3 +135,4 @@ type query =
   ; pattern: trace_pattern
   ; action: action
   ; every_clause: float option }
+[@@deriving show, yojson_of]

@@ -2,12 +2,6 @@
 (* Kappa Trace Query Engine                                                  *)
 (*****************************************************************************)
 
-(* Make sure to compile these dead modules as part of the current
-   refactoring *)
-let () =
-  Measure.please_compile_me () ;
-  Expr.please_compile_me ()
-
 let trace_file = ref ""
 
 let query_file = ref ""
@@ -94,7 +88,9 @@ let main () =
     print_endline "Queries successfully compiled." ;
     if !debug_mode then
       with_file (Tql_output.file "compiled-query") (fun fmt ->
-          queries |> List.iter (fun q -> Debug_pp.pp_query fmt q) ) ;
+          queries
+          |> List.iter (fun q ->
+                 Yojson.Safe.pretty_print fmt (Query.yojson_of_query q) ) ) ;
     let queries = queries |> List.map (fun q -> (q, query_output_file q)) in
     let fmts =
       queries |> List.map snd |> List.sort_uniq compare

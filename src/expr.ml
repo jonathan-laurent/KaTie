@@ -2,11 +2,6 @@
 (* Simple Expression Language                                                *)
 (*****************************************************************************)
 
-(* This module is part of a refactor in progress and not currently used in
-   the tool. *)
-
-let please_compile_me () = ()
-
 open Aliases
 open Value
 
@@ -122,7 +117,9 @@ let eval_expr (read_measure : measurer) (matching : agent_matching) =
     | Measure (local_event_id, measure_id) ->
         read_measure local_event_id measure_id
     | Concat (e, e') ->
-        concat (eval e) (eval e')
+        let e = eval e in
+        let e' = eval e' in
+        concat e e'
     | Int_const c ->
         VInt c
     | Float_const x ->
@@ -133,32 +130,36 @@ let eval_expr (read_measure : measurer) (matching : agent_matching) =
         VBool (not (cast "not" TBool (eval e)))
     | Unop (Size, e) ->
         VInt (AgentSet.size (cast "size" TAgentSet (eval e)))
-    | Binop (e, Add, e') ->
-        arith "+" ( + ) ( +. ) (eval e) (eval e')
-    | Binop (e, Sub, e') ->
-        arith "-" ( - ) ( -. ) (eval e) (eval e')
-    | Binop (e, Mul, e') ->
-        arith "*" ( * ) ( *. ) (eval e) (eval e')
-    | Binop (e, Gt, e') ->
-        comparison ">" ( > ) ( > ) (eval e) (eval e')
-    | Binop (e, Ge, e') ->
-        comparison ">=" ( >= ) ( >= ) (eval e) (eval e')
-    | Binop (e, Lt, e') ->
-        comparison "<" ( < ) ( < ) (eval e) (eval e')
-    | Binop (e, Le, e') ->
-        comparison "<=" ( <= ) ( <= ) (eval e) (eval e')
-    | Binop (e, Or, e') ->
-        bool_binop "||" ( || ) (eval e) (eval e')
-    | Binop (e, And, e') ->
-        bool_binop "&&" ( && ) (eval e) (eval e')
-    | Binop (e, Eq, e') ->
-        equal (eval e) (eval e')
-    | Binop (e, Similarity, e') ->
-        VFloat
-          (set_similarity
-             (cast "similarity" TAgentSet (eval e))
-             (cast "similarity" TAgentSet (eval e')) )
     | Count_agents (ags, e) ->
         count_agents ags (cast "count" TAgentSet (eval e))
+    | Binop (e, op, e') -> (
+        let e = eval e in
+        let e' = eval e' in
+        match op with
+        | Add ->
+            arith "+" ( + ) ( +. ) e e'
+        | Sub ->
+            arith "-" ( - ) ( -. ) e e'
+        | Mul ->
+            arith "*" ( * ) ( *. ) e e'
+        | Gt ->
+            comparison ">" ( > ) ( > ) e e'
+        | Ge ->
+            comparison ">=" ( >= ) ( >= ) e e'
+        | Lt ->
+            comparison "<" ( < ) ( < ) e e'
+        | Le ->
+            comparison "<=" ( <= ) ( <= ) e e'
+        | Or ->
+            bool_binop "||" ( || ) e e'
+        | And ->
+            bool_binop "&&" ( && ) e e'
+        | Eq ->
+            equal e e'
+        | Similarity ->
+            VFloat
+              (set_similarity
+                 (cast "similarity" TAgentSet e)
+                 (cast "similarity" TAgentSet e') ) )
   in
   eval

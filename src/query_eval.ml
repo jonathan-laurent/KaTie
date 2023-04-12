@@ -60,60 +60,6 @@ type env =
 [@@warning "-69"]
 
 (*****************************************************************************)
-(* Debug pp                                                                  *)
-(*****************************************************************************)
-
-module Dbg = struct
-  open Debug_pp
-  open Format
-
-  let pp_event_matching_common f em =
-    fprintf f "ev-id-in-query: %d@;" em.ev_id_in_query ;
-    fprintf f "ev-id-in-trace: %d@;" em.ev_id_in_trace ;
-    fprintf f "indexing-ag-matchings: %a@;" (pp_list_inline pp_int)
-      em.indexing_ag_matchings
-
-  let pp_event_matching_specific f em =
-    fprintf f "new-ag-matchings: %a@;" (pp_list_inline pp_int)
-      em.new_ag_matchings
-
-  let pp_event_matching_specific_only f m =
-    pp_event_matching_specific f m.specific
-
-  let pp_event_matching f m =
-    pp_event_matching_common f m.common ;
-    pp_event_matching_specific f m.specific
-
-  let[@warning "-32"] pp_event_matchings f ems =
-    pp_event_matching_common f ems.common_to_all ;
-    List.iter (pp_event_matching_specific_only f) ems.matchings
-
-  let pp_partial_matching f pm =
-    fprintf f "@[<v>" ;
-    dbox f (asprintf "Partial matching [%d]" pm.partial_matching_id) ;
-    box f "Constrained agents" ;
-    pp_int_map pp_int f pm.constrained_agents ;
-    box f "Matched events" ;
-    pp_int_map pp_event_matching f pm.matched_events ;
-    box f "Watched events" ;
-    pp_int_map pp_tree f pm.watched ;
-    pp_dline f ;
-    fprintf f "@]"
-
-  let pp_complete_matching f cm =
-    fprintf f "@[<v>" ;
-    fprintf f "Agents: %a@;" (pp_array pp_int) cm.cm_agents ;
-    cm.cm_events |> Array.iter (fun em -> fprintf f "%a@;" pp_event_matching em) ;
-    fprintf f "@]"
-
-  let[@warning "-32"] pp_complete_matchings f cms =
-    cms
-    |> Array.iter (fun cm ->
-           fprintf f "%a" pp_complete_matching cm ;
-           pp_dline f )
-end
-
-(*****************************************************************************)
 (* Simple operations on those types                                          *)
 (*****************************************************************************)
 
@@ -203,7 +149,7 @@ let update_constrained_agents ev m pm =
 
 (* local_id -> global_id from complete matching. *)
 let cm_get_agent_id cm qid =
-  try Some cm.cm_agents.(qid)
+  try cm.cm_agents.(qid)
   with e ->
     Log.error ~exn:e
       "TODO: catch a more specialized exception in cm_get_agent_id." ;
@@ -412,9 +358,7 @@ let extract_complete_matchings env =
       in
       let cm_last_matched_step_id = Utils.list_maximum matched_step_ids in
       {cm_agents; cm_events; cm_last_matched_step_id}
-    with Not_found ->
-      Log.failwith "Unable to finalize a partial matching."
-        ~details:[Fmt.to_to_string Dbg.pp_partial_matching pm]
+    with Not_found -> Log.failwith "Unable to finalize a partial matching."
   in
   let process_pm _ pm acc =
     (* TODO: Is this correct? *)
@@ -442,36 +386,33 @@ let free_cm_memory (cm : complete_matching) =
 
 (* Read a measure in the cache if it is cached or compute it using
    the current trace window otherwise *)
-let read_or_take_measure ?uuid model query ag_matchings window cm
-    (ev_id, measure_id) =
+let read_or_take_measure ?uuid model query ag_matchings window cm ev_id
+    measure_id =
   match cm_get_measure cm ev_id measure_id with
   | Some x ->
       x
   | None ->
       let ev = query.pattern.events.(ev_id) in
-      let measure = ev.measures.(measure_id) in
-      Measures.take_measure ?uuid model ag_matchings window measure
+      let measure = ev.measures.(measure_id).measure in
+      Measure.take_measure ?uuid model ag_matchings window measure
 
 let execute_action q fmt read_measure cm =
   let read_id = cm_get_agent_id cm in
   let rec aux = function
     | Print e ->
         let _ =
-          Expr_eval.eval_expr_to_value read_measure read_id e
-          |> Option.map (fun v ->
-                 Format.fprintf fmt "%a@;" Expr_eval.print_value v )
+          Expr.eval_expr read_measure read_id e
+          |> fun v -> Format.fprintf fmt "%s@;" (Value.to_string v)
         in
         ()
     | If (cond, action) -> (
-      match Expr_eval.eval_expr read_measure read_id cond with
-      | Some b ->
-          if b then aux action
-      | None ->
-          Tql_error.(
-            fail
-              (Expr_failure
-                 "Failed to evaluate the guard of a conditional statement or \
-                  'when'-clause." ) ) )
+        let b = Expr.eval_expr read_measure read_id cond in
+        match Value.(cast TBool b) with
+        | None ->
+            Tql_error.failwith
+              "The 'when' clause was passed a non-boolean value"
+        | Some b ->
+            if b then aux action )
   in
   aux q.action ; free_cm_memory cm
 
@@ -495,7 +436,7 @@ let take_all_measures ?uuid model ag_matchings window set_measure ev =
   ev.measures
   |> Array.iteri (fun i measure ->
          let v =
-           Measures.take_measure ?uuid model ag_matchings window measure
+           Measure.take_measure ?uuid model ag_matchings window measure.measure
          in
          set_measure i v )
 

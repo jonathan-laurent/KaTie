@@ -2,16 +2,11 @@
 (* State and Event Measures                                                  *)
 (*****************************************************************************)
 
-(* This module is part of a refactor in progress and not currently used in
-   the tool. *)
-
-let please_compile_me () = ()
-
 open Aliases
 open Value
 
 type state_measure =
-  | Int_state of local_agent_id * site_id
+  | Int_state of (local_agent_id * site_id)
   | Component of local_agent_id
   | Print_cc of site_id
   | Snapshot
@@ -22,7 +17,7 @@ type event_measure = Time | Rule | Debug_event | Init_event
 
 type state_measure_time = Before | After [@@deriving show, yojson_of]
 
-type measure =
+type t =
   | State_measure of state_measure_time * state_measure
   | Event_measure of event_measure
 [@@deriving show, yojson_of]

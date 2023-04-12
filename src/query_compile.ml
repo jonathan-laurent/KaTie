@@ -138,7 +138,7 @@ let constrained_agents_types q =
 open Aliases
 
 type tmp_event =
-  { tmp_ev_measures: measure PreArray.t
+  { tmp_ev_measures: measure_descr PreArray.t
   ; tmp_main_pats: event_pattern Queue.t
   ; tmp_def_rels: defining_relation Queue.t }
 
@@ -166,10 +166,6 @@ let create_env (model : Model.t) (q : Ast.query) =
 (* Compile measures                                                          *)
 (*****************************************************************************)
 
-type some_expr = E : 'a expr -> some_expr
-
-type some_expr_type = ST : 'a expr_type -> some_expr_type
-
 let eval_ev_expr env cur_ev_id = function
   | Ast.Ev name ->
       Dict.id_of_name env.query_events name
@@ -182,30 +178,30 @@ let eval_ev_expr env cur_ev_id = function
 
 let eval_st_expr env cur_ev_id = function
   | Ast.Before ev_expr ->
-      (eval_ev_expr env cur_ev_id ev_expr, Before)
+      (eval_ev_expr env cur_ev_id ev_expr, Measure.Before)
   | Ast.After ev_expr ->
-      (eval_ev_expr env cur_ev_id ev_expr, After)
+      (eval_ev_expr env cur_ev_id ev_expr, Measure.After)
 
-let register_measure in_action _cur_ev_id ev_id ev measure_descr ty =
+let register_measure in_action _cur_ev_id ev_id ev measure =
   let used_in_pattern = not in_action in
-  let m_id = PreArray.add ev.tmp_ev_measures {used_in_pattern; measure_descr} in
-  E (Measure (ev_id, m_id), ty)
+  let m_id = PreArray.add ev.tmp_ev_measures {used_in_pattern; measure} in
+  Expr.Measure (ev_id, m_id)
 
 let compile_event_measure env in_action cur_ev_id ev_expr m =
   let ev_id = eval_ev_expr env cur_ev_id ev_expr in
   let ev = Dict.get env.query_events ev_id in
-  let measure_descr, ST ty =
+  let measure =
     match m with
     | Ast.Time ->
-        (Event_measure (Float, Time), ST Float)
+        Measure.(Event_measure Time)
     | Ast.Rule ->
-        (Event_measure (String, Rule), ST String)
+        Measure.(Event_measure Rule)
     | Ast.Init_event ->
-        (Event_measure (Bool, Init_event), ST Bool)
+        Measure.(Event_measure Init_event)
     | Ast.Debug_event ->
-        (Event_measure (String, Debug_event), ST String)
+        Measure.(Event_measure Debug_event)
   in
-  register_measure in_action cur_ev_id ev_id ev measure_descr ty
+  register_measure in_action cur_ev_id ev_id ev measure
 
 let tr_agent env ag_name = Dict.id_of_name env.query_agents ag_name
 
@@ -229,209 +225,58 @@ let tr_quark env (ag_name, site_name) =
   in
   let agent_kind = tr_agent_kind env ag_kind_name in
   let site_id = tr_site_name env agent_kind site_name in
-  ((ag_id, agent_kind), site_id)
+  (ag_id, site_id)
 
 let compile_state_measure env in_action cur_ev_id st_expr m =
   let ev_id, m_time = eval_st_expr env cur_ev_id st_expr in
   let ev = Dict.get env.query_events ev_id in
-  let measure_descr, ST ty =
+  let measure =
     match m with
-    | Ast.Nphos ag_name ->
-        (State_measure (m_time, Int, Nphos (tr_agent env ag_name)), ST Int)
+    | Ast.Nphos _ ->
+        Tql_error.failwith "The 'nphos' measure is unimplemented."
     | Ast.Component ag_name ->
-        ( State_measure (m_time, Agent_set, Component (tr_agent env ag_name))
-        , ST Agent_set )
+        Measure.(State_measure (m_time, Component (tr_agent env ag_name)))
     | Ast.Int_state quark ->
-        let quark = tr_quark env quark in
-        (State_measure (m_time, String, Int_state quark), ST String)
+        Measure.(State_measure (m_time, Int_state (tr_quark env quark)))
     | Ast.Snapshot ->
-        (State_measure (m_time, String, Snapshot), ST String)
+        Measure.(State_measure (m_time, Snapshot))
     | Ast.Print_cc ag_name ->
-        ( State_measure (m_time, String, Print_cc (tr_agent env ag_name))
-        , ST String )
+        Measure.(State_measure (m_time, Print_cc (tr_agent env ag_name)))
   in
-  register_measure in_action cur_ev_id ev_id ev measure_descr ty
+  register_measure in_action cur_ev_id ev_id ev measure
 
 (*****************************************************************************)
 (* Compile expressions                                                       *)
 (*****************************************************************************)
 
-let expr_ty = snd
-
-type same_type = Same_type : 'a expr * 'a expr * 'a expr_type -> same_type
-
-let same_type : type a b. a expr -> b expr -> same_type option =
- fun lhs rhs ->
-  match (expr_ty lhs, expr_ty rhs) with
-  | Bool, Bool ->
-      Some (Same_type (lhs, rhs, Bool))
-  | Int, Int ->
-      Some (Same_type (lhs, rhs, Int))
-  | Float, Float ->
-      Some (Same_type (lhs, rhs, Float))
-  | String, String ->
-      Some (Same_type (lhs, rhs, String))
-  | Agent_set, Agent_set ->
-      Some (Same_type (lhs, rhs, Agent_set))
-  (* Implicit coercions *)
-  | Int, Float ->
-      let lhs = (Unop (Unop float_of_int, lhs), Float) in
-      Some (Same_type (lhs, rhs, Float))
-  | Float, Int ->
-      let rhs = (Unop (Unop float_of_int, rhs), Float) in
-      Some (Same_type (lhs, rhs, Float))
-  | _ ->
-      None
-
-module IntSet = Utils.IntSet
-
-let agent_set_ids s = IntSet.of_list (List.map fst (AgentSet.elements s))
-
-let set_similarity s s' =
-  let s = agent_set_ids s in
-  let s' = agent_set_ids s' in
-  let denom = IntSet.cardinal (IntSet.union s s') in
-  if denom = 0 then 1.0
-  else
-    let num = IntSet.cardinal (IntSet.inter s s') in
-    float_of_int num /. float_of_int denom
-
-(* Binary operators always have similarly typed arguments *)
-let combine_binop : type a. Ast.binop -> a expr -> a expr -> some_expr =
-  let arith :
-      type b.
-         (int -> int -> int)
-      -> (float -> float -> float)
-      -> b expr
-      -> b expr
-      -> some_expr =
-   fun int_op float_op lhs rhs ->
-    match expr_ty lhs with
-    | Int ->
-        E (Binop (lhs, Binop int_op, rhs), Int)
-    | Float ->
-        E (Binop (lhs, Binop float_op, rhs), Float)
-    | _ ->
-        assert false
-  in
-  let comparison :
-      type b.
-         (int -> int -> bool)
-      -> (float -> float -> bool)
-      -> b expr
-      -> b expr
-      -> some_expr =
-   fun int_op float_op lhs rhs ->
-    match expr_ty lhs with
-    | Int ->
-        E (Binop (lhs, Binop int_op, rhs), Bool)
-    | Float ->
-        E (Binop (lhs, Binop float_op, rhs), Bool)
-    | _ ->
-        assert false
-  in
-  let boolop : type b. (bool -> bool -> bool) -> b expr -> b expr -> some_expr =
-   fun op lhs rhs ->
-    match expr_ty lhs with
-    | Bool ->
-        E (Binop (lhs, Binop op, rhs), Bool)
-    | _ ->
-        Tql_error.(
-          fail (Type_error "Boolean combinator is given non-boolean arguments.") )
-  in
-  fun op lhs rhs ->
-    match op with
-    | Ast.Eq ->
-        E (Binop (lhs, Eq, rhs), Bool)
-    | Ast.Similarity -> (
-      match expr_ty lhs with
-      | Agent_set ->
-          E (Binop (lhs, Binop set_similarity, rhs), Float)
-      | _ ->
-          Tql_error.(
-            fail
-              (Type_error
-                 "The 'similarity' function expects agent sets as arguments." ) )
-      )
-    | Ast.Add ->
-        arith ( + ) ( +. ) lhs rhs
-    | Ast.Mul ->
-        arith ( * ) ( *. ) lhs rhs
-    | Ast.Sub ->
-        arith ( - ) ( -. ) lhs rhs
-    | Ast.Gt ->
-        comparison ( > ) ( > ) lhs rhs
-    | Ast.Ge ->
-        comparison ( >= ) ( >= ) lhs rhs
-    | Ast.Lt ->
-        comparison ( < ) ( < ) lhs rhs
-    | Ast.Le ->
-        comparison ( <= ) ( <= ) lhs rhs
-    | Ast.And ->
-        boolop ( && ) lhs rhs
-    | Ast.Or ->
-        boolop ( || ) lhs rhs
-
 let rec compile_expr env in_action cur_ev_id e =
   match e with
   | Ast.Int_const i ->
-      E (Const i, Int)
+      Expr.Int_const i
   | Ast.Float_const f ->
-      E (Const f, Float)
+      Expr.Float_const f
   | Ast.String_const s ->
-      E (Const s, String)
-  | Ast.Unop (Ast.Not, arg_ast) -> (
-      let (E arg) = compile_expr env in_action cur_ev_id arg_ast in
-      match expr_ty arg with
-      | Bool ->
-          E (Unop (Unop not, arg), Bool)
-      | _ ->
-          assert false )
-  | Ast.Unop (Ast.Size, arg_ast) -> (
-      let (E arg) = compile_expr env in_action cur_ev_id arg_ast in
-      match expr_ty arg with
-      | Agent_set ->
-          E (Unop (Unop Agent.SetMap.Set.size, arg), Int)
-      | _ ->
-          Tql_error.(
-            fail
-              (Type_error
-                 "The 'size' function can only be applied to sets of agents." ) )
-      )
-  | Ast.Binop (lhs, op, rhs) -> (
-      let (E lhs) = compile_expr env in_action cur_ev_id lhs in
-      let (E rhs) = compile_expr env in_action cur_ev_id rhs in
-      match same_type lhs rhs with
-      | Some (Same_type (lhs, rhs, _ty)) ->
-          combine_binop op lhs rhs
-      | None ->
-          Tql_error.(
-            fail
-              (Type_error
-                 "A binary operator is used with arguments of different types."
-              ) ) )
+      Expr.String_const s
+  | Ast.Unop (op, arg) ->
+      Expr.Unop (op, compile_expr env in_action cur_ev_id arg)
+  | Ast.Binop (lhs, op, rhs) ->
+      let lhs = compile_expr env in_action cur_ev_id lhs in
+      let rhs = compile_expr env in_action cur_ev_id rhs in
+      Expr.Binop (lhs, op, rhs)
   | Ast.State_measure (st, m) ->
       compile_state_measure env in_action cur_ev_id st m
   | Ast.Event_measure (ev, m) ->
       compile_event_measure env in_action cur_ev_id ev m
   | Ast.Concat (lhs, rhs) ->
-      let (E lhs) = compile_expr env in_action cur_ev_id lhs in
-      let (E rhs) = compile_expr env in_action cur_ev_id rhs in
-      E (Binop (lhs, Concat, rhs), Tuple)
-  | Ast.Count_agents (ag_kinds, arg) -> (
-      let (E arg) = compile_expr env in_action cur_ev_id arg in
-      match expr_ty arg with
-      | Agent_set ->
-          let ags = List.map (tr_agent_kind env) ag_kinds in
-          E (Unop (Count_agents ags, arg), Tuple)
-      | _ ->
-          Tql_error.(
-            fail
-              (Type_error
-                 "The 'count' function expects a set of agents as its second \
-                  argument." ) ) )
+      let lhs = compile_expr env in_action cur_ev_id lhs in
+      let rhs = compile_expr env in_action cur_ev_id rhs in
+      Expr.Concat (lhs, rhs)
+  | Ast.Count_agents (ag_kinds, arg) ->
+      let arg = compile_expr env in_action cur_ev_id arg in
+      let ags = List.map (tr_agent_kind env) ag_kinds in
+      Expr.Count_agents (ags, arg)
   | Ast.Agent_id ag_name ->
-      E (Agent_id (tr_agent env ag_name), Int)
+      Expr.Agent_id (tr_agent env ag_name)
 
 (*****************************************************************************)
 (* Compile mixture patterns                                                  *)
@@ -570,17 +415,11 @@ let compile_rule_constraint env = function
   | None ->
       None
 
-let true_expr = (Const true, Bool)
-
 let compile_with_clause env name_opt = function
   | None ->
-      true_expr
-  | Some wc -> (
-    match compile_expr env false name_opt wc with
-    | E (e, Bool) ->
-        (e, Bool)
-    | _ ->
-        Tql_error.(fail (Type_error "With-clauses must have type 'bool'.")) )
+      None
+  | Some wc ->
+      Some (compile_expr env false name_opt wc)
 
 let compile_event_pattern env pat =
   let cur_ev_id =
@@ -668,16 +507,8 @@ let compile_trace_pattern env tpat =
 
 let compile_action env when_clause = function
   | Ast.Print e -> (
-      let (E e) = compile_expr env true None e in
-      match when_clause with
-      | None ->
-          Print e
-      | Some (E (b, Bool)) ->
-          If ((b, Bool), Print e)
-      | Some (E (_, _)) ->
-          Tql_error.(
-            fail (Compilation_error "The when clause should be of type 'bool'.") )
-      )
+      let e = compile_expr env true None e in
+      match when_clause with None -> Print e | Some b -> If (b, Print e) )
 
 (*****************************************************************************)
 (* Compile queries                                                           *)
@@ -749,11 +580,12 @@ let opt_pattern_constrained_agents = function
 (* The agents constrained by an event are those constrained by its main
    pattern and dependency?? *)
 let constrained_agents (ev : event) =
-  IntSet.of_list
+  Utils.IntSet.of_list
   @@ opt_pattern_constrained_agents ev.event_pattern
   @ opt_pattern_constrained_agents (def_rel_pattern ev)
 
 let schedule_agents_capture q =
+  let module IntSet = Utils.IntSet in
   let rec aux (Tree (i, children)) constrained =
     let ev = q.pattern.events.(i) in
     let ev_ags = constrained_agents ev in
