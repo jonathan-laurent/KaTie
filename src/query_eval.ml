@@ -2,6 +2,9 @@
 (* Simple query interpreter                                                  *)
 (*****************************************************************************)
 
+(* TODO: in [ev_matchings], do we ever have more than zero or one
+   specific parts? *)
+
 open Utils
 open Query
 open Streaming
@@ -13,34 +16,48 @@ open Matchings
 
 type pm_id = int
 
-type event_recorder =
-  { recorder_status: recorder_status
-  ; mutable cache: ev_matchings History.t ValMap.t
-        (* For every event, we map a valuation of [already_constrained_agents] to  *)
-  ; mutable subscribed: pm_id list ValMap.t }
-
-and recorder_status =
+type recorder_status =
   (* | Disabled *)
   (* TODO: dead constructor *)
   | Enabled
   | Root
 
+type event_recorder =
+  { recorder_status: recorder_status
+  ; mutable cache: ev_matchings History.t ValMap.t
+        (* For every event, we map a valuation of
+           [ev.already_constrained_agents] to a history of
+           [(event_id_in_trace, matchings)] pairs. *)
+  ; mutable subscribed: pm_id list ValMap.t
+        (* For every event, map a valuation of
+           [ev.already_constrained_agents] to a list of relevant partial
+           matchings. For example, in the following query:
+
+               match b:{ s:S(d[/1]), k:K(d[/1], x{u}) }
+               and first u:{ s:S(d[/.]) } after b
+
+           then once the root event b is matched, it captures agents s
+           and subscribes to event u with a valuation [s -> ...]. *) }
+
 type partial_matching =
   { partial_matching_id: int
-  ; constrained_agents: int IntMap.t
-  ; matched_events: ev_matching IntMap.t
-  ; watched: matching_tree IntMap.t }
+  ; constrained_agents: int IntMap.t (* local_agent_id -> global_agent_id *)
+  ; matched_events: ev_matching IntMap.t (* local_event_id -> global_event_id *)
+  ; watched: matching_tree IntMap.t
+        (* Maps local event ids to matching trees. TODO: is this the
+           right datastructure? *) }
+
+type 'a branchings_memory = Elem of 'a | Branched of int list
 
 type env =
   { query: query
   ; model: Model.t (* Not used but kept around for debugging *)
   ; recorders: event_recorder array
   ; mutable partial_matchings: partial_matching branchings_memory IntMap.t
+        (* Partial matchings are indexed by [pm_id]s *)
   ; mutable next_fresh_id: int
   ; mutable last_root_matching_time: float }
 [@@warning "-69"]
-
-and 'a branchings_memory = Elem of 'a | Branched of int list
 
 (*****************************************************************************)
 (* Debug pp                                                                  *)
@@ -116,12 +133,14 @@ let get_subscribtions env (ev_id, v) =
   let r = env.recorders.(ev_id) in
   try ValMap.find v r.subscribed with Not_found -> []
 
+(* TODO: can't we optimize this by removing the key altogether? *)
 let pop_subscribtions env (ev_id, v) =
   let r = env.recorders.(ev_id) in
   let ss = get_subscribtions env (ev_id, v) in
   r.subscribed <- ValMap.add v [] r.subscribed ;
   ss
 
+(* Subscribe partial matching [pm_id] to [(ev_id, v)]. *)
 let subscribe env (ev_id, v, pm_id) =
   let r = env.recorders.(ev_id) in
   let ss = get_subscribtions env (ev_id, v) in
@@ -136,19 +155,22 @@ let store_in_cache env ev_id (ms : ev_matchings) =
   let hist = History.add ms.common_to_all.ev_id_in_trace ms hist in
   reco.cache <- ValMap.add v hist reco.cache
 
-let access_cache f env ev_id v ref_step_id =
-  let cache = env.recorders.(ev_id).cache in
-  try Option.map snd (f ref_step_id (ValMap.find v cache))
-  with Not_found -> None
-
-let first_after_in_cache = access_cache History.first_after
-
-let last_before_in_cache = access_cache History.last_before
+(* [first_after_in_cache env local_ev_id constrained_agents_valuation
+   ref_global_ev_id *)
+let first_after_in_cache, last_before_in_cache =
+  let access_cache f env ev_id v ref_step_id =
+    let cache = env.recorders.(ev_id).cache in
+    try Option.map snd (f ref_step_id (ValMap.find v cache))
+    with Not_found -> None
+  in
+  (access_cache History.first_after, access_cache History.last_before)
 
 (* Valuations *)
 
-let indexing_ag_valuation env ev_id pm =
-  let val_ags = env.query.pattern.events.(ev_id).already_constrained_agents in
+(* Obtain a valuation for the indexing agents of an event given a
+   partial matching. *)
+let indexing_ag_valuation query ev_id pm =
+  let val_ags = query.pattern.events.(ev_id).already_constrained_agents in
   let find_valuation ag =
     try IntMap.find ag pm.constrained_agents
     with Not_found -> Log.(failwith (fmt "No mapping found for agent %d." ag))
@@ -169,6 +191,7 @@ let valuation_to_mapping ag_pm_labels v =
 
 (* Partial matchings *)
 
+(* Update a partial matching with the captures of an event matching. *)
 let update_constrained_agents ev m pm =
   let constrained_agents =
     Utils.update_int_map pm.constrained_agents
@@ -178,20 +201,23 @@ let update_constrained_agents ev m pm =
 
 (* Complete matchings *)
 
+(* local_id -> global_id from complete matching. *)
 let cm_get_agent_id cm qid =
   try Some cm.cm_agents.(qid)
   with e ->
-    print_endline "TODO: catch a more specialized exception in cm_get_agent_id." ;
-    print_endline (Printexc.to_string e) ;
+    Log.error ~exn:e
+      "TODO: catch a more specialized exception in cm_get_agent_id." ;
     assert false
 
 (* Returns [None] if not cached and [Some None] if cached but errored. *)
+(* TODO: the measures should never return None anyway. *)
 let cm_get_measure cm ev_id i =
   IntMap.find_opt i cm.cm_events.(ev_id).specific.recorded_measures
 
-let cm_set_measure cm ev_id i v =
+(* Used only during the second pass. *)
+let cm_set_measure cm ev_id m_id v =
   let ev = cm.cm_events.(ev_id) in
-  let recorded_measures = IntMap.add i v ev.specific.recorded_measures in
+  let recorded_measures = IntMap.add m_id v ev.specific.recorded_measures in
   cm.cm_events.(ev_id) <-
     {ev with specific= {ev.specific with recorded_measures}}
 
@@ -223,6 +249,9 @@ let init_env model query =
 (* Main procedure                                                            *)
 (*****************************************************************************)
 
+(* [first_pass_process_step] should be read first. *)
+
+(* Overwrite all partial matching ids with a distinct fresh id. *)
 let zip_with_fresh env pm l =
   match l with
   | [] ->
@@ -236,30 +265,30 @@ let zip_with_fresh env pm l =
              ({pm with partial_matching_id= id}, x) )
 
 (* Does the following:
-   + (Check that the registration is legitimate: at least one matching)
-   + Update the `matched_events` map
-   + Look for the Last_before children of `ev` and add them
-   + Add the First_after children to the watch list
-   + Suscribe to the recorder for these children
+   - Check that the registration is legitimate: at least one matching
+   - Update the `matched_events` map
+   - Look for the Last_before children of `ev` and add them
+   - Add the First_after children to the watch list
+   - Suscribe to the recorder for these children
+   You have to check that all children are watched indeed before calling.
 
-   You have to check that the event is watched indeed before calling. *)
-
+   TODO: what does this return? *)
 let rec process_matching env subs children (pm, m) =
   let i = m.common.ev_id_in_query in
   let pm = {pm with matched_events= IntMap.add i m pm.matched_events} in
   let pm = update_constrained_agents (get_event env i) m pm in
   let process_child pm (rel, (Tree (j, _) as t)) =
-    let v = indexing_ag_valuation env j pm in
+    let v = indexing_ag_valuation env.query j pm in
     match rel with
     | First_after (i', _) -> (
         assert (i = i') ;
+        let pm = {pm with watched= IntMap.add j t pm.watched} in
         match first_after_in_cache env j v m.common.ev_id_in_trace with
         | Some ms' ->
-            let pm = {pm with watched= IntMap.add j t pm.watched} in
             process_matchings env subs pm ms'
         | None ->
+            (* Subscribe child. *)
             Queue.push (j, v, pm.partial_matching_id) subs ;
-            let pm = {pm with watched= IntMap.add j t pm.watched} in
             [pm] )
     | Last_before (i', _) -> (
         assert (i = i') ;
@@ -273,24 +302,29 @@ let rec process_matching env subs children (pm, m) =
   Utils.monadic_fold process_child pm children
 
 and process_matchings env subs pm ms =
-  try
-    let ev_id = ms.common_to_all.ev_id_in_query in
-    (* Get the ctree an remove the current agent from the watched list *)
-    let (Tree (i, children)) = IntMap.find ev_id pm.watched in
-    let pm = {pm with watched= IntMap.remove ev_id pm.watched} in
-    assert (ev_id = i) ;
-    (* We branch! *)
-    let branches = zip_with_fresh env pm ms.matchings in
-    List.concat (List.map (process_matching env subs children) branches)
-    (* Event [ev_id] was not watched: we do nothing *)
-  with Not_found -> [pm]
+  let ev_id = ms.common_to_all.ev_id_in_query in
+  (* Get the ctree an remove the current agent from the watched list *)
+  match IntMap.find_opt ev_id pm.watched with
+  | Some (Tree (i, children)) ->
+      let pm = {pm with watched= IntMap.remove ev_id pm.watched} in
+      assert (ev_id = i) ;
+      (* We branch! *)
+      let branches = zip_with_fresh env pm ms.matchings in
+      List.concat (List.map (process_matching env subs children) branches)
+      (* Event [ev_id] was not watched: we do nothing *)
+  | None ->
+      (* The matched event is not watched so we do nothing. *)
+      [pm]
 
+(* Update a partial matching after observing matchings for an event. *)
 let rec update_partial_matching env ms pm_id =
   (* If the mentioned partial matching has been branched,
      redirect the call to its children *)
   try
     match IntMap.find pm_id env.partial_matchings with
     | Elem pm ->
+        (* The subscription queues contains triples to be passed to
+           [subscribe]. *)
         let subscribtions = Queue.create () in
         let pms = process_matchings env subscribtions pm ms in
         let branched = List.map (fun pm' -> pm'.partial_matching_id) pms in
@@ -324,6 +358,14 @@ let is_delay_respected env cur_time =
   | Some delta ->
       cur_time -. env.last_root_matching_time >= delta
 
+(* Main function that is called on every trace event during the first pass. *)
+(* - If the root of the query matches the current event, then we create
+     a new partial matching (unless prohibited by the 'every' clause).
+   - For every other local event from the query, we store it in cache in
+     case it will be useful in the future and update the partial
+     matching of all subscriptions (TODO: we do not always need to do
+     this.)
+*)
 let first_pass_process_step query window env =
   query.pattern.events
   |> Array.iteri (fun ev_id ev ->
@@ -370,12 +412,11 @@ let extract_complete_matchings env =
       let cm_last_matched_step_id = Utils.list_maximum matched_step_ids in
       {cm_agents; cm_events; cm_last_matched_step_id}
     with Not_found ->
-      print_endline "\nUnable to finalize a partial matching:" ;
-      Dbg.pp_partial_matching Format.std_formatter pm ;
-      print_endline "" ;
-      assert false
+      Log.failwith "Unable to finalize a partial matching."
+        ~details:[Fmt.to_to_string Dbg.pp_partial_matching pm]
   in
   let process_pm _ pm acc =
+    (* TODO: Is this correct? *)
     match pm with
     | Branched _ ->
         acc
