@@ -438,6 +438,7 @@ let process_clauses env (tpat : Ast.clause list) =
        | Ast.Event ev_pat ->
            let ev_id, main_pat = compile_event_pattern env ev_pat in
            let ev = Dict.get env.query_events ev_id in
+           Printf.printf "Root: %d\n" ev_id ;
            Queue.push main_pat ev.tmp_main_pats
        | Ast.First_after (ev_pat, ref_name) ->
            let ref_id = Dict.id_of_name env.query_events ref_name in
@@ -448,6 +449,7 @@ let process_clauses env (tpat : Ast.clause list) =
        | Ast.Last_before (ev_pat, ref_name) ->
            let ref_id = Dict.id_of_name env.query_events ref_name in
            let ev_id, pat = compile_event_pattern env ev_pat in
+           Printf.printf "Last before: %d\n" ev_id ;
            let ev = Dict.get env.query_events ev_id in
            let rel = Last_before (ref_id, pat) in
            Queue.push rel ev.tmp_def_rels )

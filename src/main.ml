@@ -58,7 +58,7 @@ let parse_and_compile_queries model file =
     try
       let asts = Query_parser.queries Query_lexer.token lexbuf in
       let queries = List.map (Query_compile.compile model) asts in
-      close_in ic ; queries
+      close_in ic ; (queries, asts)
     with Query_parser.Error ->
       Tql_error.(fail ~loc:(Lexing.lexeme_start_p lexbuf) Parse_error)
   with Sys_error _ -> Tql_error.(fail (File_not_found file))
@@ -84,15 +84,17 @@ let main () =
   if !trace_file = "" || !query_file = "" then Arg.usage options usage
   else
     let uuid, model = Trace.get_headers_from_file !trace_file in
-    let queries = parse_and_compile_queries model !query_file in
+    let queries, asts = parse_and_compile_queries model !query_file in
     print_endline "Queries successfully compiled." ;
-    if !debug_mode then
-      with_file (Tql_output.file "compiled-query.json") (fun fmt ->
-          queries
-          |> List.iter (fun q ->
-                 Format.fprintf fmt "%a@.}"
-                   (Yojson.Safe.pretty_print ~std:false)
-                   (Query.yojson_of_query q) ) ) ;
+    if !debug_mode then (
+      with_file (Tql_output.file "queries-ast.json") (fun fmt ->
+          Format.fprintf fmt "%a@.]"
+            (Yojson.Safe.pretty_print ~std:false)
+            ([%yojson_of: Query_ast.query list] asts) ) ;
+      with_file (Tql_output.file "compiled-queries.json") (fun fmt ->
+          Format.fprintf fmt "%a@.]"
+            (Yojson.Safe.pretty_print ~std:false)
+            ([%yojson_of: Query.query list] queries) ) ) ;
     let queries = queries |> List.map (fun q -> (q, query_output_file q)) in
     let fmts =
       queries |> List.map snd |> List.sort_uniq compare
