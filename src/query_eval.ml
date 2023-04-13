@@ -94,6 +94,15 @@ type event_recorder =
            and subscribes to event u with a valuation [s -> ...]. *) }
 [@@deriving show, yojson_of]
 
+type ('a, 'b) tree = Tree of 'a * ('b * ('a, 'b) tree) list
+[@@deriving show, yojson_of]
+
+(* LEGACY: A tree that tells in what order events should be discovered.
+   The root of this tree corresponds to the root of the trace pattern.
+*)
+type matching_tree = (local_event_id, defining_relation) tree
+[@@deriving show, yojson_of]
+
 type partial_matching =
   { partial_matching_id: int
   ; constrained_agents: int IntMap.t (* local_agent_id -> global_agent_id *)
@@ -108,6 +117,7 @@ type 'a branchings_memory = Elem of 'a | Branched of int list
 
 type env =
   { query: query
+  ; matching_tree: matching_tree
   ; recorders: event_recorder array
   ; mutable partial_matchings: partial_matching branchings_memory IntMap.t
         (* Partial matchings are indexed by [pm_id]s *)
@@ -125,9 +135,86 @@ let number_of_events q = Array.length q.pattern.events
 
 let number_of_agents q = Array.length q.pattern.agents
 
-let query_root_event q =
-  let (Tree (root_id, _)) = q.pattern.traversal_tree in
-  root_id
+let query_root_event q = List.hd q.pattern.execution_path
+
+(* Legacy conversion *)
+(* Trying to be safe *)
+(* let query_matching_tree q =
+   let rec aux = function
+     | [] ->
+         assert false
+     | [i] ->
+         Tree (i, [])
+     | i :: rest ->
+         let child =
+           aux rest
+           |> fun (Tree (j, _) as t) ->
+           (Option.get q.pattern.events.(j).defining_rel, t)
+         in
+         Tree (i, [child])
+   in
+   let r = aux q.pattern.execution_path in
+   print_endline ([%show: matching_tree] r) ;
+   r *)
+
+(* Legacy conversion *)
+(* This is very unsafe: we are pretty much assuming that the tree has
+   depth at most 2. This is enough for passing the tests though... *)
+(* let query_matching_tree q =
+   let aux = function
+     | i :: rest ->
+         let children =
+           List.map
+             (fun j ->
+               (Option.get q.pattern.events.(j).defining_rel, Tree (j, [])) )
+             rest
+         in
+         Tree (i, children)
+     | _ ->
+         assert false
+   in
+   let r = aux q.pattern.execution_path in
+   print_endline ([%show: matching_tree] r) ;
+   r *)
+
+let predecessor ev =
+  match ev.defining_rel with
+  | None ->
+      None
+  | Some (First_after (pid, _) as rel) ->
+      Some (rel, pid)
+  | Some (Last_before (pid, _) as rel) ->
+      Some (rel, pid)
+
+let compute_traversal_tree (q : query) =
+  let roots = Queue.create () in
+  (* We compute the inverse of the precedence relation. *)
+  (* Note that hash-tables in OCaml can map each key to several values. *)
+  let succs = Hashtbl.create 100 in
+  q.pattern.events
+  |> Array.iteri (fun ev_id ev ->
+         match predecessor ev with
+         | None ->
+             Queue.push ev_id roots
+         | Some (rel, pred_id) ->
+             Hashtbl.add succs pred_id (rel, ev_id) ) ;
+  (* The roots are the nodes without predecessor. We only accept queries
+     with a single root. *)
+  let roots = Utils.list_of_queue roots in
+  match roots with
+  | [] ->
+      Tql_error.(fail No_root_event)
+  | _ :: _ :: _ ->
+      Tql_error.(fail Disconnected_query_graph)
+  | [root_id] ->
+      let rec build_tree i =
+        let children =
+          Hashtbl.find_all succs i
+          |> List.map (fun (rel, j) -> (rel, build_tree j))
+        in
+        Tree (i, children)
+      in
+      build_tree root_id
 
 (* Subscribtions *)
 
@@ -236,6 +323,7 @@ let recorder_status env ev_id = env.recorders.(ev_id).recorder_status
 
 let init_env query =
   { query
+  ; matching_tree= compute_traversal_tree query
   ; recorders=
       Array.init (number_of_events query) (fun i ->
           let status = if i = query_root_event query then Root else Enabled in
@@ -348,7 +436,7 @@ let new_partial_matching env root_id ms =
     { partial_matching_id= id
     ; constrained_agents= IntMap.empty
     ; matched_events= IntMap.empty
-    ; watched= IntMap.singleton root_id env.query.pattern.traversal_tree }
+    ; watched= IntMap.singleton root_id env.matching_tree }
   in
   env.partial_matchings <- IntMap.add id (Elem pm) env.partial_matchings ;
   update_partial_matching env ms id

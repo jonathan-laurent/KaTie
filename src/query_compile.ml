@@ -498,8 +498,8 @@ let compile_trace_pattern env tpat =
   let events = Array.mapi make_event (Dict.to_array env.query_events) in
   let agents = Array.map make_agent (Dict.to_array env.query_agents) in
   (* Still uncomplete: we put a dummy value *)
-  let traversal_tree = Tree (-1, []) in
-  {agents; events; traversal_tree}
+  let execution_path = [] in
+  {agents; events; execution_path}
 
 (*****************************************************************************)
 (* Compile action                                                            *)
@@ -514,9 +514,7 @@ let compile_action env when_clause = function
 (* Compile queries                                                           *)
 (*****************************************************************************)
 
-(* We first compute a dependency graph for the query. *)
-(* This graph is a tree since nodes have at most one predecessor and
-   there can only be one root. *)
+(* We first compute a topological order on the query's dependency graph. *)
 
 (* A, last B before A, last C before B *)
 (* A <- B <- C *)
@@ -542,8 +540,8 @@ let compute_traversal_tree (q : query) =
          match predecessor ev with
          | None ->
              Queue.push ev_id roots
-         | Some (rel, pred_id) ->
-             Hashtbl.add succs pred_id (rel, ev_id) ) ;
+         | Some (_rel, pred_id) ->
+             Hashtbl.add succs pred_id ev_id ) ;
   (* The roots are the nodes without predecessor. We only accept queries
      with a single root. *)
   let roots = Utils.list_of_queue roots in
@@ -553,14 +551,10 @@ let compute_traversal_tree (q : query) =
   | _ :: _ :: _ ->
       Tql_error.(fail Disconnected_query_graph)
   | [root_id] ->
-      let rec build_tree i =
-        let children =
-          Hashtbl.find_all succs i
-          |> List.map (fun (rel, j) -> (rel, build_tree j))
-        in
-        Tree (i, children)
+      let rec build_path i =
+        i :: (Hashtbl.find_all succs i |> List.concat_map build_path)
       in
-      build_tree root_id
+      build_path root_id
 
 let def_rel_pattern ev =
   match ev.defining_rel with
@@ -586,23 +580,28 @@ let constrained_agents (ev : event) =
 
 let schedule_agents_capture q =
   let module IntSet = Utils.IntSet in
-  let rec aux (Tree (i, children)) constrained =
-    let ev = q.pattern.events.(i) in
-    let ev_ags = constrained_agents ev in
-    let acas, cas =
-      IntSet.partition (fun j -> IntSet.mem j constrained) ev_ags
-    in
-    let already_constrained_agents = IntSet.elements acas in
-    let captured_agents = IntSet.elements cas in
-    q.pattern.events.(i) <- {ev with already_constrained_agents; captured_agents} ;
-    let constrained = IntSet.union constrained ev_ags in
-    children |> List.iter (fun (_r, t) -> aux t constrained)
+  let rec aux path constrained =
+    match path with
+    | [] ->
+        ()
+    | i :: path_rest ->
+        let ev = q.pattern.events.(i) in
+        let ev_ags = constrained_agents ev in
+        let acas, cas =
+          IntSet.partition (fun j -> IntSet.mem j constrained) ev_ags
+        in
+        let already_constrained_agents = IntSet.elements acas in
+        let captured_agents = IntSet.elements cas in
+        q.pattern.events.(i) <-
+          {ev with already_constrained_agents; captured_agents} ;
+        let constrained = IntSet.union constrained ev_ags in
+        aux path_rest constrained
   in
-  aux q.pattern.traversal_tree IntSet.empty
+  aux q.pattern.execution_path IntSet.empty
 
 let schedule_execution (q : query) =
-  let traversal_tree = compute_traversal_tree q in
-  let q = {q with pattern= {q.pattern with traversal_tree}} in
+  let execution_path = compute_traversal_tree q in
+  let q = {q with pattern= {q.pattern with execution_path}} in
   schedule_agents_capture q ; q
 
 let compile (model : Model.t) (q : Ast.query) =

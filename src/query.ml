@@ -110,18 +110,12 @@ type event =
            agents. TODO: why this assumption? Do we need it? *) }
 [@@deriving show, yojson_of]
 
-type ('a, 'b) tree = Tree of 'a * ('b * ('a, 'b) tree) list
-[@@deriving show, yojson_of]
-
-(* A tree that tells in what order events should be discovered. The root
-   of this tree corresponds to the root of the trace pattern. *)
-type matching_tree = (local_event_id, defining_relation) tree
-[@@deriving show, yojson_of]
+type execution_path = local_event_id list [@@deriving show, yojson_of]
 
 type trace_pattern =
   { agents: agent_kind array (* Question: all agents or some? *)
   ; events: event array (* Indexed by [local_event_id] *)
-  ; traversal_tree: matching_tree }
+  ; execution_path: execution_path }
 [@@deriving show, yojson_of]
 
 (* TODO: add equality_constraints: (event_id * event_id) list ; *)
