@@ -1,8 +1,7 @@
-val eval_batch : trace_file:string -> (Query.t * Format.formatter) list -> unit
+include Query_evaluator.S
 
-(* The following declarations are included to avoid warnings of the
+(* The following two declarations are included to avoid warnings of the
    kind: "Unused function pp_env". *)
-
 type env [@@deriving show, yojson_of]
 
 type complete_matching [@@deriving show, yojson_of]

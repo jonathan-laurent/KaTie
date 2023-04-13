@@ -14,6 +14,8 @@ let debug_mode = ref false
 
 let snapshots_name_format = ref ""
 
+let use_legacy_evaluator = ref true
+
 let no_color = ref false
 
 let native_snapshots () = Tql_output.snapshots_native_format := true
@@ -26,6 +28,7 @@ let options =
   ; ( "-o"
     , Arg.Set_string default_out_file
     , "default output file (if not specified: `output.csv`)" )
+  ; ("--legacy", Arg.Set use_legacy_evaluator, "use the legacy evaluator")
   ; ("--no-backtraces", Arg.Set no_backtraces, "disable exception backtraces")
   ; ("--debug", Arg.Set debug_mode, "enable debug mode")
   ; ( "--snapshots-names"
@@ -104,7 +107,11 @@ let main () =
     in
     let queries = queries |> List.map (fun (q, f) -> (q, List.assoc f fmts)) in
     fmts |> List.iter (fun (_, fmt) -> Format.fprintf fmt "@[<v>") ;
-    Query_eval_legacy.eval_batch ~trace_file:!trace_file queries ;
+    let (module Evaluator : Query_evaluator.S) =
+      if !use_legacy_evaluator then (module Query_eval_legacy)
+      else (module Query_eval)
+    in
+    Evaluator.eval_batch ~trace_file:!trace_file queries ;
     fmts |> List.iter (fun (_, fmt) -> Format.fprintf fmt "@]@.") ;
     let emoji = if !no_color then "" else " \u{1F389}" in
     print_endline_styled [green] ("Done!" ^ emoji)
