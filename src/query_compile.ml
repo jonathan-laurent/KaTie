@@ -565,36 +565,38 @@ let def_rel_pattern ev =
   | Some (Last_before (_, p)) ->
       Some p
 
-let opt_pattern_constrained_agents = function
+let constrained_agents = function
   | None ->
       []
   | Some p ->
       List.map fst (IntMap.bindings p.main_pattern.agent_constraints)
 
-(* The agents constrained by an event are those constrained by its main
-   pattern and dependency?? *)
-let constrained_agents (ev : event) =
-  Utils.IntSet.of_list
-  @@ opt_pattern_constrained_agents ev.event_pattern
-  @ opt_pattern_constrained_agents (def_rel_pattern ev)
-
 let schedule_agents_capture q =
   let module IntSet = Utils.IntSet in
-  let rec aux path constrained =
+  let rec aux path constrained_already =
     match path with
     | [] ->
         ()
     | i :: path_rest ->
         let ev = q.pattern.events.(i) in
-        let ev_ags = constrained_agents ev in
-        let acas, cas =
-          IntSet.partition (fun j -> IntSet.mem j constrained) ev_ags
+        let constrained_in_def =
+          IntSet.of_list (constrained_agents (def_rel_pattern ev))
         in
-        let link_agents = IntSet.elements acas in
-        let other_constrained_agents = IntSet.elements cas in
-        q.pattern.events.(i) <- {ev with link_agents; other_constrained_agents} ;
-        let constrained = IntSet.union constrained ev_ags in
-        aux path_rest constrained
+        let constrained_in_main =
+          IntSet.of_list (constrained_agents ev.event_pattern)
+        in
+        let constrained = IntSet.union constrained_in_def constrained_in_main in
+        let link_agents = IntSet.inter constrained_in_def constrained_already in
+        let other_constrained_agents = IntSet.diff constrained link_agents in
+        q.pattern.events.(i) <-
+          { ev with
+            link_agents= IntSet.elements link_agents
+          ; other_constrained_agents= IntSet.elements other_constrained_agents
+          } ;
+        let constrained_already =
+          IntSet.union constrained_already constrained
+        in
+        aux path_rest constrained_already
   in
   aux q.pattern.execution_path IntSet.empty
 
