@@ -144,10 +144,13 @@ type trace_pattern =
 type action = Print of Expr.t | If of Expr.t * action
 [@@deriving show, yojson_of]
 
+type debug_info = {dbg_execution_path: string} [@@deriving show, yojson_of]
+
 type query =
   { title: string option
   ; legend: string list option (* Used as headers for the resulting CSV file. *)
   ; pattern: trace_pattern
   ; action: action
-  ; every_clause: float option }
+  ; every_clause: float option
+  ; debug_info: debug_info }
 [@@deriving show, yojson_of]

@@ -94,7 +94,14 @@ let main () =
       with_file (Tql_output.file "compiled-queries.json") (fun fmt ->
           Format.fprintf fmt "%a@.]"
             (Yojson.Safe.pretty_print ~std:false)
-            ([%yojson_of: Query.query list] queries) ) ) ;
+            ([%yojson_of: Query.query list] queries) ) ;
+      with_file (Tql_output.file "execution-paths.json") (fun fmt ->
+          Format.fprintf fmt "%a@.]"
+            (Yojson.Safe.pretty_print ~std:false)
+            ([%yojson_of: (string option * string) list]
+               (List.map
+                  (fun q -> (q.Query.title, q.debug_info.dbg_execution_path))
+                  queries ) ) ) ) ;
     let queries = queries |> List.map (fun q -> (q, query_output_file q)) in
     let fmts =
       queries |> List.map snd |> List.sort_uniq compare

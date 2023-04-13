@@ -95,6 +95,12 @@ module Dict = struct
     let n = t.next_fresh_id in
     try Array.init n (fun i -> IntMap.find i t.elems)
     with Not_found -> assert false
+
+  (* Warning: this is slow *)
+  let name_of_id t id =
+    Hashtbl.to_seq t.name_to_id
+    |> Seq.find (fun (_, id') -> id = id')
+    |> Option.map fst
 end
 
 (*****************************************************************************)
@@ -524,12 +530,12 @@ let predecessor ev =
   | Some (Last_before (pid, _) as rel) ->
       Some (rel, pid)
 
-let compute_traversal_tree (q : query) =
+let compute_traversal_tree p =
   let roots = Queue.create () in
   (* We compute the inverse of the precedence relation. *)
   (* Note that hash-tables in OCaml can map each key to several values. *)
   let succs = Hashtbl.create 100 in
-  q.pattern.events
+  p.events
   |> Array.iteri (fun ev_id ev ->
          match predecessor ev with
          | None ->
@@ -568,14 +574,14 @@ let constrained_agents = function
   | Some p ->
       List.map fst (IntMap.bindings p.main_pattern.agent_constraints)
 
-let schedule_agents_capture q =
+let schedule_agents_capture p =
   let module IntSet = Utils.IntSet in
   let rec aux path constrained_already =
     match path with
     | [] ->
         ()
     | i :: path_rest ->
-        let ev = q.pattern.events.(i) in
+        let ev = p.events.(i) in
         let constrained_in_def =
           IntSet.of_list (constrained_agents (def_rel_pattern ev))
         in
@@ -585,7 +591,7 @@ let schedule_agents_capture q =
         let constrained = IntSet.union constrained_in_def constrained_in_main in
         let link_agents = IntSet.inter constrained_in_def constrained_already in
         let other_constrained_agents = IntSet.diff constrained link_agents in
-        q.pattern.events.(i) <-
+        p.events.(i) <-
           { ev with
             link_agents= IntSet.elements link_agents
           ; other_constrained_agents= IntSet.elements other_constrained_agents
@@ -595,12 +601,25 @@ let schedule_agents_capture q =
         in
         aux path_rest constrained_already
   in
-  aux q.pattern.execution_path IntSet.empty
+  aux p.execution_path IntSet.empty
 
-let schedule_execution (q : query) =
-  let execution_path = compute_traversal_tree q in
-  let q = {q with pattern= {q.pattern with execution_path}} in
-  schedule_agents_capture q ; q
+let schedule_execution p =
+  let execution_path = compute_traversal_tree p in
+  let p = {p with execution_path} in
+  schedule_agents_capture p ; p
+
+let show_execution_path env execution_path events =
+  let ag_name ag_id = Dict.name_of_id env.query_agents ag_id |> Option.get in
+  let ev_name ev_id = Dict.name_of_id env.query_events ev_id in
+  execution_path
+  |> List.map (fun ev_id ->
+         let ev_name = ev_name ev_id |> Option.value ~default:"?" in
+         let ev = events.(ev_id) in
+         let link = List.map ag_name ev.link_agents in
+         let other_constrained = List.map ag_name ev.other_constrained_agents in
+         Fmt.str "%s(%s->%s)" ev_name (String.concat "," link)
+           (String.concat "," other_constrained) )
+  |> String.concat ", "
 
 let compile (model : Model.t) (q : Ast.query) =
   let title = q.Ast.query_name in
@@ -618,4 +637,9 @@ let compile (model : Model.t) (q : Ast.query) =
       let pattern = build_trace_pattern env in
       let legend = q.Ast.legend in
       let every_clause = q.Ast.every_clause in
-      schedule_execution {pattern; action; title; legend; every_clause} )
+      let pattern = schedule_execution pattern in
+      let debug_info =
+        { dbg_execution_path=
+            show_execution_path env pattern.execution_path pattern.events }
+      in
+      {pattern; action; title; legend; every_clause; debug_info} )
