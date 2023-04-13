@@ -438,7 +438,6 @@ let process_clauses env (tpat : Ast.clause list) =
        | Ast.Event ev_pat ->
            let ev_id, main_pat = compile_event_pattern env ev_pat in
            let ev = Dict.get env.query_events ev_id in
-           Printf.printf "Root: %d\n" ev_id ;
            Queue.push main_pat ev.tmp_main_pats
        | Ast.First_after (ev_pat, ref_name) ->
            let ref_id = Dict.id_of_name env.query_events ref_name in
@@ -449,7 +448,6 @@ let process_clauses env (tpat : Ast.clause list) =
        | Ast.Last_before (ev_pat, ref_name) ->
            let ref_id = Dict.id_of_name env.query_events ref_name in
            let ev_id, pat = compile_event_pattern env ev_pat in
-           Printf.printf "Last before: %d\n" ev_id ;
            let ev = Dict.get env.query_events ev_id in
            let rel = Last_before (ref_id, pat) in
            Queue.push rel ev.tmp_def_rels )
@@ -490,8 +488,7 @@ let make_agent {tmp_ag_kind} =
   | Some k ->
       k
 
-let compile_trace_pattern env tpat =
-  process_clauses env tpat ;
+let build_trace_pattern env =
   let events = Array.mapi make_event (Dict.to_array env.query_events) in
   let agents = Array.map make_agent (Dict.to_array env.query_agents) in
   (* Still uncomplete: we put a dummy value *)
@@ -548,8 +545,11 @@ let compute_traversal_tree (q : query) =
   | _ :: _ :: _ ->
       Tql_error.(fail Disconnected_query_graph)
   | [root_id] ->
+      (* Hashtbl.find_all returns elements in reversed order of their
+         introduction so we reverse the successor list so that the
+         topological order respects clause orders whenever possible. *)
       let rec build_path i =
-        i :: (Hashtbl.find_all succs i |> List.concat_map build_path)
+        i :: (Hashtbl.find_all succs i |> List.rev |> List.concat_map build_path)
       in
       build_path root_id
 
@@ -607,13 +607,15 @@ let compile (model : Model.t) (q : Ast.query) =
   Log.with_current_query title (fun () ->
       Log.set_current_query title ;
       let env = create_env model q in
-      (* Compile the action first so that no measure is missing in the
-         pattern *)
+      process_clauses env q.Ast.pattern ;
       let when_clause =
         Option.map (compile_expr env true None) q.Ast.when_clause
       in
       let action = compile_action env when_clause q.Ast.action in
-      let pattern = compile_trace_pattern env q.Ast.pattern in
+      (* It is important to build the pattern object after processing
+         the action so that all measures are already registered in
+         [env.query_events] *)
+      let pattern = build_trace_pattern env in
       let legend = q.Ast.legend in
       let every_clause = q.Ast.every_clause in
       schedule_execution {pattern; action; title; legend; every_clause} )
