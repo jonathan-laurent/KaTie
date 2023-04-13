@@ -70,3 +70,5 @@ let list_maximum l = List.fold_left max 0 l
 let int_of_bool = function true -> 1 | false -> 0
 
 let sum_array = Array.fold_left ( + ) 0
+
+let no_duplicates cmp l = List.length (List.sort_uniq cmp l) = List.length l

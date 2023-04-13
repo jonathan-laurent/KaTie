@@ -77,230 +77,271 @@ let agent_id ag = fst ag
 
 let p_agent_ty pat ag_pid = pat.main_pattern.agents.(ag_pid).agent_kind
 
+let site_has_type (kind, s) ((_, kind'), s') = kind = kind' && s = s'
+
+let compatible_agents pat ag_pid ag = p_agent_ty pat ag_pid = agent_ty ag
+
+let compatible_sites pat (ag_pid, s) (ag, s') =
+  compatible_agents pat ag_pid ag && s = s'
+
 let rec fixpoint eq f x =
   let fx = f x in
   if eq x fx then x else fixpoint eq f fx
 
 (*****************************************************************************)
-(* Main procedures                                                           *)
+(* Matching lists and maps                                                   *)
 (*****************************************************************************)
 
-(* [(pattern id, global id)] *)
-type partial_agents_matching = PAM of (int * int) list
+type agent_matching_list = AML of (pat_agent_id * global_agent_id) list
+
+type agent_matching_map = AMM of global_agent_id pat_agent_id_map
 
 exception No_match
+
+let append (AMM m) (ag_pid, ag_id) =
+  AMM
+    ( match IntMap.find_opt ag_pid m with
+    | Some ag_id' when ag_id' <> ag_id ->
+        raise No_match
+    | _ ->
+        IntMap.add ag_pid ag_id m )
+
+(* We raise [No_match] if we make an incompatible update at any point. *)
+let append_aml amm (AML eqs) = List.fold_left (fun m eq -> append m eq) amm eqs
+
+let injective (AMM m) =
+  IntMap.bindings m |> List.map snd |> Utils.no_duplicates Int.compare
+
+let check_injective amm = if not (injective amm) then raise No_match
+
+let translate_psite (AMM ms) (ag_pid, s) =
+  try Some (IntMap.find ag_pid ms, s) with Not_found -> None
+
+let same_cardinal (AMM m) (AMM m') = IntMap.cardinal m = IntMap.cardinal m'
+
+(*****************************************************************************)
+(* Full event matchings                                                      *)
+(*****************************************************************************)
+
+type full_agent_matching = FAM of global_agent_id array
+
+(* Make a full agent matching from an [agent_matching_map]. Raises
+   [No_match] if matchings are missing for some local agents. *)
+let make_full_agent_matching pat (AMM amm) =
+  let n = Array.length pat.main_pattern.agents in
+  FAM
+    (Array.init n (fun i ->
+         try IntMap.find i amm
+         with Not_found -> Tql_error.(fail Agent_ambiguity) ) )
+
+let translate_ag (FAM m) ag_pid = m.(ag_pid)
+
+let same_agents fam ag_pid (ag_id, _) = translate_ag fam ag_pid = ag_id
+
+let same_sites fam (a, s) (a', s') = same_agents fam a a' && s = s'
+
+(*****************************************************************************)
+(* Discover potential event matching                                         *)
+(*****************************************************************************)
+
+(* Take a pattern action and a step action and return all possible
+   partial agent matchings that are induced by matching the two
+   together. For example, the binding action in the event pattern
+   {s1:S(x[./1]), s2:S(x[./1])}, when matched with a concrete binding
+   action involving agents a1 and a2 in the trace, induces two matchings
+   {s1->a1, s2->a2} and {s1->a2, s2->a1}. *)
+let match_action pat pat_action step_action =
+  match (pat_action, step_action) with
+  | Create ag_pid, Instantiation.Create (ag, _)
+  | Destroy ag_pid, Instantiation.Remove ag ->
+      if compatible_agents pat ag_pid ag then [AML [(ag_pid, agent_id ag)]]
+      else []
+  | Mod_int_state (site, st), Instantiation.Mod_internal (site', st') ->
+      if compatible_sites pat site site' && st = st' then
+        [AML [(psite_ag_id site, site_ag_id site')]]
+      else []
+  | Mod_lnk_state (site, Free), Instantiation.Free site' ->
+      if compatible_sites pat site site' then
+        [AML [(psite_ag_id site, site_ag_id site')]]
+      else []
+  | Mod_lnk_state (s1, Bound_to s2), Instantiation.Bind (s1', s2')
+  | Mod_lnk_state (s1, Bound_to s2), Instantiation.Bind_to (s1', s2') ->
+      let aux s1 s2 s1' s2' =
+        if compatible_sites pat s1 s1' && compatible_sites pat s2 s2' then
+          [ AML
+              [ (psite_ag_id s1, site_ag_id s1')
+              ; (psite_ag_id s2, site_ag_id s2') ] ]
+        else []
+      in
+      aux s1 s2 s1' s2' @ aux s1 s2 s2' s1'
+  | Mod_lnk_state (s, Bound_to_any), Instantiation.Bind (s1, s2)
+  | Mod_lnk_state (s, Bound_to_any), Instantiation.Bind_to (s1, s2) ->
+      let aux s s' =
+        if compatible_sites pat s s' then [AML [(psite_ag_id s, site_ag_id s')]]
+        else []
+      in
+      aux s s1 @ aux s s2
+  | Mod_lnk_state (s, Bound_to_type t), Instantiation.Bind (s1, s2)
+  | Mod_lnk_state (s, Bound_to_type t), Instantiation.Bind_to (s1, s2) ->
+      let aux s s1 s2 =
+        if compatible_sites pat s s1 && site_has_type t s2 then
+          [AML [(psite_ag_id s, site_ag_id s1)]]
+        else []
+      in
+      aux s s1 s2 @ aux s s2 s1
+  | _ ->
+      []
+
+(* Return the agent matching map induced by the step actions alone. We
+   mandate that each pattern action matches unambiguously with a single
+   trace action. *)
+let matchings_implied_by_actions pat step_actions =
+  pat.main_pattern.mods
+  |> List.fold_left
+       (fun amm pat_action ->
+         match List.concat_map (match_action pat pat_action) step_actions with
+         | [] ->
+             raise No_match
+         | [aml] ->
+             append_aml amm aml
+         | _ ->
+             Tql_error.(fail Agent_ambiguity) )
+       (AMM IntMap.empty)
+
+(* Take a Kappa mixture and a list of known bindings between local
+   agents and augment the map of known agent matchings accordingly. *)
+let propagate_link_constraints_with (graph : Edges.t)
+    (links : (local_site * local_site) list) amm =
+  links
+  |> List.fold_left
+       (fun amm (s, s') ->
+         match translate_psite amm s with
+         | None ->
+             amm
+         | Some (src_ag, src_s) -> (
+           match Edges.link_destination src_ag src_s graph with
+           | None ->
+               raise No_match
+           | Some dst ->
+               append amm (psite_ag_id s', site_ag_id dst) ) )
+       amm
+
+(* Perform one step of link constraint propagation. *)
+let propagate_link_constraints pat w amm =
+  let amm =
+    amm
+    |> propagate_link_constraints_with w.previous_state.Replay.graph
+         (pattern_tested_links pat)
+    |> propagate_link_constraints_with w.state.Replay.graph
+         (pattern_created_links pat)
+  in
+  check_injective amm ; amm
 
 (* Try to match the agents of [pat] in [w] by only looking at
    modifications and connectivity. Only uses w.step (not the mixture)
    This returns an array that should be interpreted as a map from
-   `pat_agent_id` to `global_agent_id`.
-*)
-
+   `pat_agent_id` to `global_agent_id`. *)
 let match_agents_in_pattern (pat : Query.event_pattern) (w : Streaming.window) :
-    int array option =
+    full_agent_matching option =
   if satisfy_rule_constraint pat.rule_constraint w.state w.step then
     try
-      let _tests, actions = extract_tests_actions w.step in
-      let compatible_agents ag_pid ag = p_agent_ty pat ag_pid = agent_ty ag in
-      let compatible_sites (ag_pid, s) (ag, s') =
-        compatible_agents ag_pid ag && s = s'
-      in
-      let site_has_type (kind, s) ((_, kind'), s') = kind = kind' && s = s' in
-      (* Take a pattern action and a step action and return all partial agent matchings
-         that are induced by this pair. For example, the binding action in the
-         event pattern {s1:S(x[./1]), s2:S(x[./1])}, when matching with a concrete
-         binding action involving agents a1 and a2 in the trace, induces two
-         matchings {s1->a1, s2->a2} and {s1->a2, s2->a1}. *)
-      let match_actions pat_action step_action =
-        match (pat_action, step_action) with
-        | Create ag_pid, Instantiation.Create (ag, _)
-        | Destroy ag_pid, Instantiation.Remove ag ->
-            if compatible_agents ag_pid ag then [PAM [(ag_pid, agent_id ag)]]
-            else []
-        | Mod_int_state (site, st), Instantiation.Mod_internal (site', st') ->
-            if compatible_sites site site' && st = st' then
-              [PAM [(psite_ag_id site, site_ag_id site')]]
-            else []
-        | Mod_lnk_state (site, Free), Instantiation.Free site' ->
-            if compatible_sites site site' then
-              [PAM [(psite_ag_id site, site_ag_id site')]]
-            else []
-        | Mod_lnk_state (s1, Bound_to s2), Instantiation.Bind (s1', s2')
-        | Mod_lnk_state (s1, Bound_to s2), Instantiation.Bind_to (s1', s2') ->
-            let aux s1 s2 s1' s2' =
-              if compatible_sites s1 s1' && compatible_sites s2 s2' then
-                [ PAM
-                    [ (psite_ag_id s1, site_ag_id s1')
-                    ; (psite_ag_id s2, site_ag_id s2') ] ]
-              else []
-            in
-            aux s1 s2 s1' s2' @ aux s1 s2 s2' s1'
-        | Mod_lnk_state (s, Bound_to_any), Instantiation.Bind (s1, s2)
-        | Mod_lnk_state (s, Bound_to_any), Instantiation.Bind_to (s1, s2) ->
-            let aux s s' =
-              if compatible_sites s s' then
-                [PAM [(psite_ag_id s, site_ag_id s')]]
-              else []
-            in
-            aux s s1 @ aux s s2
-        | Mod_lnk_state (s, Bound_to_type t), Instantiation.Bind (s1, s2)
-        | Mod_lnk_state (s, Bound_to_type t), Instantiation.Bind_to (s1, s2) ->
-            let aux s s1 s2 =
-              if compatible_sites s s1 && site_has_type t s2 then
-                [PAM [(psite_ag_id s, site_ag_id s1)]]
-              else []
-            in
-            aux s s1 s2 @ aux s s2 s1
-        | _ ->
-            []
-      in
-      (* Each action from the pattern must induce only one partial matching. *)
-      (* Can several actions constrain the same agent in incompatible ways? *)
-
-      (* In this example, what is happening? *)
-      (* S(a[u/p],b[u,p]), S(c[u/p],d[u,p]) *)
-
-      (* Compute a matching implied by the modifications that may still be incomplete. *)
-      (* Is it possible there may be something unsound here? *)
-      (* What if {a1->a2} *)
-      (* CEX: {S(x[u/p]), S(x[u/p],y[u/p])}: this is going to be rejected *)
-      let ag_matching =
-        pat.main_pattern.mods
-        |> List.fold_left
-             (fun acc pat_action ->
-               match List.concat_map (match_actions pat_action) actions with
-               | [] ->
-                   raise No_match
-               | PAM eqs :: [] ->
-                   eqs
-                   |> List.fold_left
-                        (fun acc (ag_pid, ag_id) -> IntMap.add ag_pid ag_id acc)
-                        acc
-               | _ ->
-                   Tql_error.(fail Agent_ambiguity) )
-             IntMap.empty
-      in
-      let translate_psite ms (ag_pid, s) =
-        try Some (IntMap.find ag_pid ms, s) with Not_found -> None
-      in
-      let propagate_link_constraints graph links ms =
-        links
-        |> List.fold_left
-             (fun ms (s, s') ->
-               match translate_psite ms s with
-               | None ->
-                   ms
-               | Some (src_ag, src_s) -> (
-                 match Edges.link_destination src_ag src_s graph with
-                 | None ->
-                     raise No_match
-                 | Some dst ->
-                     IntMap.add (psite_ag_id s') (site_ag_id dst) ms ) )
-             ms
-      in
-      let add_neighborhood ms =
-        ms
-        |> propagate_link_constraints w.previous_state.Replay.graph
-             (pattern_tested_links pat)
-        |> propagate_link_constraints w.state.Replay.graph
-             (pattern_created_links pat)
-      in
-      let same_cardinal m m' = IntMap.cardinal m = IntMap.cardinal m' in
-      let ag_matching = fixpoint same_cardinal add_neighborhood ag_matching in
-      let n = Array.length pat.main_pattern.agents in
-      (* This fails if the identity of an agent could not be uniquely determined. *)
-      let ag_matching =
-        Array.init n (fun i ->
-            try IntMap.find i ag_matching
-            with Not_found -> Tql_error.(fail Agent_ambiguity) )
-      in
-      Some ag_matching
+      let _tests, step_actions = extract_tests_actions w.step in
+      let amm = matchings_implied_by_actions pat step_actions in
+      check_injective amm ;
+      let amm = fixpoint same_cardinal (propagate_link_constraints pat w) amm in
+      (* If we reached this point without [No_match] being thrown, it
+         means that every action in the pattern was successfully matched
+         and all the link information propagated. Thus, by the local
+         rigidity assumption, the identity of all pattern agents must be
+         resolved. *)
+      Some (make_full_agent_matching pat amm)
     with No_match -> None
   else None
 
+(*****************************************************************************)
+(* Check the validity of event matchings                                     *)
+(*****************************************************************************)
+
+let test_matching_action fam pat_action step_action =
+  match (pat_action, step_action) with
+  | Create ag_pid, Instantiation.Create (ag, _)
+  | Destroy ag_pid, Instantiation.Remove ag ->
+      same_agents fam ag_pid ag
+  | Mod_int_state (site, st), Instantiation.Mod_internal (site', st') ->
+      same_sites fam site site' && st = st'
+  | Mod_lnk_state (site, Free), Instantiation.Free site' ->
+      same_sites fam site site'
+  | Mod_lnk_state (s1, Bound_to s2), Instantiation.Bind (s1', s2')
+  | Mod_lnk_state (s1, Bound_to s2), Instantiation.Bind_to (s1', s2') ->
+      (same_sites fam s1 s1' && same_sites fam s2 s2')
+      || (same_sites fam s1 s2' && same_sites fam s2 s1')
+  | Mod_lnk_state (s, Bound_to_any), Instantiation.Bind (s1, s2)
+  | Mod_lnk_state (s, Bound_to_any), Instantiation.Bind_to (s1, s2) ->
+      same_sites fam s s1 || same_sites fam s s2
+  | Mod_lnk_state (s, Bound_to_type t), Instantiation.Bind (s1, s2)
+  | Mod_lnk_state (s, Bound_to_type t), Instantiation.Bind_to (s1, s2) ->
+      (same_sites fam s s1 && site_has_type t s2)
+      || (same_sites fam s s2 && site_has_type t s1)
+  | _ ->
+      false
+
+let test_holds pat state fam test =
+  try
+    match test with
+    | Agent_exists ag_pid ->
+        Edges.is_agent (translate_ag fam ag_pid, p_agent_ty pat ag_pid) state
+    | Lnk_state_is ((ag_pid, s), Free) ->
+        Edges.is_free (translate_ag fam ag_pid) s state
+    | Lnk_state_is ((ag_pid, s), Bound_to (ag_pid', s')) ->
+        Edges.link_exists (translate_ag fam ag_pid) s (translate_ag fam ag_pid')
+          s' state
+    | Lnk_state_is ((ag_pid, s), Bound_to_any) ->
+        not (Edges.is_free (translate_ag fam ag_pid) s state)
+    | Lnk_state_is ((ag_pid, s), Bound_to_type (ag_kind', s')) -> (
+      match Edges.link_destination (translate_ag fam ag_pid) s state with
+      | None ->
+          false
+      | Some ((_, ag_kind''), s'') ->
+          ag_kind' = ag_kind'' && s' = s'' )
+    | Int_state_is ((ag_pid, s), st) ->
+        Edges.get_internal (translate_ag fam ag_pid) s state = st
+  with
+  (* TODO: this is dirty. We are doing this in case some agent
+         does not exist in the previous state and KaSim throws
+         an exception. KaSim should throw a more specific
+         exception or expose a `valid_agent_id` API. *)
+  | Invalid_argument _ ->
+      false
+  | e ->
+      Log.warn "TODO: catch more specific exception." ~loc:__LOC__
+        ~details:[Printexc.to_string e] ;
+      false
+
+let check_full_matching pat w fam =
+  let _tests, actions = extract_tests_actions w.step in
+  let mods_ok =
+    pat.main_pattern.mods
+    |> List.for_all (fun pat_action ->
+           actions |> List.exists (test_matching_action fam pat_action) )
+  in
+  let tests_ok =
+    let state = w.previous_state.Replay.graph in
+    pat.main_pattern.tests |> List.for_all (test_holds pat state fam)
+  in
+  mods_ok && tests_ok
+
 (* Once we have a mapping from the agents of [pat] to the agents of [w],
    this function tests that [pat] effectively matches [w] *)
-
-let match_simple_pattern (pat : Query.event_pattern) (w : Streaming.window) :
-    int array option =
+let match_simple_pattern pat w =
   match match_agents_in_pattern pat w with
-  | Some ag_matchings ->
-      let _tests, actions = extract_tests_actions w.step in
-      let translate_ag ag_pid = ag_matchings.(ag_pid) in
-      let same_agents ag_pid (ag_id, _) = translate_ag ag_pid = ag_id in
-      let same_sites (a, s) (a', s') = same_agents a a' && s = s' in
-      let site_has_type (kind, s) ((_, kind'), s') = kind = kind' && s = s' in
-      let match_action pat_action step_action =
-        match (pat_action, step_action) with
-        | Create ag_pid, Instantiation.Create (ag, _)
-        | Destroy ag_pid, Instantiation.Remove ag ->
-            same_agents ag_pid ag
-        | Mod_int_state (site, st), Instantiation.Mod_internal (site', st') ->
-            same_sites site site' && st = st'
-        | Mod_lnk_state (site, Free), Instantiation.Free site' ->
-            same_sites site site'
-        | Mod_lnk_state (s1, Bound_to s2), Instantiation.Bind (s1', s2')
-        | Mod_lnk_state (s1, Bound_to s2), Instantiation.Bind_to (s1', s2') ->
-            (same_sites s1 s1' && same_sites s2 s2')
-            || (same_sites s1 s2' && same_sites s2 s1')
-        | Mod_lnk_state (s, Bound_to_any), Instantiation.Bind (s1, s2)
-        | Mod_lnk_state (s, Bound_to_any), Instantiation.Bind_to (s1, s2) ->
-            same_sites s s1 || same_sites s s2
-        | Mod_lnk_state (s, Bound_to_type t), Instantiation.Bind (s1, s2)
-        | Mod_lnk_state (s, Bound_to_type t), Instantiation.Bind_to (s1, s2) ->
-            (same_sites s s1 && site_has_type t s2)
-            || (same_sites s s2 && site_has_type t s1)
-        | _ ->
-            false
-      in
-      let mods_ok =
-        pat.main_pattern.mods
-        |> List.for_all (fun pat_action ->
-               actions |> List.exists (match_action pat_action) )
-      in
-      let prev_mstate = w.previous_state.Replay.graph in
-      let tests_ok =
-        pat.main_pattern.tests
-        |> List.for_all (fun test ->
-               try
-                 match test with
-                 | Agent_exists ag_pid ->
-                     Edges.is_agent
-                       (translate_ag ag_pid, p_agent_ty pat ag_pid)
-                       prev_mstate
-                 | Lnk_state_is ((ag_pid, s), Free) ->
-                     Edges.is_free (translate_ag ag_pid) s prev_mstate
-                 | Lnk_state_is ((ag_pid, s), Bound_to (ag_pid', s')) ->
-                     Edges.link_exists (translate_ag ag_pid) s
-                       (translate_ag ag_pid') s' prev_mstate
-                 | Lnk_state_is ((ag_pid, s), Bound_to_any) ->
-                     not (Edges.is_free (translate_ag ag_pid) s prev_mstate)
-                 | Lnk_state_is ((ag_pid, s), Bound_to_type (ag_kind', s')) -> (
-                   match
-                     Edges.link_destination (translate_ag ag_pid) s prev_mstate
-                   with
-                   | None ->
-                       false
-                   | Some ((_, ag_kind''), s'') ->
-                       ag_kind' = ag_kind'' && s' = s'' )
-                 | Int_state_is ((ag_pid, s), st) ->
-                     Edges.get_internal (translate_ag ag_pid) s prev_mstate = st
-               with
-               (* TODO: this is dirty. We are doing this in case some
-                      agent does not exist in the previous state and
-                      KaSim throws an exception. KaSim should throw a
-                      more specific exception or expose a
-                      `valid_agent_id` API. *)
-               | Invalid_argument _ ->
-                   false
-               | e ->
-                   Log.warn "TODO: catch more specific exception." ~loc:__LOC__
-                     ~details:[Printexc.to_string e] ;
-                   false )
-      in
-      if mods_ok && tests_ok then Some ag_matchings else None
+  | Some fam ->
+      if check_full_matching pat w fam then Some fam else None
   | None ->
       None
+
+(*****************************************************************************)
+(* Main function                                                             *)
+(*****************************************************************************)
 
 type status = Failure | Success of {other_constrained: global_agent_id list}
 [@@deriving show, yojson_of]
@@ -310,9 +351,8 @@ type result = No_match | Match of {index: global_agent_id list; status: status}
 
 (* This function returns:
    - [None] if the event does not match
-   - An [event_matchings] object with 0 matchings if the defining relation
-     matches but the main pattern does not.
-*)
+   - An [event_matchings] object with 0 matchings if the defining
+     relation matches but the main pattern does not. *)
 let match_event (ev : Query.event) (w : Streaming.window) : result =
   let main_pat_opt = ev.event_pattern in
   let def_pat_opt =
@@ -323,10 +363,10 @@ let match_event (ev : Query.event) (w : Streaming.window) : result =
         None
   in
   (* local_id -> global_id *)
-  let qid_to_gid (pat, matchings) q_id =
+  let qid_to_gid (pat, FAM m) q_id =
     try
       let p_id = IntMap.find q_id pat.main_pattern.agent_constraints in
-      Some matchings.(p_id)
+      Some m.(p_id)
     with Not_found -> None
   in
   let qid_to_gid' pm1 pm2_opt q_id =
