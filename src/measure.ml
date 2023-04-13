@@ -120,25 +120,28 @@ let print_cc model state ag_id =
 
 (* Measure interpreter *)
 
-(* TODO: ag_matching: local -> global *)
-let take_measure ?(uuid : int option) (model : Model.t)
-    (ag_matchings : int array) (w : Streaming.window) measure : Value.t =
+let take_measure ~header ag_matching w measure =
+  let {Trace_header.uuid; model} = header in
   match measure with
   | State_measure (time, measure) -> (
       let state =
-        match time with Before -> w.previous_state | After -> w.state
+        match time with
+        | Before ->
+            w.Streaming.previous_state
+        | After ->
+            w.state
       in
       match measure with
       | Component ag_id ->
-          component ag_matchings.(ag_id) state (* Absurd *)
+          component (ag_matching ag_id) state (* Absurd *)
       | Int_state (ag_id, ag_site) ->
-          int_state model (ag_matchings.(ag_id), ag_site) state
+          int_state model (ag_matching ag_id, ag_site) state
       | Snapshot ->
           let filename = Tql_output.new_snapshot_file () in
           take_snapshot ?uuid model state filename ;
           VString filename
       | Print_cc ag_id ->
-          print_cc model state ag_matchings.(ag_id) )
+          print_cc model state (ag_matching ag_id) )
   | Event_measure measure -> (
     match measure with
     | Time ->

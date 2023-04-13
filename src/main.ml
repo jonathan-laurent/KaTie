@@ -14,8 +14,6 @@ let debug_mode = ref false
 
 let snapshots_name_format = ref ""
 
-let skip_init_events = ref false
-
 let no_color = ref false
 
 let native_snapshots () = Tql_output.snapshots_native_format := true
@@ -30,9 +28,6 @@ let options =
     , "default output file (if not specified: `output.csv`)" )
   ; ("--no-backtraces", Arg.Set no_backtraces, "disable exception backtraces")
   ; ("--debug", Arg.Set debug_mode, "enable debug mode")
-  ; ( "--skip-init-events"
-    , Arg.Set skip_init_events
-    , "skip INIT events in the trace" )
   ; ( "--snapshots-names"
     , Arg.Set_string snapshots_name_format
     , "name format of generated snapshot files (default: 'snapshot.%.json' or \
@@ -83,8 +78,8 @@ let main () =
     Tql_output.set_snapshots_name_format "snapshot.%.ka" ;
   if !trace_file = "" || !query_file = "" then Arg.usage options usage
   else
-    let uuid, model = Trace.get_headers_from_file !trace_file in
-    let queries, asts = parse_and_compile_queries model !query_file in
+    let header = Trace_header.load ~trace_file:!trace_file in
+    let queries, asts = parse_and_compile_queries header.model !query_file in
     print_endline "Queries successfully compiled." ;
     if !debug_mode then (
       with_file (Tql_output.file "queries-ast.json") (fun fmt ->
@@ -109,8 +104,7 @@ let main () =
     in
     let queries = queries |> List.map (fun (q, f) -> (q, List.assoc f fmts)) in
     fmts |> List.iter (fun (_, fmt) -> Format.fprintf fmt "@[<v>") ;
-    Query_eval.eval_queries ~skip_init_events:!skip_init_events ?uuid model
-      queries !trace_file ;
+    Query_eval.eval_batch ~trace_file:!trace_file queries ;
     fmts |> List.iter (fun (_, fmt) -> Format.fprintf fmt "@]@.") ;
     let emoji = if !no_color then "" else " \u{1F389}" in
     print_endline_styled [green] ("Done!" ^ emoji)

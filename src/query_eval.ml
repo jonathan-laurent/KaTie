@@ -549,15 +549,14 @@ let free_cm_memory (cm : complete_matching) =
 
 (* Read a measure in the cache if it is cached or compute it using
    the current trace window otherwise *)
-let read_or_take_measure ?uuid model query ag_matchings window cm ev_id
-    measure_id =
+let read_or_take_measure ~header query ag_matchings window cm ev_id measure_id =
   match cm_get_measure cm ev_id measure_id with
   | Some x ->
       x
   | None ->
       let ev = query.pattern.events.(ev_id) in
       let measure = ev.measures.(measure_id).measure in
-      Measure.take_measure ?uuid model ag_matchings window measure
+      Measure.take_measure ~header (fun id -> ag_matchings.(id)) window measure
 
 let execute_action q fmt read_measure cm =
   let read_id = cm_get_agent_id cm in
@@ -595,18 +594,19 @@ let prepare_second_pass cms =
 
 (* Take all measures corresponding to an event and stores the result using
    a provider setter. *)
-let take_all_measures ?uuid model ag_matchings window set_measure ev =
+let take_all_measures ~header ag_matchings window set_measure ev =
   ev.measures
   |> Array.iteri (fun i measure ->
          let v =
-           Measure.take_measure ?uuid model ag_matchings window measure.measure
+           Measure.take_measure ~header
+             (fun id -> ag_matchings.(id))
+             window measure.measure
          in
          set_measure i v )
 
-let second_pass_process_step ?(uuid : int option)
-    ~(matchings_processed : int -> unit) (model : Model.t) (query : Query.query)
-    (fmt : Format.formatter) (cms : complete_matching array)
-    (window : Streaming.window) remaining =
+let second_pass_process_step ~header ~(matchings_processed : int -> unit)
+    (query : Query.query) (fmt : Format.formatter)
+    (cms : complete_matching array) (window : Streaming.window) remaining =
   let rec process = function
     | [] ->
         [] (* There's nothing interesting in the trace anymore *)
@@ -618,13 +618,13 @@ let second_pass_process_step ?(uuid : int option)
         if final_step then
           (* Non-cached measures are computed using the current window. *)
           let read_or_take_measure =
-            read_or_take_measure ?uuid model query cm.cm_agents window cm
+            read_or_take_measure ~header query cm.cm_agents window cm
           in
           execute_action query fmt read_or_take_measure cm
         else
           (* We cache measures now since the result will
                only be used later (when the action is performed). *)
-          take_all_measures ?uuid model cm.cm_agents window
+          take_all_measures ~header cm.cm_agents window
             (cm_set_measure cm ev_id)
             query.pattern.events.(ev_id) ;
         (* We proceed with our todo list *)
@@ -645,25 +645,6 @@ let print_legend (q, fmt) =
   | Some ls ->
       let labels = List.map (fun l -> "'" ^ l ^ "'") ls in
       Format.fprintf fmt "%s@;" (String.concat ", " labels)
-
-let eval ?(uuid : int option) (m : Model.t) (q : Query.query)
-    (fmt : Format.formatter) (trace_file : string) : unit =
-  let env = init_env q in
-  ignore
-  @@ Streaming.fold_trace ~update_ccs:true ~compute_previous_states:true
-       trace_file
-       (first_pass_process_step q)
-       env ;
-  let cms = extract_complete_matchings env in
-  let acc = prepare_second_pass cms in
-  let matchings_processed _n = () in
-  Format.fprintf fmt "@[<v>" ;
-  ignore
-  @@ Streaming.fold_trace ~update_ccs:true ~compute_previous_states:true
-       trace_file
-       (second_pass_process_step ?uuid ~matchings_processed m q fmt cms)
-       acc ;
-  Format.fprintf fmt "@]"
 
 let progress_bar msg nsteps =
   let processed = ref 0 in
@@ -686,8 +667,8 @@ let open_progress_bar msg step =
       last := !processed ) ;
     processed := !processed + n
 
-let eval_queries ?(skip_init_events = false) ?(uuid : int option) (m : Model.t)
-    (qs : (query * Format.formatter) list) (trace_file : string) : unit =
+let eval_batch ~trace_file qs =
+  let header = Trace_header.load ~trace_file in
   let queries = Array.of_list (List.map fst qs) in
   let fmts = Array.of_list (List.map snd qs) in
   let envs = Array.map init_env queries in
@@ -702,7 +683,7 @@ let eval_queries ?(skip_init_events = false) ?(uuid : int option) (m : Model.t)
   print_endline "Finding matchings..." ;
   ignore
   @@ Streaming.fold_trace ~update_ccs:true ~compute_previous_states:true
-       ~skip_init_events trace_file step1 () ;
+       ~skip_init_events:false trace_file step1 () ;
   let cms = Array.map extract_complete_matchings envs in
   let accs = Array.map prepare_second_pass cms in
   List.iter print_legend qs ;
@@ -718,10 +699,10 @@ let eval_queries ?(skip_init_events = false) ?(uuid : int option) (m : Model.t)
     |> Array.iteri (fun i q ->
            Log.with_current_query q.title (fun () ->
                accs.(i) <-
-                 second_pass_process_step ?uuid ~matchings_processed m q
+                 second_pass_process_step ~header ~matchings_processed q
                    fmts.(i) cms.(i) window accs.(i) ) )
   in
   ignore
   @@ Streaming.fold_trace ~update_ccs:true ~compute_previous_states:true
-       ~skip_init_events trace_file step2 () ;
+       ~skip_init_events:false trace_file step2 () ;
   print_newline ()
