@@ -67,6 +67,13 @@ let pattern_created_links pat =
        | _ ->
            [] )
 
+let defining_pattern ev =
+  match ev.defining_rel with
+  | Some (First_after (_, pat)) | Some (Last_before (_, pat)) ->
+      Some pat
+  | _ ->
+      None
+
 let site_ag_id ((id, _), _) = id
 
 let psite_ag_id (id, _) = id
@@ -98,6 +105,8 @@ type agent_matching_map = AMM of global_agent_id pat_agent_id_map
 
 exception No_match
 
+let empty_amm = AMM IntMap.empty
+
 let append (AMM m) (ag_pid, ag_id) =
   AMM
     ( match IntMap.find_opt ag_pid m with
@@ -123,6 +132,7 @@ let same_cardinal (AMM m) (AMM m') = IntMap.cardinal m = IntMap.cardinal m'
 (* Full event matchings                                                      *)
 (*****************************************************************************)
 
+(* Maps pattern ids to global ids *)
 type full_agent_matching = FAM of global_agent_id array
 
 (* Make a full agent matching from an [agent_matching_map]. Raises
@@ -195,7 +205,7 @@ let match_action pat pat_action step_action =
 (* Return the agent matching map induced by the step actions alone. We
    mandate that each pattern action matches unambiguously with a single
    trace action. *)
-let matchings_implied_by_actions pat step_actions =
+let add_matchings_implied_by_actions pat step_actions amm =
   pat.main_pattern.mods
   |> List.fold_left
        (fun amm pat_action ->
@@ -206,7 +216,7 @@ let matchings_implied_by_actions pat step_actions =
              append_aml amm aml
          | _ ->
              Tql_error.(fail Agent_ambiguity) )
-       (AMM IntMap.empty)
+       amm
 
 (* Take a Kappa mixture and a list of known bindings between local
    agents and augment the map of known agent matchings accordingly. *)
@@ -240,13 +250,13 @@ let propagate_link_constraints pat w amm =
 (* Try to match the agents of [pat] in [w] by only looking at
    modifications and connectivity. Only uses w.step (not the mixture)
    This returns an array that should be interpreted as a map from
-   `pat_agent_id` to `global_agent_id`. *)
-let match_agents_in_pattern (pat : Query.event_pattern) (w : Streaming.window) :
-    full_agent_matching option =
+   [pat_agent_id] to [global_agent_id]. If [constrs] is provided, the
+   algorithm starts with preexisting agent matchings. *)
+let match_agents_in_pattern ?(constrs = empty_amm) pat w =
   if satisfy_rule_constraint pat.rule_constraint w.state w.step then
     try
       let _tests, step_actions = extract_tests_actions w.step in
-      let amm = matchings_implied_by_actions pat step_actions in
+      let amm = add_matchings_implied_by_actions pat step_actions constrs in
       check_injective amm ;
       let amm = fixpoint same_cardinal (propagate_link_constraints pat w) amm in
       (* If we reached this point without [No_match] being thrown, it
@@ -349,69 +359,32 @@ type status = Failure | Success of {other_constrained: global_agent_id list}
 type result = No_match | Match of {index: global_agent_id list; status: status}
 [@@deriving show, yojson_of]
 
-(* This function returns:
-   - [None] if the event does not match
-   - An [event_matchings] object with 0 matchings if the defining
-     relation matches but the main pattern does not. *)
+(* Returns [None] when the provided local id is not constrained by the
+   pattern. *)
+let gid_of_lid pat (FAM m) lid =
+  try
+    let pid = IntMap.find lid pat.main_pattern.agent_constraints in
+    Some m.(pid)
+  with Not_found -> None
+
+let gid_of_lid_exn pat fam lid = gid_of_lid pat fam lid |> Option.get
+
 let match_event (ev : Query.event) (w : Streaming.window) : result =
-  let main_pat_opt = ev.event_pattern in
-  let def_pat_opt =
-    match ev.defining_rel with
-    | Some (First_after (_, pat)) | Some (Last_before (_, pat)) ->
-        Some pat
-    | _ ->
-        None
-  in
-  (* local_id -> global_id *)
-  let qid_to_gid (pat, FAM m) q_id =
-    try
-      let p_id = IntMap.find q_id pat.main_pattern.agent_constraints in
-      Some m.(p_id)
-    with Not_found -> None
-  in
-  let qid_to_gid' pm1 pm2_opt q_id =
-    match pm2_opt with
-    | None -> (
-      match qid_to_gid pm1 q_id with None -> assert false | Some gid -> gid )
-    | Some pm2 -> (
-      match (qid_to_gid pm1 q_id, qid_to_gid pm2 q_id) with
-      | None, Some gid | Some gid, None ->
-          gid
-      | Some gid, Some gid' ->
-          assert (gid = gid') ;
-          gid
-      | None, None ->
-          assert false )
-  in
-  let generate_matching effective pm1 pm2_opt =
-    let index = List.map (qid_to_gid' pm1 pm2_opt) ev.link_agents in
-    let status =
-      if effective then
-        Success
-          { other_constrained=
-              List.map (qid_to_gid' pm1 pm2_opt) ev.other_constrained_agents }
-      else Failure
-    in
-    Match {index; status}
-  in
-  match (def_pat_opt, main_pat_opt) with
-  | Some def_pat, Some main_pat -> (
-    match match_simple_pattern def_pat w with
-    | None ->
-        No_match (* No matching at all *)
-    | Some def_pat_matchings -> (
-      match match_simple_pattern main_pat w with
-      | None ->
-          generate_matching false (def_pat, def_pat_matchings) None
-      | Some main_pat_matchings ->
-          generate_matching true
-            (def_pat, def_pat_matchings)
-            (Some (main_pat, main_pat_matchings)) ) )
+  match (defining_pattern ev, ev.event_pattern) with
+  | None, None ->
+      assert false
   | Some pat, None | None, Some pat -> (
     match match_simple_pattern pat w with
     | None ->
         No_match
-    | Some pat_matchings ->
-        generate_matching true (pat, pat_matchings) None )
-  | _ ->
-      No_match
+    | Some fam ->
+        let index = List.map (gid_of_lid_exn pat fam) ev.link_agents in
+        let status =
+          Success
+            { other_constrained=
+                List.map (gid_of_lid_exn pat fam) ev.other_constrained_agents }
+        in
+        Match {index; status} )
+  | Some _, Some _ ->
+      Tql_error.failwith
+        "Having several clauses for an event is not supported yet."
