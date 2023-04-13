@@ -2,9 +2,6 @@
 (* Simple query interpreter                                                  *)
 (*****************************************************************************)
 
-(* TODO: in [ev_matchings], do we ever have more than zero or one
-   specific parts? *)
-
 open Aliases
 open Utils
 open Query
@@ -31,13 +28,13 @@ type ev_matching_common_part =
   ; ev_id_in_query: local_event_id
   ; ev_time: float
   ; indexing_ag_matchings: AgentValuation.t
-        (* Maps [local_agent_id]s from [event.already_constrained_agents]
+        (* Maps [local_agent_id]s from [event.link_agents]
            to [global_agent_id] *) }
 [@@deriving show, yojson_of]
 
 type ev_matching_specific_part =
   { new_ag_matchings: AgentValuation.t
-        (* Maps [local_agent_id]s from [event.captured_agents] to
+        (* Maps [local_agent_id]s from [event.other_constrained_agents] to
            [global_agent_id] *)
   ; recorded_measures: Value.t Utils.IntMap.t
         (* This is only used during the second pass. TODO: should we use
@@ -80,11 +77,11 @@ type event_recorder =
   { recorder_status: recorder_status
   ; mutable cache: ev_matchings History.t ValMap.t
         (* For every event, we map a valuation of
-           [ev.already_constrained_agents] to a history of
+           [ev.link_agents] to a history of
            [(event_id_in_trace, matchings)] pairs. *)
   ; mutable subscribed: pm_id list ValMap.t
         (* For every event, map a valuation of
-           [ev.already_constrained_agents] to a list of relevant partial
+           [ev.link_agents] to a list of relevant partial
            matchings. For example, in the following query:
 
                match b:{ s:S(d[/1]), k:K(d[/1], x{u}) }
@@ -259,7 +256,7 @@ let first_after_in_cache, last_before_in_cache =
 (* Obtain a valuation for the indexing agents of an event given a
    partial matching. *)
 let indexing_ag_valuation query ev_id pm =
-  let val_ags = query.pattern.events.(ev_id).already_constrained_agents in
+  let val_ags = query.pattern.events.(ev_id).link_agents in
   let find_valuation ag =
     try IntMap.find ag pm.constrained_agents
     with Not_found -> Log.(failwith (fmt "No mapping found for agent %d." ag))
@@ -284,7 +281,8 @@ let valuation_to_mapping ag_pm_labels v =
 let update_constrained_agents ev m pm =
   let constrained_agents =
     IntMap.overriding_update pm.constrained_agents
-      (valuation_to_mapping ev.captured_agents m.specific.new_ag_matchings)
+      (valuation_to_mapping ev.other_constrained_agents
+         m.specific.new_ag_matchings )
   in
   {pm with constrained_agents}
 
@@ -463,9 +461,10 @@ let match_event ev w =
       match status with
       | Failure ->
           Some {common_to_all; matchings= []}
-      | Success {captured} ->
+      | Success {other_constrained} ->
           let specific =
-            {new_ag_matchings= captured; recorded_measures= IntMap.empty}
+            { new_ag_matchings= other_constrained
+            ; recorded_measures= IntMap.empty }
           in
           Some {common_to_all; matchings= [{common= common_to_all; specific}]} )
 

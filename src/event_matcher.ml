@@ -2,13 +2,6 @@
 (* Event matcher                                                             *)
 (*****************************************************************************)
 
-(* TODO: This is not exactly the right interface. What would be better
-   is a function that takes a matching of already captured agents as an
-   argument and returns a matching of agents to be captured in return.
-
-   It returns event_matching or nothing.
-*)
-
 open Aliases
 open Query
 open Utils
@@ -309,7 +302,7 @@ let match_simple_pattern (pat : Query.event_pattern) (w : Streaming.window) :
   | None ->
       None
 
-type status = Failure | Success of {captured: global_agent_id list}
+type status = Failure | Success of {other_constrained: global_agent_id list}
 [@@deriving show, yojson_of]
 
 type result = No_match | Match of {index: global_agent_id list; status: status}
@@ -351,12 +344,12 @@ let match_event (ev : Query.event) (w : Streaming.window) : result =
           assert false )
   in
   let generate_matching effective pm1 pm2_opt =
-    let index =
-      List.map (qid_to_gid' pm1 pm2_opt) ev.already_constrained_agents
-    in
+    let index = List.map (qid_to_gid' pm1 pm2_opt) ev.link_agents in
     let status =
       if effective then
-        Success {captured= List.map (qid_to_gid' pm1 pm2_opt) ev.captured_agents}
+        Success
+          { other_constrained=
+              List.map (qid_to_gid' pm1 pm2_opt) ev.other_constrained_agents }
       else Failure
     in
     Match {index; status}

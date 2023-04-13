@@ -1,6 +1,6 @@
 open Aliases
 
-type status = Failure | Success of {captured: global_agent_id list}
+type status = Failure | Success of {other_constrained: global_agent_id list}
 [@@deriving show, yojson_of]
 
 type result = No_match | Match of {index: global_agent_id list; status: status}

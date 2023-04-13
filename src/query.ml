@@ -94,23 +94,45 @@ type event =
         (* During compilation, measures are extracted from expressions
            and given an ID ([measure_id]) corresponding to their index
            in this array. *)
-  ; already_constrained_agents: local_agent_id list
-  ; captured_agents: local_agent_id list
-        (* The two fields above are computed with the traversal tree.
-           They partition the set of [local_agent_id] constrained by the
-           event (a local agent is constrained if it occurs either in
-           the [defining_rel] pattern or in the [event_pattern]) into
-           two parts. [already_constrained_agents] are local_agents that
-           will have been already mapped to global agents in the trace
-           when the event is attempted to be matched. [captured_agents]
-           are agents whose identity is to be figured out by matching
-           this specific event. *)
-        (* We further assume that the
-           [defining_rel] pattern can only feature already constrained
-           agents. TODO: why this assumption? Do we need it? *) }
+  ; link_agents: local_agent_id list
+  ; other_constrained_agents: local_agent_id list
+        (* The two fields above are computed with the [execution_path].
+            They form a partition of the set of constrained agents (i.e.
+            the set of [local_agent_id] that are constrained in either
+            the main pattern or the defining pattern). A local agent is
+            part of [link_agents] iff (1) it is constrained in the
+            defining pattern and (2) it is constrained by at least one
+            previous event in the execution path. To motivate the
+            terminology of "link agent", let us consider an example
+            of a query and how it is evaluated:
+
+                match e:{r:..., s:...}
+                and last f:{r:..., u:...} before e
+                and f:{r:..., s:..., t:...}
+                and g:{t: ...}
+
+           To evaluate this query, one first considers all possible
+           mappings of e in the trace (each mapping determines the
+           identity of r and s). Given a particular mapping, the only
+           possible identity of f can be determined using the query's
+           second clause (i.e. the defining pattern of f). To find the
+           candidate for f, one must look at the set of all events in
+           the trace that match the pattern from the clause for a fixed
+           value of r. We have [link_agents = [r]]. u is not an
+           link agent since it is not pinned already and s, t are
+           not either since they are not constrained in the defining
+           pattern of f. We have [other_constrained_agents = [u, s, t]].
+           Finally, the only link agent for g is t.
+        *) }
 [@@deriving show, yojson_of]
 
 type execution_path = local_event_id list [@@deriving show, yojson_of]
+(* A topological sorting of the query's dependency graph. The first
+   event from this list is called the "root". Mapping the root to an
+   event in the trace must be sufficient to determine an unambiguous
+   mapping for all other events (this is called "local rigidity" in the
+   paper). Once the root is "pinned", the mapping of other events is
+   deduced in the order specified by the execution path. *)
 
 type trace_pattern =
   { agents: agent_kind array (* Question: all agents or some? *)

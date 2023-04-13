@@ -483,8 +483,8 @@ let make_event i tmp_ev =
                  "There can be at most one defining relation for an event." ) )
       )
   ; measures= PreArray.to_array tmp_ev.tmp_ev_measures
-  ; already_constrained_agents= []
-  ; captured_agents= [] }
+  ; link_agents= []
+  ; other_constrained_agents= [] }
 
 let make_agent {tmp_ag_kind} =
   match tmp_ag_kind with
@@ -590,10 +590,9 @@ let schedule_agents_capture q =
         let acas, cas =
           IntSet.partition (fun j -> IntSet.mem j constrained) ev_ags
         in
-        let already_constrained_agents = IntSet.elements acas in
-        let captured_agents = IntSet.elements cas in
-        q.pattern.events.(i) <-
-          {ev with already_constrained_agents; captured_agents} ;
+        let link_agents = IntSet.elements acas in
+        let other_constrained_agents = IntSet.elements cas in
+        q.pattern.events.(i) <- {ev with link_agents; other_constrained_agents} ;
         let constrained = IntSet.union constrained ev_ags in
         aux path_rest constrained
   in
