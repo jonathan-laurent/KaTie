@@ -113,7 +113,7 @@ type 'a branchings_memory = Elem of 'a | Branched of int list
 [@@deriving show, yojson_of]
 
 type env =
-  { query: query
+  { query: Query.t
   ; matching_tree: matching_tree
   ; recorders: event_recorder array
   ; mutable partial_matchings: partial_matching branchings_memory IntMap.t
@@ -183,7 +183,7 @@ let predecessor ev =
   | Some (Last_before (pid, _) as rel) ->
       Some (rel, pid)
 
-let compute_traversal_tree (q : query) =
+let compute_traversal_tree q =
   let roots = Queue.create () in
   (* We compute the inverse of the precedence relation. *)
   (* Note that hash-tables in OCaml can map each key to several values. *)
@@ -605,8 +605,8 @@ let take_all_measures ~header ag_matchings window set_measure ev =
          set_measure i v )
 
 let second_pass_process_step ~header ~(matchings_processed : int -> unit)
-    (query : Query.query) (fmt : Format.formatter)
-    (cms : complete_matching array) (window : Streaming.window) remaining =
+    (query : Query.t) (fmt : Format.formatter) (cms : complete_matching array)
+    (window : Streaming.window) remaining =
   let rec process = function
     | [] ->
         [] (* There's nothing interesting in the trace anymore *)

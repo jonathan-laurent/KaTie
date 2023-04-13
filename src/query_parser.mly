@@ -48,10 +48,10 @@ let make_agent ag_mod id1 id2_opt ag_sites =
 %type <Query_ast.mixture_pat> mixture_pat
 
 %start single_query
-%type <Query_ast.query> single_query
+%type <Query_ast.t> single_query
 
 %start queries
-%type <Query_ast.query list> queries
+%type <Query_ast.t list> queries
 
 %%
 

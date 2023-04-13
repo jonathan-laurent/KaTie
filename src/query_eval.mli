@@ -1,5 +1,4 @@
-val eval_batch :
-  trace_file:string -> (Query.query * Format.formatter) list -> unit
+val eval_batch : trace_file:string -> (Query.t * Format.formatter) list -> unit
 
 (* The following declarations are included to avoid warnings of the
    kind: "Unused function pp_env". *)

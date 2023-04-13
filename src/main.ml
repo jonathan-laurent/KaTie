@@ -85,11 +85,11 @@ let main () =
       with_file (Tql_output.file "queries-ast.json") (fun fmt ->
           Format.fprintf fmt "%a@.]"
             (Yojson.Safe.pretty_print ~std:false)
-            ([%yojson_of: Query_ast.query list] asts) ) ;
+            ([%yojson_of: Query_ast.t list] asts) ) ;
       with_file (Tql_output.file "compiled-queries.json") (fun fmt ->
           Format.fprintf fmt "%a@.]"
             (Yojson.Safe.pretty_print ~std:false)
-            ([%yojson_of: Query.query list] queries) ) ;
+            ([%yojson_of: Query.t list] queries) ) ;
       with_file (Tql_output.file "execution-paths.json") (fun fmt ->
           Format.fprintf fmt "%a@.]"
             (Yojson.Safe.pretty_print ~std:false)

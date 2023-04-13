@@ -151,7 +151,7 @@ type env =
   ; query_events: tmp_event Dict.t
   ; constrained_agents_types: string SMap.t (* TODO: remove*) }
 
-let create_env (model : Model.t) (q : Ast.query) =
+let create_env (model : Model.t) (q : Ast.t) =
   let create_agent () = {tmp_ag_kind= None} in
   let create_event () =
     { tmp_ev_measures= PreArray.create ()
@@ -621,7 +621,7 @@ let show_execution_path env execution_path events =
            (String.concat "," other_constrained) )
   |> String.concat ", "
 
-let compile (model : Model.t) (q : Ast.query) =
+let compile (model : Model.t) (q : Ast.t) =
   let title = q.Ast.query_name in
   Log.with_current_query title (fun () ->
       Log.set_current_query title ;

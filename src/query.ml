@@ -146,7 +146,7 @@ type action = Print of Expr.t | If of Expr.t * action
 
 type debug_info = {dbg_execution_path: string} [@@deriving show, yojson_of]
 
-type query =
+type t =
   { title: string option
   ; legend: string list option (* Used as headers for the resulting CSV file. *)
   ; pattern: trace_pattern
