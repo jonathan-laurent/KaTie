@@ -135,12 +135,11 @@ type execution_path = local_event_id list [@@deriving show, yojson_of]
    deduced in the order specified by the execution path. *)
 
 type trace_pattern =
-  { agents: agent_kind array (* Question: all agents or some? *)
-  ; events: event array (* Indexed by [local_event_id] *)
+  { agents: agent_kind array
+        (* all constrained agents, indexed by [local_agent_id] *)
+  ; events: event array (* indexed by [local_event_id] *)
   ; execution_path: execution_path }
 [@@deriving show, yojson_of]
-
-(* TODO: add equality_constraints: (event_id * event_id) list ; *)
 
 type action = Print of Expr.t | If of Expr.t * action
 [@@deriving show, yojson_of]

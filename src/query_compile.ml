@@ -3,14 +3,12 @@
 (*****************************************************************************)
 
 (* The following is done during compilation:
-   + Agent kinds and site names are translated from strings to integer
+   - Agent kinds and site names are translated from strings to integer
      using the model.
-   + Mixture patterns are reformulated to make tests, modifications
-     and constraints more easily accessible.
-   + Expressions are typechecked
-   + Measures are gathered for each event
-   + A traversal tree is computed
-*)
+   - Mixture patterns are reformulated to make tests, modifications and
+     constraints more easily accessible.
+   - Measures are gathered for each event
+   - An execution path is computed *)
 
 module Ast = Query_ast
 open Query
@@ -103,7 +101,6 @@ end
 (* Parse whole query to find constrained agent's types                       *)
 (*****************************************************************************)
 
-(* This will go away *)
 let clause_pattern = function
   | Ast.Event e ->
       e
@@ -112,8 +109,6 @@ let clause_pattern = function
   | Ast.Last_before (e, _) ->
       e
 
-(* This is needed because Int_state_measure used to store an agent_kind
-   but won't be needed anymore. *)
 let constrained_agents_types q =
   q.Ast.pattern
   |> List.fold_left
