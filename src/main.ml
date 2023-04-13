@@ -104,7 +104,7 @@ let main () =
     in
     let queries = queries |> List.map (fun (q, f) -> (q, List.assoc f fmts)) in
     fmts |> List.iter (fun (_, fmt) -> Format.fprintf fmt "@[<v>") ;
-    Query_eval.eval_batch ~trace_file:!trace_file queries ;
+    Query_eval_legacy.eval_batch ~trace_file:!trace_file queries ;
     fmts |> List.iter (fun (_, fmt) -> Format.fprintf fmt "@]@.") ;
     let emoji = if !no_color then "" else " \u{1F389}" in
     print_endline_styled [green] ("Done!" ^ emoji)
