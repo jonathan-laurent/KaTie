@@ -28,7 +28,9 @@ let options =
     , "default output file (if not specified: `output.csv`)" )
   ; ("--legacy", Arg.Set use_legacy_evaluator, "use the legacy evaluator")
   ; ("--no-backtraces", Arg.Set no_backtraces, "disable exception backtraces")
-  ; ("--debug", Arg.Set Tql_output.debug_mode, "enable debug mode")
+  ; ( "--debug-level"
+    , Arg.Set_int Tql_output.debug_level
+    , "set the debug level (0, 1, 2)" )
   ; ( "--snapshots-names"
     , Arg.Set_string snapshots_name_format
     , "name format of generated snapshot files (default: 'snapshot.%.json' or \

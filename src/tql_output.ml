@@ -1,4 +1,4 @@
-let debug_mode = ref false
+let debug_level = ref 1
 
 let snapshot_prefix = ref "snapshot."
 
@@ -33,8 +33,8 @@ let with_file filename f =
   let fmt = Format.formatter_of_out_channel oc in
   f fmt ; close_out oc
 
-let debug_json filename yojson_of obj =
-  if !debug_mode then
+let debug_json ?(level = 1) filename yojson_of obj =
+  if !debug_level >= level then
     with_file filename (fun fmt ->
         Format.fprintf fmt "%a@.]"
           (Yojson.Safe.pretty_print ~std:false)
