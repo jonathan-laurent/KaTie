@@ -3,11 +3,18 @@
 (*****************************************************************************)
 
 open Aliases
+open Query
 
 (* A query is evaluated in several steps:
     1. We first cache the results of [Event_matcher.match_event] for
        each nonroot event in the trace.
 *)
+
+(*****************************************************************************)
+(* Utilities                                                                 *)
+(*****************************************************************************)
+
+let number_of_events q = Array.length q.pattern.events
 
 (*****************************************************************************)
 (* Link cache computation                                                    *)
@@ -33,6 +40,9 @@ module LinkCache = struct
      datastructure for efficient access. *)
   type t = Cache of Event_matcher.status History.t LinkMap.t array
 
+  let create query =
+    Cache (Array.init (number_of_events query) (fun _ -> LinkMap.empty))
+
   let add (Cache cache) ev_id step_id_in_trace pot_match =
     let ev_cache = cache.(ev_id) in
     let link = pot_match.Event_matcher.link in
@@ -55,5 +65,18 @@ module LinkCache = struct
 
   let last_before cache = access_cache History.last_before cache
 end
+
+let compute_link_cache_step query window cache =
+  query.pattern.events
+  |> Array.iteri (fun ev_id ev ->
+         match Event_matcher.match_event ev window with
+         | None ->
+             ()
+         | Some pot_match ->
+             LinkCache.add cache ev_id window.step_id pot_match )
+
+(*****************************************************************************)
+(* Main function                                                             *)
+(*****************************************************************************)
 
 let eval_batch ~trace_file:_ _qs = assert false
