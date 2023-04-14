@@ -10,7 +10,7 @@ let no_backtraces = ref false
 
 let snapshots_name_format = ref ""
 
-let use_legacy_evaluator = ref false
+let use_legacy_evaluator = ref true
 
 let no_color = ref false
 
@@ -75,7 +75,9 @@ let main () =
       queries ;
     let queries_and_formatters =
       List.map
-        (fun q -> (q, formatter_of_file (Tql_output.file q.Query.title)))
+        (fun q ->
+          (q, formatter_of_file (Tql_output.file ~kind:`Result q.Query.title))
+          )
         queries
     in
     List.iter

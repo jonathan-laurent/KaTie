@@ -20,6 +20,7 @@ TRACE_FILE = "trace.json"
 QUERY_FILE = "query.katie"
 KASIM_OUT_DIR = "kasim-output"
 KATIE_OUT_DIR = "katie-output"
+RESULTS_DIR = "results"
 STDOUT_FILE = "stdout.txt"
 STDERR_FILE = "stderr.txt"
 TESTS_DIR = "tests"
@@ -38,11 +39,12 @@ def green(s):
 
 
 def expected_files(dir):
-    for f in os.listdir(dir):
+    # `dir` is supposed to be the KaTie output diectory.
+    for f in os.listdir(join(dir, RESULTS_DIR)):
         if os.path.splitext(f)[-1] == ".csv":
-            yield f
-        elif f == STDOUT_FILE:
-            yield f
+            yield join(RESULTS_DIR, f)
+    if os.path.isfile(join(dir, STDOUT_FILE)):
+        yield STDOUT_FILE
 
 
 def correct_csv(file, *, num_matches=None, all_ones=False):

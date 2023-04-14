@@ -1,19 +1,44 @@
+(* KaTie outputs the following directory structure:
+   - out
+    - trace-raw.json, queries-ast.json, ...
+    - results
+      - query_1.csv, ..., query_n.csv
+    - snapshots
+      - snapshot.1.json, ..., snapshot.k.json
+*)
+
+(* Constants *)
+
+let results_dir = "results"
+
+let snapshots_dir = "snapshots"
+
+(* Configuration *)
+
 let debug_level = ref 1
 
 let snapshot_prefix = ref "snapshot."
 
 let snapshot_suffix = ref ".json"
 
-let snapshot_counter = ref 0
-
 let snapshots_native_format = ref false
 
-let output_directory = ref "."
+let output_directory = ref Filename.current_dir_name
 
-let check_dir_exists dir =
-  if not (Sys.file_exists dir && Sys.is_directory dir) then
-    if Sys.command ("mkdir '" ^ dir ^ "'") <> 0 then
-      Tql_error.(fail (Sys_error ("Could not create directory '" ^ dir ^ "'.")))
+(* Functions *)
+
+let snapshot_counter = ref 0
+
+let rec mkdir_p dir =
+  if dir <> Filename.current_dir_name then (
+    mkdir_p (Filename.dirname dir) ;
+    if Sys.file_exists dir && not (Sys.is_directory dir) then
+      Tql_error.failwith
+        ( "This directory cannot be created since a file with the same name \
+           already exists: " ^ dir ) ;
+    if not (Sys.file_exists dir) then Sys.mkdir dir 0O777 )
+
+let ensure_containing_dir_exists filename = mkdir_p (Filename.dirname filename)
 
 let set_output_directory dir =
   let dir =
@@ -24,12 +49,23 @@ let set_output_directory dir =
   in
   output_directory := dir
 
-let file filename =
-  check_dir_exists !output_directory ;
-  !output_directory ^ "/" ^ filename
+let file ?kind filename =
+  assert (Filename.is_implicit filename) ;
+  let filename =
+    match kind with
+    | None ->
+        filename
+    | Some `Result ->
+        Filename.concat results_dir filename
+    | Some `Snapshot ->
+        Filename.concat snapshots_dir filename
+  in
+  let filename = Filename.concat !output_directory filename in
+  ensure_containing_dir_exists filename ;
+  filename
 
-let with_file filename f =
-  let oc = open_out (file filename) in
+let with_file ?kind filename f =
+  let oc = open_out (file ?kind filename) in
   let fmt = Format.formatter_of_out_channel oc in
   f fmt ; close_out oc
 
@@ -54,4 +90,4 @@ let new_snapshot_file () =
   let f =
     Format.asprintf "%s%d%s" !snapshot_prefix !snapshot_counter !snapshot_suffix
   in
-  incr snapshot_counter ; file f
+  incr snapshot_counter ; file ~kind:`Snapshot f
