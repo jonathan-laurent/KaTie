@@ -135,7 +135,13 @@ def run(dir):
         print(f"KaSim failed: see {join(kasim_out, STDERR_FILE)}")
         return
     katie_args = ["-t", join(kasim_out, TRACE_FILE), "-q", query]
-    katie_options = ["--output-directory", katie_out, "--debug", "--no-color"]
+    katie_options = [
+        "--debug-level",
+        "2",
+        "--output-directory",
+        katie_out,
+        "--no-color",
+    ]
     katie_ret = run_cmd_saving_output(
         KATIE_EXE + katie_args + katie_options,
         stdout_file=join(katie_out, STDOUT_FILE),

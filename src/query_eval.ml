@@ -18,6 +18,27 @@ let number_of_agents q = Array.length q.Query.pattern.agents
 
 let query_root_event q = List.hd q.Query.pattern.execution_path
 
+(* Pretty-printing *)
+
+let dump_ag_lid query ~lid = query.Query.pattern.agents.(lid).agent_name
+
+let dump_ev_lid query ~lid =
+  query.Query.pattern.events.(lid).event_name |> Option.value ~default:"?"
+
+let dump_agent_mapping query ~lid ~gid =
+  Fmt.str "%s:%d" (dump_ag_lid query ~lid) gid
+
+let dump_agents_mapping_list query ~lids ~gids =
+  List.map2 (fun lid gid -> dump_agent_mapping query ~lid ~gid) lids gids
+  |> String.concat " "
+
+let dump_status query ev = function
+  | Event_matcher.Failure ->
+      "fail"
+  | Success {other_constrained} ->
+      dump_agents_mapping_list query ~lids:ev.Query.other_constrained_agents
+        ~gids:other_constrained
+
 (*****************************************************************************)
 (* Link cache computation                                                    *)
 (*****************************************************************************)
@@ -67,6 +88,24 @@ module LinkCache = struct
   let first_after cache = access_cache History.first_after cache
 
   let last_before cache = access_cache History.last_before cache
+
+  let dump query (Cache cache) : Yojson.Safe.t =
+    `Assoc
+      ( Array.to_list cache
+      |> List.mapi (fun ev_lid ev_cache ->
+             let ev = query.Query.pattern.events.(ev_lid) in
+             ( dump_ev_lid query ~lid:ev_lid
+             , `Assoc
+                 ( LinkMap.bindings ev_cache
+                 |> List.map (fun (link, hist) ->
+                        ( dump_agents_mapping_list query ~lids:ev.link_agents
+                            ~gids:link
+                        , `Assoc
+                            ( History.to_alist hist
+                            |> List.map (fun (ev_gid, status) ->
+                                   ( string_of_int ev_gid
+                                   , `String (dump_status query ev status) ) )
+                            ) ) ) ) ) ) )
 end
 
 let compute_link_cache_step query window cache =
@@ -199,13 +238,15 @@ let batch_iter_trace ~trace_file ~queries f =
         (fun i q -> Log.with_current_query q.Query.title (fun () -> f i q w))
         queries )
 
-let debug_intermediate file ~queries yojson_of_elt objs =
-  let open Ppx_yojson_conv_lib.Yojson_conv in
-  let obj = Array.map2 (fun q o -> (q.Query.title, o)) queries objs in
-  let yojson_of =
-    yojson_of_array (yojson_of_pair [%yojson_of: string option] yojson_of_elt)
+let dump_intermediate file ~queries dump objs =
+  let json : Yojson.Safe.t =
+    `Assoc
+      ( Array.map2
+          (fun q o -> (q.Query.title |> Option.value ~default:"?", dump q o))
+          queries objs
+      |> Array.to_list )
   in
-  Tql_output.debug_json file yojson_of obj
+  Tql_output.debug_json ~level:2 file (fun x -> x) json
 
 let eval_batch ~trace_file queries_and_formatters =
   let queries = Array.map fst (Array.of_list queries_and_formatters) in
@@ -213,4 +254,4 @@ let eval_batch ~trace_file queries_and_formatters =
   let caches = Array.map LinkCache.create queries in
   batch_iter_trace ~trace_file ~queries (fun i q w ->
       compute_link_cache_step q w caches.(i) ) ;
-  debug_intermediate "link-cache.json" ~queries LinkCache.yojson_of_t caches
+  dump_intermediate "link-cache.json" ~queries LinkCache.dump caches

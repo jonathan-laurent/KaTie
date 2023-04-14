@@ -30,7 +30,7 @@ let options =
   ; ("--no-backtraces", Arg.Set no_backtraces, "disable exception backtraces")
   ; ( "--debug-level"
     , Arg.Set_int Tql_output.debug_level
-    , "set the debug level (0, 1, 2)" )
+    , "set the debug level (0, 1, 2) (default: 1)" )
   ; ( "--snapshots-names"
     , Arg.Set_string snapshots_name_format
     , "name format of generated snapshot files (default: 'snapshot.%.json' or \
