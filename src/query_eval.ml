@@ -257,20 +257,14 @@ let batch_iter_trace ~trace_file ~queries f =
 
 let batch_dump ?(level = 1) file ~queries f =
   let json : Yojson.Safe.t =
-    `Assoc
-      ( Array.map
-          (fun q -> (q.Query.title |> Option.value ~default:"?", f q))
-          queries
-      |> Array.to_list )
+    `Assoc (Array.map (fun q -> (q.Query.title, f q)) queries |> Array.to_list)
   in
   Tql_output.debug_json ~level file (fun x -> x) json
 
 let dump_intermediate file ~queries dump objs =
   let json : Yojson.Safe.t =
     `Assoc
-      ( Array.map2
-          (fun q o -> (q.Query.title |> Option.value ~default:"?", dump q o))
-          queries objs
+      ( Array.map2 (fun q o -> (q.Query.title, dump q o)) queries objs
       |> Array.to_list )
   in
   Tql_output.debug_json ~level:2 file (fun x -> x) json

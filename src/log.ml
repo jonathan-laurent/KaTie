@@ -6,7 +6,7 @@ let set_current_query s = current_query := s
 
 let with_current_query s f =
   let old = !current_query in
-  set_current_query s ;
+  set_current_query (Some s) ;
   let ret = f () in
   set_current_query old ; ret
 

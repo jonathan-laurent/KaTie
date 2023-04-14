@@ -150,7 +150,7 @@ type action = Print of Expr.t | If of Expr.t * action
 [@@deriving show, yojson_of]
 
 type t =
-  { title: string option
+  { title: string
   ; legend: string list option (* Used as headers for the resulting CSV file. *)
   ; pattern: trace_pattern
   ; action: action

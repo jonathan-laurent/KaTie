@@ -207,14 +207,6 @@ action: e=expr { Print e }
 
 query_legend: OP_CURL arg=separated_list(COMMA, STRING) CL_CURL { arg }
 
-query_header:
-  | {fun q -> q}
-  | QUERY {fun q -> q}
-  | QUERY name=STRING legend=option(query_legend)
-    {fun q -> {q with query_name = Some name ; legend}}
-  | QUERY legend=query_legend
-    {fun q -> {q with legend = Some legend}}
-
 when_clause: WHEN e=expr { e }
 
 float_or_int:
@@ -224,11 +216,12 @@ float_or_int:
 every_clause: EVERY f=float_or_int SECONDS { f }
 
 query:
-  header=query_header pattern=pattern
+  QUERY query_name=STRING legend=option(query_legend)
+  pattern=pattern
   every_clause=option(every_clause)
   when_clause=option(when_clause)
   RETURN action=action
-  { header {pattern; when_clause; action; query_name=None; legend=None; every_clause} }
+  { {query_name; legend; pattern; when_clause; action; every_clause} }
 
 single_query: q=query EOF { q }
 

@@ -613,7 +613,6 @@ let schedule_execution p =
 let compile (model : Model.t) (q : Ast.t) =
   let title = q.Ast.query_name in
   Log.with_current_query title (fun () ->
-      Log.set_current_query title ;
       let env = create_env model q in
       process_clauses env q.Ast.pattern ;
       let when_clause =

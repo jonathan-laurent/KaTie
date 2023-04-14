@@ -6,8 +6,6 @@ let trace_file = ref ""
 
 let query_file = ref ""
 
-let default_out_file = ref "output.csv"
-
 let no_backtraces = ref false
 
 let snapshots_name_format = ref ""
@@ -23,9 +21,6 @@ let usage = Sys.argv.(0) ^ " queries a Kappa trace"
 let options =
   [ ("-q", Arg.Set_string query_file, "query file")
   ; ("-t", Arg.Set_string trace_file, "trace file")
-  ; ( "-o"
-    , Arg.Set_string default_out_file
-    , "default output file (if not specified: `output.csv`)" )
   ; ("--legacy", Arg.Set use_legacy_evaluator, "use the legacy evaluator")
   ; ("--no-backtraces", Arg.Set no_backtraces, "disable exception backtraces")
   ; ( "--debug-level"
@@ -63,10 +58,6 @@ let parse_and_compile_queries model file =
 
 let formatter_of_file f = Format.formatter_of_out_channel (open_out f)
 
-let query_output_file q =
-  let title = Option.value ~default:!default_out_file q.Query.title in
-  Format.sprintf "%s" title
-
 let main () =
   Arg.parse options (fun _ -> ()) usage ;
   if not !no_backtraces then Printexc.record_backtrace true ;
@@ -82,19 +73,20 @@ let main () =
     Tql_output.debug_json "queries-ast.json" [%yojson_of: Query_ast.t list] asts ;
     Tql_output.debug_json "compiled-queries.json" [%yojson_of: Query.t list]
       queries ;
-    let queries = queries |> List.map (fun q -> (q, query_output_file q)) in
-    let fmts =
-      queries |> List.map snd |> List.sort_uniq compare
-      |> List.map (fun f -> (f, formatter_of_file (Tql_output.file f)))
+    let queries_and_formatters =
+      List.map
+        (fun q -> (q, formatter_of_file (Tql_output.file q.Query.title)))
+        queries
     in
-    let queries = queries |> List.map (fun (q, f) -> (q, List.assoc f fmts)) in
-    fmts |> List.iter (fun (_, fmt) -> Format.fprintf fmt "@[<v>") ;
+    List.iter
+      (fun (_, fmt) -> Format.fprintf fmt "@[<v>")
+      queries_and_formatters ;
     let (module Evaluator : Query_evaluator.S) =
       if !use_legacy_evaluator then (module Query_eval_legacy)
       else (module Query_eval)
     in
-    Evaluator.eval_batch ~trace_file:!trace_file queries ;
-    fmts |> List.iter (fun (_, fmt) -> Format.fprintf fmt "@]@.") ;
+    Evaluator.eval_batch ~trace_file:!trace_file queries_and_formatters ;
+    List.iter (fun (_, fmt) -> Format.fprintf fmt "@]@.") queries_and_formatters ;
     let emoji = if !no_color then "" else " \u{1F389}" in
     print_endline_styled [green] ("Done!" ^ emoji)
 

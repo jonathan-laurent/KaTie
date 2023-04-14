@@ -85,10 +85,10 @@ and clause =
 type action = Print of expr [@@deriving show, yojson]
 
 type t =
-  { pattern: trace_pattern
+  { query_name: string
+  ; legend: string list option
+  ; pattern: trace_pattern
   ; when_clause: expr option
   ; every_clause: float option
-  ; action: action
-  ; legend: string list option
-  ; query_name: string option }
+  ; action: action }
 [@@deriving show, yojson]
