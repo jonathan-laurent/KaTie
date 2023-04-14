@@ -11,8 +11,8 @@ type window =
   ; step_id: int }
 
 let fold_trace (type acc) ?(update_ccs = true) ?(compute_previous_states = true)
-    ?(skip_init_events = false) (fname : string) (step_f : window -> acc -> acc)
-    (init : acc) : acc =
+    ?(skip_init_events = false) ~(trace_file : string)
+    (step_f : window -> acc -> acc) (init : acc) : acc =
   let previous = ref None in
   let init_state () = Replay.init_state ~with_connected_components:update_ccs in
   let state = ref (init_state ()) in
@@ -39,4 +39,4 @@ let fold_trace (type acc) ?(update_ccs = true) ?(compute_previous_states = true)
         let window = {step; previous_state; state= !state; step_id= !step_id} in
         step_f window acc
   in
-  snd (Trace.fold_trace_file process_step (fun _ -> init) fname)
+  snd (Trace.fold_trace_file process_step (fun _ -> init) trace_file)

@@ -645,7 +645,7 @@ let eval_batch ~trace_file qs =
   print_endline "Finding matchings..." ;
   ignore
   @@ Streaming.fold_trace ~update_ccs:true ~compute_previous_states:true
-       ~skip_init_events:false trace_file step1 () ;
+       ~skip_init_events:false ~trace_file step1 () ;
   let cms = Array.map extract_complete_matchings envs in
   let accs = Array.map prepare_second_pass cms in
   List.iter print_legend qs ;
@@ -666,5 +666,5 @@ let eval_batch ~trace_file qs =
   in
   ignore
   @@ Streaming.fold_trace ~update_ccs:true ~compute_previous_states:true
-       ~skip_init_events:false trace_file step2 () ;
+       ~skip_init_events:false ~trace_file step2 () ;
   print_newline ()

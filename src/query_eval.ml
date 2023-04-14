@@ -40,9 +40,8 @@ module LinkCache = struct
      link) to a sequence of [(step_id_in_trace, potential_matching)]
      pairs. The sequence is represented using a [History.t]
      datastructure for efficient access. *)
-  type t =
-    | Cache of Event_matcher.status History.t LinkMap.t array
-        [@deriving show, yojson_of]
+  type t = Cache of Event_matcher.status History.t LinkMap.t array
+  [@@deriving show, yojson_of]
 
   let create query =
     Cache (Array.init (number_of_events query) (fun _ -> LinkMap.empty))
@@ -188,4 +187,30 @@ let compute_all_matchings query link_cache =
 (* Main function                                                             *)
 (*****************************************************************************)
 
-let eval_batch ~trace_file:_ _qs = assert false
+let iter_trace ~trace_file f =
+  Streaming.fold_trace ~update_ccs:true ~compute_previous_states:true
+    ~skip_init_events:false ~trace_file
+    (fun w () -> f w)
+    ()
+
+let batch_iter_trace ~trace_file ~queries f =
+  iter_trace ~trace_file (fun w ->
+      Array.iteri
+        (fun i q -> Log.with_current_query q.Query.title (fun () -> f i q w))
+        queries )
+
+let debug_intermediate file ~queries yojson_of_elt objs =
+  let open Ppx_yojson_conv_lib.Yojson_conv in
+  let obj = Array.map2 (fun q o -> (q.Query.title, o)) queries objs in
+  let yojson_of =
+    yojson_of_array (yojson_of_pair [%yojson_of: string option] yojson_of_elt)
+  in
+  Tql_output.debug_json file yojson_of obj
+
+let eval_batch ~trace_file queries_and_formatters =
+  let queries = Array.map fst (Array.of_list queries_and_formatters) in
+  let _formatters = Array.map snd (Array.of_list queries_and_formatters) in
+  let caches = Array.map LinkCache.create queries in
+  batch_iter_trace ~trace_file ~queries (fun i q w ->
+      compute_link_cache_step q w caches.(i) ) ;
+  debug_intermediate "link-cache.json" ~queries LinkCache.yojson_of_t caches

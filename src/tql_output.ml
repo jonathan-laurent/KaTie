@@ -1,3 +1,5 @@
+let debug_mode = ref false
+
 let snapshot_prefix = ref "snapshot."
 
 let snapshot_suffix = ref ".json"
@@ -25,6 +27,18 @@ let set_output_directory dir =
 let file filename =
   check_dir_exists !output_directory ;
   !output_directory ^ "/" ^ filename
+
+let with_file filename f =
+  let oc = open_out (file filename) in
+  let fmt = Format.formatter_of_out_channel oc in
+  f fmt ; close_out oc
+
+let debug_json filename yojson_of obj =
+  if !debug_mode then
+    with_file filename (fun fmt ->
+        Format.fprintf fmt "%a@.]"
+          (Yojson.Safe.pretty_print ~std:false)
+          (yojson_of obj) )
 
 let set_snapshots_name_format fmt =
   snapshot_counter := 0 ;

@@ -10,11 +10,9 @@ let default_out_file = ref "output.csv"
 
 let no_backtraces = ref false
 
-let debug_mode = ref false
-
 let snapshots_name_format = ref ""
 
-let use_legacy_evaluator = ref true
+let use_legacy_evaluator = ref false
 
 let no_color = ref false
 
@@ -30,7 +28,7 @@ let options =
     , "default output file (if not specified: `output.csv`)" )
   ; ("--legacy", Arg.Set use_legacy_evaluator, "use the legacy evaluator")
   ; ("--no-backtraces", Arg.Set no_backtraces, "disable exception backtraces")
-  ; ("--debug", Arg.Set debug_mode, "enable debug mode")
+  ; ("--debug", Arg.Set Tql_output.debug_mode, "enable debug mode")
   ; ( "--snapshots-names"
     , Arg.Set_string snapshots_name_format
     , "name format of generated snapshot files (default: 'snapshot.%.json' or \
@@ -61,11 +59,6 @@ let parse_and_compile_queries model file =
       Tql_error.(fail ~loc:(Lexing.lexeme_start_p lexbuf) Parse_error)
   with Sys_error _ -> Tql_error.(fail (File_not_found file))
 
-let with_file file f =
-  let oc = open_out file in
-  let fmt = Format.formatter_of_out_channel oc in
-  f fmt ; close_out oc
-
 let formatter_of_file f = Format.formatter_of_out_channel (open_out f)
 
 let query_output_file q =
@@ -84,22 +77,14 @@ let main () =
     let header = Trace_header.load ~trace_file:!trace_file in
     let queries, asts = parse_and_compile_queries header.model !query_file in
     print_endline "Queries successfully compiled." ;
-    if !debug_mode then (
-      with_file (Tql_output.file "queries-ast.json") (fun fmt ->
-          Format.fprintf fmt "%a@.]"
-            (Yojson.Safe.pretty_print ~std:false)
-            ([%yojson_of: Query_ast.t list] asts) ) ;
-      with_file (Tql_output.file "compiled-queries.json") (fun fmt ->
-          Format.fprintf fmt "%a@.]"
-            (Yojson.Safe.pretty_print ~std:false)
-            ([%yojson_of: Query.t list] queries) ) ;
-      with_file (Tql_output.file "execution-paths.json") (fun fmt ->
-          Format.fprintf fmt "%a@.]"
-            (Yojson.Safe.pretty_print ~std:false)
-            ([%yojson_of: (string option * string) list]
-               (List.map
-                  (fun q -> (q.Query.title, q.debug_info.dbg_execution_path))
-                  queries ) ) ) ) ;
+    Tql_output.debug_json "queries-ast.json" [%yojson_of: Query_ast.t list] asts ;
+    Tql_output.debug_json "compiled-queries.json" [%yojson_of: Query.t list]
+      queries ;
+    Tql_output.debug_json "execution-paths.json"
+      [%yojson_of: (string option * string) list]
+      (List.map
+         (fun q -> (q.Query.title, q.debug_info.dbg_execution_path))
+         queries ) ;
     let queries = queries |> List.map (fun q -> (q, query_output_file q)) in
     let fmts =
       queries |> List.map snd |> List.sort_uniq compare

@@ -8,7 +8,7 @@ val fold_trace :
      ?update_ccs:bool
   -> ?compute_previous_states:bool
   -> ?skip_init_events:bool
-  -> string
+  -> trace_file:string
   -> (window -> 'a -> 'a)
   -> 'a
   -> 'a
