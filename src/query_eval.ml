@@ -32,12 +32,30 @@ let dump_agents_mapping_list query ~lids ~gids =
   List.map2 (fun lid gid -> dump_agent_mapping query ~lid ~gid) lids gids
   |> String.concat " "
 
+let dump_other_constrained query ev other_constrained =
+  dump_agents_mapping_list query ~lids:ev.Query.other_constrained_agents
+    ~gids:other_constrained
+
+let dump_link query ev link =
+  dump_agents_mapping_list query ~lids:ev.Query.link_agents ~gids:link
+
 let dump_status query ev = function
   | Event_matcher.Failure ->
       "fail"
   | Success {other_constrained} ->
-      dump_agents_mapping_list query ~lids:ev.Query.other_constrained_agents
-        ~gids:other_constrained
+      dump_other_constrained query ev other_constrained
+
+let dump_execution_path query path =
+  let ag_name lid = dump_ag_lid query ~lid in
+  path
+  |> List.map (fun ev_lid ->
+         let ev = query.Query.pattern.events.(ev_lid) in
+         let ev_name = dump_ev_lid query ~lid:ev_lid in
+         let link = List.map ag_name ev.link_agents in
+         let other_constrained = List.map ag_name ev.other_constrained_agents in
+         Fmt.str "%s(%s->%s)" ev_name (String.concat "," link)
+           (String.concat "," other_constrained) )
+  |> String.concat " "
 
 (*****************************************************************************)
 (* Link cache computation                                                    *)
@@ -98,8 +116,7 @@ module LinkCache = struct
              , `Assoc
                  ( LinkMap.bindings ev_cache
                  |> List.map (fun (link, hist) ->
-                        ( dump_agents_mapping_list query ~lids:ev.link_agents
-                            ~gids:link
+                        ( dump_link query ev link
                         , `Assoc
                             ( History.to_alist hist
                             |> List.map (fun (ev_gid, status) ->
@@ -238,6 +255,16 @@ let batch_iter_trace ~trace_file ~queries f =
         (fun i q -> Log.with_current_query q.Query.title (fun () -> f i q w))
         queries )
 
+let batch_dump ?(level = 1) file ~queries f =
+  let json : Yojson.Safe.t =
+    `Assoc
+      ( Array.map
+          (fun q -> (q.Query.title |> Option.value ~default:"?", f q))
+          queries
+      |> Array.to_list )
+  in
+  Tql_output.debug_json ~level file (fun x -> x) json
+
 let dump_intermediate file ~queries dump objs =
   let json : Yojson.Safe.t =
     `Assoc
@@ -250,6 +277,8 @@ let dump_intermediate file ~queries dump objs =
 
 let eval_batch ~trace_file queries_and_formatters =
   let queries = Array.map fst (Array.of_list queries_and_formatters) in
+  batch_dump "execution-paths.json" ~queries (fun q ->
+      `String (dump_execution_path q q.Query.pattern.execution_path) ) ;
   let _formatters = Array.map snd (Array.of_list queries_and_formatters) in
   let caches = Array.map LinkCache.create queries in
   batch_iter_trace ~trace_file ~queries (fun i q w ->

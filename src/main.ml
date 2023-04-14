@@ -82,11 +82,6 @@ let main () =
     Tql_output.debug_json "queries-ast.json" [%yojson_of: Query_ast.t list] asts ;
     Tql_output.debug_json "compiled-queries.json" [%yojson_of: Query.t list]
       queries ;
-    Tql_output.debug_json "execution-paths.json"
-      [%yojson_of: (string option * string) list]
-      (List.map
-         (fun q -> (q.Query.title, q.debug_info.dbg_execution_path))
-         queries ) ;
     let queries = queries |> List.map (fun q -> (q, query_output_file q)) in
     let fmts =
       queries |> List.map snd |> List.sort_uniq compare

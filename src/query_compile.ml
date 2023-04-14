@@ -610,19 +610,6 @@ let schedule_execution p =
   let p = {p with execution_path} in
   schedule_agents_capture p ; p
 
-let show_execution_path env execution_path events =
-  let ag_name ag_id = Dict.name_of_id env.query_agents ag_id |> Option.get in
-  let ev_name ev_id = Dict.name_of_id env.query_events ev_id in
-  execution_path
-  |> List.map (fun ev_id ->
-         let ev_name = ev_name ev_id |> Option.value ~default:"?" in
-         let ev = events.(ev_id) in
-         let link = List.map ag_name ev.link_agents in
-         let other_constrained = List.map ag_name ev.other_constrained_agents in
-         Fmt.str "%s(%s->%s)" ev_name (String.concat "," link)
-           (String.concat "," other_constrained) )
-  |> String.concat ", "
-
 let compile (model : Model.t) (q : Ast.t) =
   let title = q.Ast.query_name in
   Log.with_current_query title (fun () ->
@@ -640,8 +627,4 @@ let compile (model : Model.t) (q : Ast.t) =
       let legend = q.Ast.legend in
       let every_clause = q.Ast.every_clause in
       let pattern = schedule_execution pattern in
-      let debug_info =
-        { dbg_execution_path=
-            show_execution_path env pattern.execution_path pattern.events }
-      in
-      {pattern; action; title; legend; every_clause; debug_info} )
+      {pattern; action; title; legend; every_clause} )
