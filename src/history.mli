@@ -22,6 +22,8 @@ val first_after : int -> 'a t -> (int * 'a) option
 
 val run_tests : unit -> unit
 
+val to_alist : 'a t -> (int * 'a) list
+
 val pp : 'a Fmt.t -> 'a t Fmt.t
 
 val yojson_of_t : ('a -> Yojson.Safe.t) -> 'a t -> Yojson.Safe.t

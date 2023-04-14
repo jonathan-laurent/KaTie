@@ -71,4 +71,6 @@ let int_of_bool = function true -> 1 | false -> 0
 
 let sum_array = Array.fold_left ( + ) 0
 
+let list_zip l l' = List.map2 (fun x y -> (x, y)) l l'
+
 let no_duplicates cmp l = List.length (List.sort_uniq cmp l) = List.length l
