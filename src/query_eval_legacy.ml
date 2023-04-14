@@ -134,45 +134,7 @@ let number_of_agents q = Array.length q.pattern.agents
 
 let query_root_event q = List.hd q.pattern.execution_path
 
-(* Legacy conversion *)
-(* Trying to be safe *)
-(* let query_matching_tree q =
-   let rec aux = function
-     | [] ->
-         assert false
-     | [i] ->
-         Tree (i, [])
-     | i :: rest ->
-         let child =
-           aux rest
-           |> fun (Tree (j, _) as t) ->
-           (Option.get q.pattern.events.(j).defining_rel, t)
-         in
-         Tree (i, [child])
-   in
-   let r = aux q.pattern.execution_path in
-   print_endline ([%show: matching_tree] r) ;
-   r *)
-
-(* Legacy conversion *)
-(* This is very unsafe: we are pretty much assuming that the tree has
-   depth at most 2. This is enough for passing the tests though... *)
-(* let query_matching_tree q =
-   let aux = function
-     | i :: rest ->
-         let children =
-           List.map
-             (fun j ->
-               (Option.get q.pattern.events.(j).defining_rel, Tree (j, [])) )
-             rest
-         in
-         Tree (i, children)
-     | _ ->
-         assert false
-   in
-   let r = aux q.pattern.execution_path in
-   print_endline ([%show: matching_tree] r) ;
-   r *)
+(* Computing the legacy matching tree *)
 
 let predecessor ev =
   match ev.defining_rel with
@@ -449,14 +411,14 @@ let is_delay_respected env cur_time =
 (* Wrapper to recover the old interface *)
 let match_event ev w =
   match Event_matcher.match_event ev w with
-  | No_match ->
+  | None ->
       None
-  | Match {index; status} -> (
+  | Some {link; status} -> (
       let common_to_all =
         { ev_id_in_trace= w.step_id
         ; ev_id_in_query= ev.event_id
         ; ev_time= w.state.Replay.time
-        ; indexing_ag_matchings= index }
+        ; indexing_ag_matchings= link }
       in
       match status with
       | Failure ->

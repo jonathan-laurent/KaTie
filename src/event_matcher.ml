@@ -356,7 +356,7 @@ let match_simple_pattern pat w =
 type status = Failure | Success of {other_constrained: global_agent_id list}
 [@@deriving show, yojson_of]
 
-type result = No_match | Match of {index: global_agent_id list; status: status}
+type potential_matching = {link: global_agent_id list; status: status}
 [@@deriving show, yojson_of]
 
 (* Returns [None] when the provided local id is not constrained by the
@@ -369,22 +369,22 @@ let gid_of_lid pat (FAM m) lid =
 
 let gid_of_lid_exn pat fam lid = gid_of_lid pat fam lid |> Option.get
 
-let match_event (ev : Query.event) (w : Streaming.window) : result =
+let match_event ev w : potential_matching option =
   match (defining_pattern ev, ev.event_pattern) with
   | None, None ->
       assert false
   | Some pat, None | None, Some pat -> (
     match match_simple_pattern pat w with
     | None ->
-        No_match
+        None
     | Some fam ->
-        let index = List.map (gid_of_lid_exn pat fam) ev.link_agents in
+        let link = List.map (gid_of_lid_exn pat fam) ev.link_agents in
         let status =
           Success
             { other_constrained=
                 List.map (gid_of_lid_exn pat fam) ev.other_constrained_agents }
         in
-        Match {index; status} )
+        Some {link; status} )
   | Some _, Some _ ->
       Tql_error.failwith
         "Having several clauses for an event is not supported yet."
