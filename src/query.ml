@@ -24,10 +24,10 @@ type modification =
   | Mod_lnk_state of local_site * lnk_state
 [@@deriving show, yojson]
 
-type agent_spec = {agent_kind: agent_kind} [@@deriving show, yojson]
+type pat_agent_spec = {pat_agent_kind: agent_kind} [@@deriving show, yojson]
 
 type pattern =
-  { agents: agent_spec array (* Agents are indexed by their [pat_agent_id] *)
+  { agents: pat_agent_spec array (* Agents are indexed by their [pat_agent_id] *)
   ; tests: test list
   ; mods: modification list
   ; agent_constraints: pat_agent_id local_agent_id_map
@@ -88,6 +88,7 @@ type measure_descr = {measure: Measure.t; used_in_pattern: bool}
    'when'-clauses anyway.). *)
 type event =
   { event_id: local_event_id (* Index in query.pattern.events *)
+  ; event_name: string option (* For debugging purposes *)
   ; event_pattern: event_pattern option
   ; defining_rel: defining_relation option
   ; measures: measure_descr array
@@ -134,8 +135,12 @@ type execution_path = local_event_id list [@@deriving show, yojson_of]
    paper). Once the root is "pinned", the mapping of other events is
    deduced in the order specified by the execution path. *)
 
+type agent_spec =
+  {agent_kind: agent_kind; agent_name: string (* For debugging purposes *)}
+[@@deriving show, yojson_of]
+
 type trace_pattern =
-  { agents: agent_kind array
+  { agents: agent_spec array
         (* all constrained agents, indexed by [local_agent_id] *)
   ; events: event array (* indexed by [local_event_id] *)
   ; execution_path: execution_path }
@@ -154,3 +159,9 @@ type t =
   ; every_clause: float option
   ; debug_info: debug_info }
 [@@deriving show, yojson_of]
+
+(* Debug: agent_names, ev_names *)
+(* Yes, add this information *)
+
+(* Configure debug level *)
+(* At each level we do something different *)

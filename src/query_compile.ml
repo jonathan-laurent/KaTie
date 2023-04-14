@@ -91,16 +91,16 @@ module Dict = struct
       ignore (get t id) ;
       id
 
-  let to_array t =
-    let n = t.next_fresh_id in
-    try Array.init n (fun i -> IntMap.find i t.elems)
-    with Not_found -> assert false
-
   (* Warning: this is slow *)
   let name_of_id t id =
     Hashtbl.to_seq t.name_to_id
     |> Seq.find (fun (_, id') -> id = id')
     |> Option.map fst
+
+  let to_array t =
+    let n = t.next_fresh_id in
+    try Array.init n (fun id -> (IntMap.find id t.elems, name_of_id t id))
+    with Not_found -> assert false
 end
 
 (*****************************************************************************)
@@ -287,7 +287,8 @@ let compile_mixture_pattern env ags =
   let ags_array = Array.mapi (fun i x -> (i, x)) (Array.of_list ags) in
   let agents =
     ags_array
-    |> Array.map (fun (_, ag) -> {agent_kind= tr_agent_kind env ag.Ast.ag_kind})
+    |> Array.map (fun (_, ag) ->
+           {pat_agent_kind= tr_agent_kind env ag.Ast.ag_kind} )
   in
   let fold_sites f acc =
     ags_array
@@ -296,7 +297,7 @@ let compile_mixture_pattern env ags =
            ag.Ast.ag_sites
            |> List.fold_left
                 (fun acc s ->
-                  let ag_kind_id = agents.(ag_id).agent_kind in
+                  let ag_kind_id = agents.(ag_id).pat_agent_kind in
                   let site_id = tr_site_name env ag_kind_id s.Ast.site_name in
                   f acc ag_id ag_kind_id ag site_id s )
                 acc )
@@ -398,7 +399,7 @@ let compile_mixture_pattern env ags =
            | Some name ->
                let qid = Dict.id_of_name env.query_agents name in
                (Dict.get env.query_agents qid).tmp_ag_kind <-
-                 Some agents.(pat_ag_id).agent_kind ;
+                 Some agents.(pat_ag_id).pat_agent_kind ;
                IntMap.add qid pat_ag_id acc )
          IntMap.empty
   in
@@ -458,8 +459,9 @@ let process_clauses env (tpat : Ast.clause list) =
            let rel = Last_before (ref_id, pat) in
            Queue.push rel ev.tmp_def_rels )
 
-let make_event i tmp_ev =
+let make_event i (tmp_ev, event_name) =
   { event_id= i
+  ; event_name
   ; event_pattern=
       ( match Utils.list_of_queue tmp_ev.tmp_main_pats with
       | [] ->
@@ -487,12 +489,12 @@ let make_event i tmp_ev =
   ; link_agents= []
   ; other_constrained_agents= [] }
 
-let make_agent {tmp_ag_kind} =
+let make_agent ({tmp_ag_kind}, agent_name) =
   match tmp_ag_kind with
   | None ->
       Tql_error.(fail (Compilation_error "Unbound agent identifier."))
-  | Some k ->
-      k
+  | Some agent_kind ->
+      {agent_kind; agent_name= Option.get agent_name}
 
 let build_trace_pattern env =
   let events = Array.mapi make_event (Dict.to_array env.query_events) in

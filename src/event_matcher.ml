@@ -82,7 +82,7 @@ let agent_ty ag = snd ag
 
 let agent_id ag = fst ag
 
-let p_agent_ty pat ag_pid = pat.main_pattern.agents.(ag_pid).agent_kind
+let p_agent_ty pat ag_pid = pat.main_pattern.agents.(ag_pid).pat_agent_kind
 
 let site_has_type (kind, s) ((_, kind'), s') = kind = kind' && s = s'
 
