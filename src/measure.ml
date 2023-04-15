@@ -24,25 +24,6 @@ type t =
 
 (* Measure implementations *)
 
-let rule_name model event =
-  VString
-    ( match event with
-    | Trace.Rule (r, _, _) ->
-        let name =
-          Fmt.to_to_string (Model.print_rule ~noCounters:false ~env:model) r
-        in
-        name
-    | Trace.Init _ ->
-        "_init_"
-    | Trace.Dummy _ ->
-        "_dummy_"
-    | Trace.Subs _ ->
-        "_subs_"
-    | Trace.Pert _ ->
-        "_pert_"
-    | Trace.Obs _ ->
-        "_obs_" )
-
 let component ag_id state =
   match state.Replay.connected_components with
   | None ->
@@ -82,11 +63,7 @@ let int_state model (ag_id, ag_site) state =
             ; pp Edges.debug_print graph ] ) ;
       assert false
   in
-  let signature = Model.signatures model in
-  VString
-    (Fmt.to_to_string
-       (Signature.print_internal_state signature ag_kind ag_site)
-       st )
+  VString (Trace_util.show_internal model ag_kind ag_site st)
 
 let take_snapshot ?uuid model state file =
   let graph = state.Replay.graph in
@@ -147,8 +124,8 @@ let take_measure ~header ag_matching w measure =
     | Time ->
         time w.state
     | Rule ->
-        rule_name model w.step
+        VString (Trace_util.rule_name model w.step)
     | Init_event ->
         VBool (Trace.step_is_init w.step)
     | Debug_event ->
-        VString (Fmt.to_to_string (Trace.print_step ~env:model) w.step) )
+        VString (Trace_util.dump_step_actions model w.step) )

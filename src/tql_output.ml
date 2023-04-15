@@ -1,6 +1,7 @@
 (* KaTie outputs the following directory structure:
    - out
-    - trace-raw.json, queries-ast.json, ...
+    - debug
+      - trace-raw.json, queries-ast.json, ...
     - results
       - query_1.csv, ..., query_n.csv
     - snapshots
@@ -12,6 +13,8 @@
 let results_dir = "results"
 
 let snapshots_dir = "snapshots"
+
+let debug_dir = "debug"
 
 (* Configuration *)
 
@@ -59,6 +62,8 @@ let file ?kind filename =
         Filename.concat results_dir filename
     | Some `Snapshot ->
         Filename.concat snapshots_dir filename
+    | Some `Debug ->
+        Filename.concat debug_dir filename
   in
   let filename = Filename.concat !output_directory filename in
   ensure_containing_dir_exists filename ;
@@ -69,12 +74,12 @@ let with_file ?kind filename f =
   let fmt = Format.formatter_of_out_channel oc in
   f fmt ; close_out oc
 
-let debug_json ?(level = 1) filename yojson_of obj =
+let debug_json ?(level = 1) filename make_json =
   if !debug_level >= level then
-    with_file filename (fun fmt ->
+    with_file ~kind:`Debug filename (fun fmt ->
         Format.fprintf fmt "%a@.]"
           (Yojson.Safe.pretty_print ~std:false)
-          (yojson_of obj) )
+          (make_json ()) )
 
 let set_snapshots_name_format fmt =
   snapshot_counter := 0 ;

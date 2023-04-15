@@ -70,9 +70,10 @@ let main () =
     let header = Trace_header.load ~trace_file:!trace_file in
     let queries, asts = parse_and_compile_queries header.model !query_file in
     print_endline "Queries successfully compiled." ;
-    Tql_output.debug_json "queries-ast.json" [%yojson_of: Query_ast.t list] asts ;
-    Tql_output.debug_json "compiled-queries.json" [%yojson_of: Query.t list]
-      queries ;
+    Tql_output.debug_json "queries-ast.json" (fun () ->
+        [%yojson_of: Query_ast.t list] asts ) ;
+    Tql_output.debug_json "compiled-queries.json" (fun () ->
+        [%yojson_of: Query.t list] queries ) ;
     let queries_and_formatters =
       List.map
         (fun q ->

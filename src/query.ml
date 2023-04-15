@@ -156,9 +156,3 @@ type t =
   ; action: action
   ; every_clause: float option }
 [@@deriving show, yojson_of]
-
-(* Debug: agent_names, ev_names *)
-(* Yes, add this information *)
-
-(* Configure debug level *)
-(* At each level we do something different *)

@@ -8,6 +8,8 @@
     2. Then, we compute all matchings.
 *)
 
+open Dump
+
 (*****************************************************************************)
 (* Utilities                                                                 *)
 (*****************************************************************************)
@@ -17,45 +19,6 @@ let number_of_events q = Array.length q.Query.pattern.events
 let number_of_agents q = Array.length q.Query.pattern.agents
 
 let query_root_event q = List.hd q.Query.pattern.execution_path
-
-(* Pretty-printing *)
-
-let dump_ag_lid query ~lid = query.Query.pattern.agents.(lid).agent_name
-
-let dump_ev_lid query ~lid =
-  query.Query.pattern.events.(lid).event_name |> Option.value ~default:"?"
-
-let dump_agent_mapping query ~lid ~gid =
-  Fmt.str "%s:%d" (dump_ag_lid query ~lid) gid
-
-let dump_agents_mapping_list query ~lids ~gids =
-  List.map2 (fun lid gid -> dump_agent_mapping query ~lid ~gid) lids gids
-  |> String.concat " "
-
-let dump_other_constrained query ev other_constrained =
-  dump_agents_mapping_list query ~lids:ev.Query.other_constrained_agents
-    ~gids:other_constrained
-
-let dump_link query ev link =
-  dump_agents_mapping_list query ~lids:ev.Query.link_agents ~gids:link
-
-let dump_status query ev = function
-  | Event_matcher.Failure ->
-      "fail"
-  | Success {other_constrained} ->
-      dump_other_constrained query ev other_constrained
-
-let dump_execution_path query path =
-  let ag_name lid = dump_ag_lid query ~lid in
-  path
-  |> List.map (fun ev_lid ->
-         let ev = query.Query.pattern.events.(ev_lid) in
-         let ev_name = dump_ev_lid query ~lid:ev_lid in
-         let link = List.map ag_name ev.link_agents in
-         let other_constrained = List.map ag_name ev.other_constrained_agents in
-         Fmt.str "%s(%s->%s)" ev_name (String.concat "," link)
-           (String.concat "," other_constrained) )
-  |> String.concat " "
 
 (*****************************************************************************)
 (* Link cache computation                                                    *)
@@ -142,6 +105,23 @@ let compute_link_cache_step query window cache =
 type matching =
   | M of {evs: Aliases.global_event_id array; ags: Aliases.global_agent_id array}
 [@@deriving show, yojson_of]
+
+let dump_matching query (M {evs; ags}) =
+  let indexes t = Array.mapi (fun i _ -> i) t in
+  let evs =
+    dump_events_mapping_list query
+      ~lids:(Array.to_list (indexes query.Query.pattern.events))
+      ~gids:(Array.to_list evs)
+  in
+  let ags =
+    dump_agents_mapping_list query
+      ~lids:(Array.to_list (indexes query.Query.pattern.agents))
+      ~gids:(Array.to_list ags)
+  in
+  Fmt.str "%s | %s" evs ags
+
+let dump_all_matchings q ms : Yojson.Safe.t =
+  `List (List.map (fun m -> `String (dump_matching q m)) (Array.to_list ms))
 
 type root_matching =
   | RM of
@@ -238,6 +218,7 @@ let complete_matching query link_cache (RM root) =
 let compute_all_matchings query link_cache =
   compute_root_matchings query link_cache
   |> List.filter_map (complete_matching query link_cache)
+  |> Array.of_list
 
 (*****************************************************************************)
 (* Main function                                                             *)
@@ -249,32 +230,43 @@ let iter_trace ~trace_file f =
     (fun w () -> f w)
     ()
 
+let dump_trace ~trace_file =
+  let open Streaming in
+  let open Trace_util in
+  let q = Queue.create () in
+  let header = Trace_header.load ~trace_file in
+  iter_trace ~trace_file (fun w ->
+      Queue.push
+        ( string_of_int w.step_id
+        , `List
+            [ `String (rule_name header.model w.step)
+            ; `String (dump_step_actions header.model w.step) ] )
+        q ) ;
+  `Assoc (Utils.list_of_queue q)
+
 let batch_iter_trace ~trace_file ~queries f =
   iter_trace ~trace_file (fun w ->
       Array.iteri
         (fun i q -> Log.with_current_query q.Query.title (fun () -> f i q w))
         queries )
 
-let batch_dump ?(level = 1) file ~queries f =
-  let json : Yojson.Safe.t =
-    `Assoc (Array.map (fun q -> (q.Query.title, f q)) queries |> Array.to_list)
-  in
-  Tql_output.debug_json ~level file (fun x -> x) json
-
-let dump_intermediate file ~queries dump objs =
-  let json : Yojson.Safe.t =
-    `Assoc
-      ( Array.map2 (fun q o -> (q.Query.title, dump q o)) queries objs
-      |> Array.to_list )
-  in
-  Tql_output.debug_json ~level:2 file (fun x -> x) json
+let batch_dump ~level file ~queries f =
+  Tql_output.debug_json ~level file (fun () ->
+      `Assoc
+        (Array.mapi (fun i q -> (q.Query.title, f i q)) queries |> Array.to_list) )
 
 let eval_batch ~trace_file queries_and_formatters =
+  Tql_output.debug_json ~level:2 "trace-summary.json" (fun () ->
+      dump_trace ~trace_file ) ;
   let queries = Array.map fst (Array.of_list queries_and_formatters) in
-  batch_dump "execution-paths.json" ~queries (fun q ->
+  batch_dump ~level:1 "execution-paths.json" ~queries (fun _ q ->
       `String (dump_execution_path q q.Query.pattern.execution_path) ) ;
   let _formatters = Array.map snd (Array.of_list queries_and_formatters) in
   let caches = Array.map LinkCache.create queries in
   batch_iter_trace ~trace_file ~queries (fun i q w ->
       compute_link_cache_step q w caches.(i) ) ;
-  dump_intermediate "link-cache.json" ~queries LinkCache.dump caches
+  batch_dump ~level:2 "link-cache.json" ~queries (fun i q ->
+      LinkCache.dump q caches.(i) ) ;
+  let matchings = Array.map2 compute_all_matchings queries caches in
+  batch_dump ~level:2 "matchings.json" ~queries (fun i q ->
+      dump_all_matchings q matchings.(i) )

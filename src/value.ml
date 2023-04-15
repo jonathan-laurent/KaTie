@@ -69,7 +69,7 @@ let rec to_string = function
   | VFloat x ->
       Fmt.str "%.17g" x
   | VString s ->
-      s
+      Fmt.str "\"%s\"" s
   | VAgentSet _ ->
       "<agents>"
   | VTuple xs ->

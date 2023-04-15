@@ -10,12 +10,15 @@ val snapshots_native_format : bool ref
 
 val set_output_directory : string -> unit
 
-val file : ?kind:[< `Result | `Snapshot] -> string -> string
+val file : ?kind:[< `Result | `Snapshot | `Debug] -> string -> string
 
 val with_file :
-  ?kind:[< `Result | `Snapshot] -> string -> (Format.formatter -> unit) -> unit
+     ?kind:[< `Result | `Snapshot | `Debug]
+  -> string
+  -> (Format.formatter -> unit)
+  -> unit
 
-val debug_json : ?level:int -> string -> ('a -> Yojson.Safe.t) -> 'a -> unit
+val debug_json : ?level:int -> string -> (unit -> Yojson.Safe.t) -> unit
 
 val set_snapshots_name_format : string -> unit
 
