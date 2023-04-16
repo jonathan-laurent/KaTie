@@ -156,3 +156,5 @@ type t =
   ; action: action
   ; every_clause: float option }
 [@@deriving show, yojson_of]
+
+let is_simple q = Array.length q.pattern.events = 1

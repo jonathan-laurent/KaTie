@@ -3,11 +3,15 @@
 (*****************************************************************************)
 
 (* A query is evaluated in several steps:
-    1. We first cache the results of [Event_matcher.match_event] for
-       each event in the trace.
-    2. Then, we compute all matchings.
-    3. We prepare a measure plan as a [(step_id, matching_id, event_id))] array.
-    4. For each cm, we have {measures} for each events and also count the number of processed events
+     1. We first cache the results of [Event_matcher.match_event] for
+        each event in the trace.
+     2. Then, we compute all matchings.
+     3. We prepare a measure plan as a [(step_id, matching_id,
+        event_id))] array.
+     4. We execute the measure plan
+
+   For "simple" queries (i.e. queries with a single event clause), a
+   simpler, faster, one-step execution strategy is used.
 *)
 
 open Dump
@@ -326,6 +330,42 @@ let perform_measurements_step ~header ~fmt query env matchings window =
     (* Execute the next step of the measurement plan *)
     env.cur <- env.cur + 1
   done
+
+(*****************************************************************************)
+(* Execute simple queries                                                    *)
+(*****************************************************************************)
+
+type simple_engine_state = {mutable last_action_time: float}
+
+let init_simple_engine_state = {last_action_time= neg_infinity}
+
+let enough_time_elapsed query state t =
+  match query.Query.every_clause with
+  | None ->
+      true
+  | Some delta ->
+      t -. state.last_action_time >= delta
+
+let process_step_for_simple_query ~header ~fmt query state window =
+  let t = Replay.(window.Streaming.state.time) in
+  if enough_time_elapsed query state t then
+    let event = query.Query.pattern.events.(0) in
+    match Event_matcher.match_event event window with
+    | None ->
+        ()
+    | Some {status= Failure; _} ->
+        assert false (* No defining clauses for simple queries *)
+    | Some {status= Success {other_constrained}; _} ->
+        let ag_matching =
+          Utils.list_zip event.other_constrained_agents other_constrained
+        in
+        let read_id lid = List.assoc lid ag_matching in
+        execute_action ~fmt ~read_id
+          ~read_measure:(fun _ m_id ->
+            Measure.take_measure ~header read_id window
+              event.measures.(m_id).measure )
+          query.Query.action ;
+        state.last_action_time <- t
 
 (*****************************************************************************)
 (* Main function                                                             *)

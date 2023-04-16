@@ -610,6 +610,12 @@ let schedule_execution p =
   let p = {p with execution_path} in
   schedule_agents_capture p ; p
 
+let final_sanity_checks q =
+  if Query.is_simple q && Option.is_some q.Query.every_clause then
+    Tql_error.failwith
+      "The 'every' clause construct is not supported for queries with more \
+       than a single event clause."
+
 let compile (model : Model.t) (q : Ast.t) =
   let title = q.Ast.query_name in
   Log.with_current_query title (fun () ->
@@ -626,4 +632,5 @@ let compile (model : Model.t) (q : Ast.t) =
       let legend = q.Ast.legend in
       let every_clause = q.Ast.every_clause in
       let pattern = schedule_execution pattern in
-      {pattern; action; title; legend; every_clause} )
+      let query = {pattern; action; title; legend; every_clause} in
+      final_sanity_checks query ; query )
