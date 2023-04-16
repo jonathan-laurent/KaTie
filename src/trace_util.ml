@@ -44,7 +44,8 @@ let show_site model kind site =
   let signature = Model.signatures model in
   Fmt.to_to_string (Signature.print_site signature kind) site
 
-let show_agent model (ag_kind, ag_id) =
+let show_agent model ag =
+  let ag_id, ag_kind = (Agent.id ag, Agent.sort ag) in
   let signature = Model.signatures model in
   let kind = Fmt.to_to_string (Signature.print_agent signature) ag_kind in
   Fmt.str "%s.%d" kind ag_id

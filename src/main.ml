@@ -10,7 +10,7 @@ let no_backtraces = ref false
 
 let snapshots_name_format = ref ""
 
-let use_legacy_evaluator = ref true
+let use_legacy_evaluator = ref false
 
 let no_color = ref false
 

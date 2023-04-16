@@ -6,6 +6,8 @@
     1. We first cache the results of [Event_matcher.match_event] for
        each event in the trace.
     2. Then, we compute all matchings.
+    3. We prepare a measure plan as a [(step_id, matching_id, event_id))] array.
+    4. For each cm, we have {measures} for each events and also count the number of processed events
 *)
 
 open Dump
@@ -221,6 +223,111 @@ let compute_all_matchings query link_cache =
   |> Array.of_list
 
 (*****************************************************************************)
+(* Preparing measurement schedule                                            *)
+(*****************************************************************************)
+
+type measurement_schedule_item = {ev_gid: int; matching_id: int; ev_lid: int}
+[@@deriving yojson_of]
+
+(* We use an array instead of a list to save memory *)
+type measurement_schedule = measurement_schedule_item array
+[@@deriving yojson_of]
+
+let measurement_schedule matchings =
+  let items = Queue.create () in
+  Array.iteri
+    (fun matching_id (M {evs; _}) ->
+      Array.iteri
+        (fun ev_lid ev_gid -> Queue.add {ev_gid; matching_id; ev_lid} items)
+        evs )
+    matchings ;
+  let items = items |> Queue.to_seq |> Array.of_seq in
+  Array.fast_sort (fun {ev_gid= e; _} {ev_gid= e'; _} -> compare e e') items ;
+  items
+
+(*****************************************************************************)
+(* Executing measurement schedule                                            *)
+(*****************************************************************************)
+
+type measure_cache_item =
+  { mutable measures: Value.t array array
+        (* Maps [(event_id, measure_id)] to a value. To save memory,
+           this is initialinzed to the empty array. The first time a value
+           is cached, an array with proper dimension is created. It is
+           reset to the empty array after the matching's action is executed
+           to save memory. *)
+  ; mutable rem: int
+        (* Number of events in the matchings that remain to be
+           processed. When this number drops to zero, the action can be
+           executed *) }
+
+type measurement_env =
+  { cache: measure_cache_item array (* indexed by matching id *)
+  ; schedule: measurement_schedule
+  ; mutable cur: int (* index of the current plan step in [schedule] *) }
+
+let create_measures_cache matchings =
+  Array.map
+    (fun (M {evs; _}) ->
+      let rem = Array.length evs in
+      let measures = [||] in
+      {measures; rem} )
+    matchings
+
+let create_measurement_env matchings =
+  { cache= create_measures_cache matchings
+  ; schedule= measurement_schedule matchings
+  ; cur= 0 }
+
+let rec execute_action ~fmt ~read_measure ~read_id = function
+  | Query.Print e ->
+      Expr.eval_expr read_measure read_id e
+      |> fun v -> Format.fprintf fmt "%s@;" (Value.to_string v)
+  | If (cond, action) -> (
+      let b = Expr.eval_expr read_measure read_id cond in
+      match Value.(cast TBool b) with
+      | None ->
+          Tql_error.failwith "The 'when' clause was passed a non-boolean value"
+      | Some b ->
+          if b then execute_action ~fmt ~read_measure ~read_id action )
+
+let perform_measurements_step ~header ~fmt query env matchings window =
+  while
+    env.cur < Array.length env.schedule
+    && env.schedule.(env.cur).ev_gid = window.Streaming.step_id
+  do
+    let {matching_id; ev_lid; _} = env.schedule.(env.cur) in
+    let (M matching) = matchings.(matching_id) in
+    let cache = env.cache.(matching_id) in
+    (* Initialize the measure cache if needed *)
+    if Array.length cache.measures = 0 then
+      cache.measures <-
+        Array.map
+          (fun ev -> Array.make (Array.length ev.Query.measures) Value.VNull)
+          query.Query.pattern.events ;
+    (* We perform all measurements *)
+    Array.iteri
+      (fun measure_id mdescr ->
+        cache.measures.(ev_lid).(measure_id) <-
+          Measure.take_measure ~header
+            (fun lid -> matching.ags.(lid))
+            window mdescr.Query.measure )
+      query.Query.pattern.events.(ev_lid).measures ;
+    (* Possibly execute the action *)
+    cache.rem <- cache.rem - 1 ;
+    if cache.rem <= 0 then (
+      (* Perform the action *)
+      execute_action ~fmt
+        ~read_id:(fun lid -> matching.ags.(lid))
+        ~read_measure:(fun ev_lid m_id -> cache.measures.(ev_lid).(m_id))
+        query.Query.action ;
+      (* Free the measurements' memory *)
+      cache.measures <- [||] ) ;
+    (* Execute the next step of the measurement plan *)
+    env.cur <- env.cur + 1
+  done
+
+(*****************************************************************************)
 (* Main function                                                             *)
 (*****************************************************************************)
 
@@ -256,9 +363,11 @@ let batch_dump ~level file ~queries f =
         (Array.mapi (fun i q -> (q.Query.title, f i q)) queries |> Array.to_list) )
 
 let eval_batch ~trace_file queries_and_formatters =
+  let header = Trace_header.load ~trace_file in
   Tql_output.debug_json ~level:2 "trace-summary.json" (fun () ->
       dump_trace ~trace_file ) ;
   let queries = Array.map fst (Array.of_list queries_and_formatters) in
+  let formatters = Array.map snd (Array.of_list queries_and_formatters) in
   batch_dump ~level:1 "execution-paths.json" ~queries (fun _ q ->
       `String (dump_execution_path q q.Query.pattern.execution_path) ) ;
   let _formatters = Array.map snd (Array.of_list queries_and_formatters) in
@@ -269,4 +378,10 @@ let eval_batch ~trace_file queries_and_formatters =
       LinkCache.dump q caches.(i) ) ;
   let matchings = Array.map2 compute_all_matchings queries caches in
   batch_dump ~level:2 "matchings.json" ~queries (fun i q ->
-      dump_all_matchings q matchings.(i) )
+      dump_all_matchings q matchings.(i) ) ;
+  let measurement_envs = Array.map create_measurement_env matchings in
+  batch_dump ~level:2 "measurement-schedule.json" ~queries (fun i _q ->
+      [%yojson_of: measurement_schedule] measurement_envs.(i).schedule ) ;
+  batch_iter_trace ~trace_file ~queries (fun i q w ->
+      perform_measurements_step ~header ~fmt:formatters.(i) q
+        measurement_envs.(i) matchings.(i) w )

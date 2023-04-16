@@ -15,6 +15,7 @@ module AgentSet = struct
 end
 
 type t =
+  | VNull (* Only for internal use *)
   | VBool of bool
   | VInt of int
   | VFloat of float
@@ -24,6 +25,7 @@ type t =
 [@@deriving show, yojson_of]
 
 type _ value_type =
+  | TNull : unit value_type
   | TBool : bool value_type
   | TInt : int value_type
   | TFloat : float value_type
@@ -34,6 +36,8 @@ type _ value_type =
 type any_value_type = T : 'a value_type -> any_value_type
 
 let typeof = function
+  | VNull ->
+      T TNull
   | VBool _ ->
       T TBool
   | VInt _ ->
@@ -48,6 +52,8 @@ let typeof = function
       T TTuple
 
 let value_type_to_string = function
+  | T TNull ->
+      "null"
   | T TBool ->
       "bool"
   | T TInt ->
@@ -62,6 +68,8 @@ let value_type_to_string = function
       "tuple"
 
 let rec to_string = function
+  | VNull ->
+      "null"
   | VBool b ->
       Int.to_string (Utils.int_of_bool b)
   | VInt x ->
@@ -80,6 +88,8 @@ let int_of_bool = function true -> 1 | false -> 0
 let cast : type a. a value_type -> t -> a option =
  fun ty v ->
   match (ty, v) with
+  | TNull, VNull ->
+      Some ()
   | TBool, VBool b ->
       Some b
   | TInt, VInt n ->
@@ -101,6 +111,8 @@ let cast : type a. a value_type -> t -> a option =
 
 let rec equal v v' =
   match (v, v') with
+  | VNull, VNull ->
+      Some true
   | VBool b, VBool b' ->
       Some (Bool.equal b b')
   | VInt n, VInt n' ->
