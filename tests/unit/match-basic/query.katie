@@ -214,8 +214,13 @@ match f:{ '-Sp' }
 and last e:{ } before f
 return rule[e] = "Sp"
 
-// Match _init_
+// Match _init_: there are 3 init events so we get two consecutive pairs
 query 'multi_8__matches_2__all_true.csv'
 match f:{ '_init_' }
+and last e:{ } before f
+return rule[e] = "_init_"
+
+query 'multi_8_bis__matches_1__all_true.csv'
+match f:{ '_init_' +U1 }
 and last e:{ } before f
 return rule[e] = "_init_"

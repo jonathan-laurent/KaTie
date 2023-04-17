@@ -1,10 +1,10 @@
-query 'query_out_K_to_Q.csv' {'size', 'time', 'id'}
+query 'K_to_Q.csv' {'size', 'time', 'id'}
 match e:{ a:C(x{k/q}) }
 return (
     size{component[.e]{a}}, time[e], agent_id{a}
     )
 
-query 'query_out_Q_to_K.csv' {'size', 'time', 'id'}
+query 'Q_to_K.csv' {'size', 'time', 'id'}
 match e:{ a:C(x{q/k}) }
 return (
     size{component[.e]{a}}, time[e], agent_id{a}

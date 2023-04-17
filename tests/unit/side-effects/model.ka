@@ -1,3 +1,5 @@
+// Contributed by: Hector Medina
+
 %agent: A(b, x{i, j})
 %agent: B(a, c)
 %agent: C(b, x{k, q})
