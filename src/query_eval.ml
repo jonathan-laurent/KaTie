@@ -411,6 +411,10 @@ let eval_batch ~trace_file queries_and_formatters =
     |> List.partition (fun (q, _) -> Query.is_simple q)
     |> fun (l, l') -> (Array.of_list l, Array.of_list l')
   in
+  Terminal.(
+    println [yellow; bold]
+      (Fmt.str "Evaluating queries: %d simple and %d complex"
+         (Array.length simple) (Array.length complex) ) ) ;
   (* Dump a summary of the trace along with query execution paths *)
   Tql_output.debug_json ~level:2 "trace-summary.json" (fun () ->
       dump_trace ~trace_file ) ;

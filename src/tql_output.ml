@@ -74,12 +74,15 @@ let with_file ?kind filename f =
   let fmt = Format.formatter_of_out_channel oc in
   f fmt ; close_out oc
 
-let debug_json ?(level = 1) filename make_json =
-  if !debug_level >= level then
+let debug_json ?(level = 1) ?show_message filename make_json =
+  let show_message = Option.value show_message ~default:(level > 1) in
+  if !debug_level >= level then (
+    if show_message then
+      Terminal.println [] ("Producing debug info: " ^ filename) ;
     with_file ~kind:`Debug filename (fun fmt ->
         Format.fprintf fmt "%a@.]"
           (Yojson.Safe.pretty_print ~std:false)
-          (make_json ()) )
+          (make_json ()) ) )
 
 let set_snapshots_name_format fmt =
   snapshot_counter := 0 ;

@@ -18,7 +18,8 @@ val with_file :
   -> (Format.formatter -> unit)
   -> unit
 
-val debug_json : ?level:int -> string -> (unit -> Yojson.Safe.t) -> unit
+val debug_json :
+  ?level:int -> ?show_message:bool -> string -> (unit -> Yojson.Safe.t) -> unit
 
 val set_snapshots_name_format : string -> unit
 
