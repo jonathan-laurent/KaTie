@@ -154,8 +154,8 @@ def run(dir):
         stdout_file=join(katie_out, STDOUT_FILE),
         stderr_file=join(katie_out, STDERR_FILE),
     )
-    print(f"KaTie return code: {katie_ret}")
     if katie_ret != 0:
+        print(f"KaTie return code: {katie_ret}")
         print(f"  See {join(katie_out, STDOUT_FILE)}")
         print(f"  See {join(katie_out, STDERR_FILE)}")
 
