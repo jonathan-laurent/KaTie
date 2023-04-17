@@ -1,0 +1,14 @@
+%agent: A(b, x{i, j})
+%agent: B(a, c)
+%agent: C(b, x{k, q})
+
+%init: 1 A(b[1], x{i}), B(a[1], c[2]), C(b[2])
+%init: 1 A(b[1], x{j}), B(a[1], c[2]), C(b[2])
+
+B(a[_])- @ 10
+A(x{i}, b[_/2]), A(x{j}, b[1/.]), B(a[1/2]) @ 1
+
+C(x{k}) <-> C(x{q}) @ 10, 10
+
+%mod: [true] do $SNAPSHOT "snap".[E].".json"; $SNAPSHOT [true] ; repeat [true]
+%mod: |B()| = 0 do $SNAPSHOT "snap".[E].".json"; $SNAPSHOT [true] ; $STOP ;
