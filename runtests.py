@@ -1,7 +1,7 @@
 """
 A script for running the TQL test suite.
 
-Usage: python runtests.py {run,clean,diff,promote} [test_subdir].
+Usage: python runtests.py [TEST_SUBDIRS] {run,clean,diff,promote}.
 """
 
 import csv
@@ -84,7 +84,7 @@ def update_expected(dir):
         shutil.copyfile(join(dir, KATIE_OUT_DIR, f), join(expected, f))
 
 
-def check_diff(dir):
+def check_diff(dir, verbose=True):
     expected = join(dir, EXPECTED_DIR)
     if not os.path.isdir(expected):
         return
@@ -92,12 +92,17 @@ def check_diff(dir):
         expected_file = join(expected, f)
         actual_file = join(dir, KATIE_OUT_DIR, f)
         if not os.path.isfile(actual_file):
-            print(f"Missing file: {actual_file}")
+            print(red(f"Missing expected file: {actual_file}"))
         with open(expected_file, "r") as ef, open(actual_file, "r") as af:
             if ef.read() != af.read():
-                # Use the OS diff program to show the diff
-                subprocess.run(["diff", "--color", "-u", expected_file, actual_file])
-                print()
+                if verbose:
+                    # Use the OS diff program to show the diff
+                    subprocess.run(
+                        ["diff", "--color", "-u", expected_file, actual_file]
+                    )
+                    print()
+                else:
+                    print(red(f"Unexpected output: {f}"))
 
 
 def run_cmd(cmd):
@@ -177,8 +182,7 @@ def test_dirs(args):
         for dir in find_all_test_dirs():
             yield dir
     else:
-        for a in args:
-            dir = join(TESTS_DIR, a)
+        for dir in args:
             assert valid_test_dir(dir), f"Invalid test directory: {dir}"
             yield dir
 
@@ -188,15 +192,15 @@ if __name__ == "__main__":
         prog="runtests.py", description="Test launcher for KaTie."
     )
     parser.add_argument(
-        "command",
-        choices=["run", "clean", "diff", "promote"],
-        help="Command to execute",
-    )
-    parser.add_argument(
         "tests",
         nargs="*",
         metavar="TEST",
         help="List of tests to run the command on (everything by default)",
+    )
+    parser.add_argument(
+        "command",
+        choices=["run", "clean", "diff", "promote"],
+        help="Command to execute",
     )
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="Increase output verbosity"
@@ -210,6 +214,7 @@ if __name__ == "__main__":
         for dir in test_dirs(args.tests):
             run(dir)
             autocheck_result(dir)
+            check_diff(dir, verbose=False)
     elif args.command == "list":
         for dir in find_all_test_dirs():
             print(dir)
