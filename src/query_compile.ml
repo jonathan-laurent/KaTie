@@ -419,12 +419,6 @@ let compile_rule_constraint env = function
   | None ->
       None
 
-let compile_with_clause env name_opt = function
-  | None ->
-      None
-  | Some wc ->
-      Some (compile_expr env false name_opt wc)
-
 let compile_event_pattern env pat =
   let cur_ev_id =
     match pat.Ast.event_id with
@@ -433,12 +427,9 @@ let compile_event_pattern env pat =
     | Some name ->
         Dict.id_of_name env.query_events name
   in
-  let with_clause =
-    compile_with_clause env (Some cur_ev_id) pat.Ast.with_clause
-  in
   let rule_constraint = compile_rule_constraint env pat.Ast.rule_constraint in
   let main_pattern = compile_mixture_pattern env pat.Ast.main_pattern in
-  (cur_ev_id, {main_pattern; with_clause; rule_constraint})
+  (cur_ev_id, {main_pattern; rule_constraint})
 
 (* We compile a trace pattern by going over each clause sequentially. *)
 let process_clauses env (tpat : Ast.clause list) =

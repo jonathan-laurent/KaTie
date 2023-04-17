@@ -48,12 +48,7 @@ type rule_constraint = rule_constraint_disjunct list
 [@@deriving show, yojson_of]
 
 type event_pattern =
-  { main_pattern: pattern
-  ; with_clause: Expr.t option
-        (* This is unsupported by the engine for now. When-clauses are
-           available but they do not work the same way: they are just
-           syntactic sugar for adding conditionals in actions. *)
-  ; rule_constraint: rule_constraint option }
+  {main_pattern: pattern; rule_constraint: rule_constraint option}
 [@@deriving show, yojson_of]
 
 type defining_relation =

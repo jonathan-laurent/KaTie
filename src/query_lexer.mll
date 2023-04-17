@@ -9,7 +9,7 @@ open Query_parser
 
 let keywords_list =
     [("match", MATCH); ("return", RETURN); ("do", RETURN); ("and", AND);
-     ("with", WITH); ("last", LAST); ("first", FIRST); ("when", WHEN);
+     ("last", LAST); ("first", FIRST); ("when", WHEN);
      ("before", BEFORE); ("after", AFTER);
      ("time", TIME); ("nphos", NPHOS); ("rule", RULE); ("count", COUNT);
      ("component", COMPONENT); ("dist", DIST); ("size", SIZE);

@@ -200,10 +200,9 @@ ev_pattern:
     OP_CURL rule_constraint=option(rule_constraint)
     main_pattern=mixture_pat
     CL_CURL
-    with_clause=option(with_clause)
-    { {event_id; with_clause; main_pattern; rule_constraint} }
-  | id=ID with_clause=option(with_clause)
-    { {event_id = Some id; with_clause; main_pattern = []; rule_constraint = None} }
+    { {event_id; main_pattern; rule_constraint} }
+  | id=ID
+    { {event_id = Some id; main_pattern = []; rule_constraint = None} }
 
 action: e=expr { Print e }
 

@@ -70,7 +70,6 @@ type rule_constraint = rule_constraint_disjunct list [@@deriving show, yojson]
 
 type event_pattern =
   { event_id: identifier option
-  ; with_clause: expr option
   ; main_pattern: mixture_pat
   ; rule_constraint: rule_constraint option }
 [@@deriving show, yojson]
