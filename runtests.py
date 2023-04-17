@@ -139,8 +139,8 @@ def run(dir):
         stderr_file=join(kasim_out, STDERR_FILE),
     )
     if kasim_ret != 0:
-        print(f"KaSim failed: see {join(kasim_out, STDERR_FILE)}")
-        return
+        print(red(f"KaSim failed: see {join(kasim_out, STDERR_FILE)}"))
+        return False
     katie_args = ["-t", join(kasim_out, TRACE_FILE), "-q", query]
     katie_options = [
         "--debug-level",
@@ -155,9 +155,10 @@ def run(dir):
         stderr_file=join(katie_out, STDERR_FILE),
     )
     if katie_ret != 0:
-        print(f"KaTie return code: {katie_ret}")
+        print(red(f"KaTie return code: {katie_ret}"))
         print(f"  See {join(katie_out, STDOUT_FILE)}")
         print(f"  See {join(katie_out, STDERR_FILE)}")
+    return katie_ret == 0
 
 
 def clean(dir):
@@ -212,9 +213,10 @@ if __name__ == "__main__":
             clean(dir)
     elif args.command == "run":
         for dir in test_dirs(args.tests):
-            run(dir)
-            autocheck_result(dir)
-            check_diff(dir, verbose=False)
+            ok = run(dir)
+            if ok:
+                autocheck_result(dir)
+                check_diff(dir, verbose=False)
     elif args.command == "list":
         for dir in find_all_test_dirs():
             print(dir)
