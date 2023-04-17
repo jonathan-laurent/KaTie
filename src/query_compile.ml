@@ -611,7 +611,7 @@ let schedule_execution p =
   schedule_agents_capture p ; p
 
 let final_sanity_checks q =
-  if Query.is_simple q && Option.is_some q.Query.every_clause then
+  if (not (Query.is_simple q)) && Option.is_some q.Query.every_clause then
     Tql_error.failwith
       "The 'every' clause construct is not supported for queries with more \
        than a single event clause."

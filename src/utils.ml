@@ -73,4 +73,6 @@ let sum_array = Array.fold_left ( + ) 0
 
 let list_zip l l' = List.map2 (fun x y -> (x, y)) l l'
 
+let list_unzip l = (List.map fst l, List.map snd l)
+
 let no_duplicates cmp l = List.length (List.sort_uniq cmp l) = List.length l

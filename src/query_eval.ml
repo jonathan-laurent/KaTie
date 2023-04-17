@@ -295,7 +295,7 @@ let rec execute_action ~fmt ~read_measure ~read_id = function
       | Some b ->
           if b then execute_action ~fmt ~read_measure ~read_id action )
 
-let perform_measurements_step ~header ~fmt query env matchings window =
+let perform_measurement_step ~header ~fmt query env matchings window =
   while
     env.cur < Array.length env.schedule
     && env.schedule.(env.cur).ev_gid = window.Streaming.step_id
@@ -337,7 +337,7 @@ let perform_measurements_step ~header ~fmt query env matchings window =
 
 type simple_engine_state = {mutable last_action_time: float}
 
-let init_simple_engine_state = {last_action_time= neg_infinity}
+let init_simple_engine_state () = {last_action_time= neg_infinity}
 
 let enough_time_elapsed query state t =
   match query.Query.every_clause with
@@ -346,7 +346,7 @@ let enough_time_elapsed query state t =
   | Some delta ->
       t -. state.last_action_time >= delta
 
-let process_step_for_simple_query ~header ~fmt query state window =
+let perform_measurement_step_for_simple_query ~header ~fmt query state window =
   let t = Replay.(window.Streaming.state.time) in
   if enough_time_elapsed query state t then
     let event = query.Query.pattern.events.(0) in
@@ -391,37 +391,57 @@ let dump_trace ~trace_file =
         q ) ;
   `Assoc (Utils.list_of_queue q)
 
-let batch_iter_trace ~trace_file ~queries f =
-  iter_trace ~trace_file (fun w ->
-      Array.iteri
-        (fun i q -> Log.with_current_query q.Query.title (fun () -> f i q w))
-        queries )
+let with_queries qs f =
+  Array.iteri
+    (fun i (q, fmt) ->
+      Log.with_current_query q.Query.title (fun () -> f i q fmt) )
+    qs
 
-let batch_dump ~level file ~queries f =
+let batch_dump ~level file queries f =
   Tql_output.debug_json ~level file (fun () ->
       `Assoc
-        (Array.mapi (fun i q -> (q.Query.title, f i q)) queries |> Array.to_list) )
+        ( Array.mapi (fun i (q, _) -> (q.Query.title, f i q)) queries
+        |> Array.to_list ) )
 
 let eval_batch ~trace_file queries_and_formatters =
   let header = Trace_header.load ~trace_file in
+  (* Split queries into simple and complex queries *)
+  let simple, complex =
+    queries_and_formatters
+    |> List.partition (fun (q, _) -> Query.is_simple q)
+    |> fun (l, l') -> (Array.of_list l, Array.of_list l')
+  in
+  (* Dump a summary of the trace along with query execution paths *)
   Tql_output.debug_json ~level:2 "trace-summary.json" (fun () ->
       dump_trace ~trace_file ) ;
-  let queries = Array.map fst (Array.of_list queries_and_formatters) in
-  let formatters = Array.map snd (Array.of_list queries_and_formatters) in
-  batch_dump ~level:1 "execution-paths.json" ~queries (fun _ q ->
+  batch_dump ~level:1 "execution-paths.json" complex (fun _ q ->
       `String (dump_execution_path q q.Query.pattern.execution_path) ) ;
-  let _formatters = Array.map snd (Array.of_list queries_and_formatters) in
-  let caches = Array.map LinkCache.create queries in
-  batch_iter_trace ~trace_file ~queries (fun i q w ->
-      compute_link_cache_step q w caches.(i) ) ;
-  batch_dump ~level:2 "link-cache.json" ~queries (fun i q ->
-      LinkCache.dump q caches.(i) ) ;
-  let matchings = Array.map2 compute_all_matchings queries caches in
-  batch_dump ~level:2 "matchings.json" ~queries (fun i q ->
-      dump_all_matchings q matchings.(i) ) ;
-  let measurement_envs = Array.map create_measurement_env matchings in
-  batch_dump ~level:2 "measurement-schedule.json" ~queries (fun i _q ->
-      [%yojson_of: measurement_schedule] measurement_envs.(i).schedule ) ;
-  batch_iter_trace ~trace_file ~queries (fun i q w ->
-      perform_measurements_step ~header ~fmt:formatters.(i) q
-        measurement_envs.(i) matchings.(i) w )
+  (* First pass through the trace (for complex queries only) *)
+  let complex_matchings =
+    if Array.length complex = 0 then [||]
+    else
+      let caches = Array.map (fun (q, _) -> LinkCache.create q) complex in
+      iter_trace ~trace_file (fun w ->
+          with_queries complex (fun i q _ ->
+              compute_link_cache_step q w caches.(i) ) ) ;
+      batch_dump ~level:2 "link-cache.json" complex (fun i q ->
+          LinkCache.dump q caches.(i) ) ;
+      let matchings =
+        Array.map2 (fun (q, _) c -> compute_all_matchings q c) complex caches
+      in
+      batch_dump ~level:2 "matchings.json" complex (fun i q ->
+          dump_all_matchings q matchings.(i) ) ;
+      matchings
+  in
+  (* Second pass through the trace *)
+  let complex_envs = Array.map create_measurement_env complex_matchings in
+  let simple_envs = Array.map (fun _ -> init_simple_engine_state ()) simple in
+  batch_dump ~level:2 "measurement-schedule.json" complex (fun i _q ->
+      [%yojson_of: measurement_schedule] complex_envs.(i).schedule ) ;
+  iter_trace ~trace_file (fun w ->
+      with_queries complex (fun i q fmt ->
+          perform_measurement_step ~header ~fmt q complex_envs.(i)
+            complex_matchings.(i) w ) ;
+      with_queries simple (fun i q fmt ->
+          perform_measurement_step_for_simple_query ~header ~fmt q
+            simple_envs.(i) w ) )
