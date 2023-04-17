@@ -34,7 +34,7 @@ let options =
     , Arg.Unit native_snapshots
     , "dump snapshot using KaSim's native format" )
   ; ("--no-color", Arg.Set no_color, "disable colored output")
-  ; ( "--output-directory"
+  ; ( "--output-dir"
     , Arg.String Tql_output.set_output_directory
     , "set the output directory (default: '.')" ) ]
 
@@ -69,7 +69,6 @@ let main () =
   else
     let header = Trace_header.load ~trace_file:!trace_file in
     let queries, asts = parse_and_compile_queries header.model !query_file in
-    print_endline "Queries successfully compiled." ;
     Tql_output.debug_json "queries-ast.json" (fun () ->
         [%yojson_of: Query_ast.t list] asts ) ;
     Tql_output.debug_json "compiled-queries.json" (fun () ->
@@ -95,9 +94,14 @@ let main () =
 
 let () =
   try main () ; exit 0 with
-  (* Normal user error *)
+  (* Normal user errors *)
   | Tql_error.User_error e ->
       print_endline_styled [red] (Tql_error.string_of_error e) ;
+      exit 1
+  | Sys_error msg ->
+      (* This typically happens when a file is not found or a directory
+         cannot be created. *)
+      print_endline_styled [red] ("System Error: " ^ msg) ;
       exit 1
   (* Internal errors *)
   | (Failure _ | Assert_failure _) as exn ->
