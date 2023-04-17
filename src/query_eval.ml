@@ -406,12 +406,21 @@ let batch_dump ~level file queries f =
         ( Array.mapi (fun i (q, _) -> (q.Query.title, f i q)) queries
         |> Array.to_list ) )
 
+let print_legend (q, fmt) =
+  match q.Query.legend with
+  | None ->
+      ()
+  | Some ls ->
+      let labels = List.map (fun l -> "'" ^ l ^ "'") ls in
+      Format.fprintf fmt "%s@;" (String.concat ", " labels)
+
 let make_progress_bar () =
   Terminal.open_progress_bar ~step:10_000 ~info:(fun i ->
       Fmt.str "%.2fM events processed" (float_of_int i /. 1e6) )
 
 let eval_batch ~trace_file queries_and_formatters =
   let header = Trace_header.load ~trace_file in
+  List.iter print_legend queries_and_formatters ;
   (* Split queries into simple and complex queries *)
   let simple, complex =
     queries_and_formatters
