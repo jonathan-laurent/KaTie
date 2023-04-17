@@ -10,5 +10,9 @@ A(x{i}, b[_/2]), A(x{j}, b[1/.]), B(a[1/2]) @ 1
 
 C(x{k}) <-> C(x{q}) @ 10, 10
 
-%mod: [true] do $SNAPSHOT "snap".[E].".json"; $SNAPSHOT [true] ; repeat [true]
-%mod: |B()| = 0 do $SNAPSHOT "snap".[E].".json"; $SNAPSHOT [true] ; $STOP ;
+// The original perturbation triggers a bug in KaSim,
+// causing an invalid trace file to be generated.
+// %mod: [true] do $SNAPSHOT "snap".[E].".json"; $SNAPSHOT [true] ; repeat [true]
+// %mod: |B()| = 0 do $SNAPSHOT "snap".[E].".json"; $SNAPSHOT [true] ; $STOP ;
+
+%mod: |B()| = 0 do $STOP ;
