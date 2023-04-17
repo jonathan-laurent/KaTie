@@ -95,13 +95,14 @@ module LinkCache = struct
 end
 
 let compute_link_cache_step query window cache =
-  query.Query.pattern.events
-  |> Array.iteri (fun ev_lid ev ->
-         match Event_matcher.match_event ev window with
-         | None ->
-             ()
-         | Some pot_match ->
-             LinkCache.add cache ~ev_lid ~ev_gid:window.step_id pot_match )
+  Array.iteri
+    (fun ev_lid ev ->
+      match Event_matcher.match_event ev window with
+      | None ->
+          ()
+      | Some pot_match ->
+          LinkCache.add cache ~ev_lid ~ev_gid:window.step_id pot_match )
+    query.Query.pattern.events
 
 (*****************************************************************************)
 (* Enumerate all matchings                                                   *)
@@ -403,6 +404,10 @@ let batch_dump ~level file queries f =
         ( Array.mapi (fun i (q, _) -> (q.Query.title, f i q)) queries
         |> Array.to_list ) )
 
+let make_progress_bar () =
+  Terminal.open_progress_bar ~step:10_000 ~info:(fun i ->
+      Fmt.str "%.2fM events processed" (float_of_int i /. 1e6) )
+
 let eval_batch ~trace_file queries_and_formatters =
   let header = Trace_header.load ~trace_file in
   (* Split queries into simple and complex queries *)
@@ -412,7 +417,7 @@ let eval_batch ~trace_file queries_and_formatters =
     |> fun (l, l') -> (Array.of_list l, Array.of_list l')
   in
   Terminal.(
-    println [yellow; bold]
+    println [cyan; bold]
       (Fmt.str "Evaluating queries: %d simple and %d complex"
          (Array.length simple) (Array.length complex) ) ) ;
   (* Dump a summary of the trace along with query execution paths *)
@@ -425,13 +430,20 @@ let eval_batch ~trace_file queries_and_formatters =
     if Array.length complex = 0 then [||]
     else
       let caches = Array.map (fun (q, _) -> LinkCache.create q) complex in
-      iter_trace ~trace_file (fun w ->
-          with_queries complex (fun i q _ ->
-              compute_link_cache_step q w caches.(i) ) ) ;
+      let bar = make_progress_bar () in
+      Terminal.with_progress_bar "Filling in the history cache" bar
+        (fun ~progress ->
+          iter_trace ~trace_file (fun w ->
+              with_queries complex (fun i q _ ->
+                  compute_link_cache_step q w caches.(i) ) ;
+              progress 1 ) ) ;
       batch_dump ~level:2 "link-cache.json" complex (fun i q ->
           LinkCache.dump q caches.(i) ) ;
       let matchings =
-        Array.map2 (fun (q, _) c -> compute_all_matchings q c) complex caches
+        Terminal.task "Computing matchings" (fun () ->
+            Array.map2
+              (fun (q, _) c -> compute_all_matchings q c)
+              complex caches )
       in
       batch_dump ~level:2 "matchings.json" complex (fun i q ->
           dump_all_matchings q matchings.(i) ) ;
@@ -442,10 +454,13 @@ let eval_batch ~trace_file queries_and_formatters =
   let simple_envs = Array.map (fun _ -> init_simple_engine_state ()) simple in
   batch_dump ~level:2 "measurement-schedule.json" complex (fun i _q ->
       [%yojson_of: measurement_schedule] complex_envs.(i).schedule ) ;
-  iter_trace ~trace_file (fun w ->
-      with_queries complex (fun i q fmt ->
-          perform_measurement_step ~header ~fmt q complex_envs.(i)
-            complex_matchings.(i) w ) ;
-      with_queries simple (fun i q fmt ->
-          perform_measurement_step_for_simple_query ~header ~fmt q
-            simple_envs.(i) w ) )
+  let bar = make_progress_bar () in
+  Terminal.with_progress_bar "Executing actions" bar (fun ~progress ->
+      iter_trace ~trace_file (fun w ->
+          with_queries complex (fun i q fmt ->
+              perform_measurement_step ~header ~fmt q complex_envs.(i)
+                complex_matchings.(i) w ) ;
+          with_queries simple (fun i q fmt ->
+              perform_measurement_step_for_simple_query ~header ~fmt q
+                simple_envs.(i) w ) ;
+          progress 1 ) )

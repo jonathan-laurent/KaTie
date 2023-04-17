@@ -10,6 +10,15 @@ val task : ?style:style list -> string -> (unit -> 'a) -> 'a
 
 val party_emoji : unit -> string
 
+type progress_bar
+
+val progress_bar : nsteps:int -> progress_bar
+
+val open_progress_bar : step:int -> info:(int -> string) -> progress_bar
+
+val with_progress_bar :
+  string -> progress_bar -> (progress:(int -> unit) -> 'a) -> 'a
+
 val red : style
 
 val green : style
