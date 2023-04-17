@@ -4,6 +4,8 @@
 
 type style = ANSITerminal.style
 
+let enable_party_emoji = false
+
 let no_color = ref false
 
 let red, green, yellow, blue, cyan, magenta, bold =
@@ -26,4 +28,5 @@ let task ?(style = []) msg f =
   println style (Fmt.str " (%.2fs)" elapsed) ;
   v
 
-let party_emoji () = if !no_color then "" else " \u{1F389}"
+let party_emoji () =
+  if enable_party_emoji && not !no_color then " \u{1F389}" else ""

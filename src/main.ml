@@ -81,7 +81,7 @@ let main () =
     in
     Evaluator.eval_batch ~trace_file:!trace_file queries_and_formatters ;
     List.iter (fun (_, fmt) -> Format.fprintf fmt "@]@.") queries_and_formatters ;
-    Terminal.(println [green] ("Done! " ^ party_emoji ()))
+    Terminal.(println [bold; green] ("Done! " ^ party_emoji ()))
 
 let () =
   try main () ; exit 0 with
