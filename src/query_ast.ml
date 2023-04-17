@@ -48,8 +48,7 @@ type state_measure =
   | Snapshot
 [@@deriving show, yojson]
 
-type event_measure = Time | Rule | Debug_event | Init_event
-[@@deriving show, yojson]
+type event_measure = Time | Rule | Debug_event [@@deriving show, yojson]
 
 type expr =
   | Unop of unop * expr
@@ -64,8 +63,10 @@ type expr =
   | Agent_id of identifier
 [@@deriving show, yojson]
 
-type rule_constraint = Rule of string list | Obs of string
+type rule_constraint_disjunct = Rule of string | Init
 [@@deriving show, yojson]
+
+type rule_constraint = rule_constraint_disjunct list [@@deriving show, yojson]
 
 type event_pattern =
   { event_id: identifier option

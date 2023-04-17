@@ -192,7 +192,7 @@ let nonroot_delta (LinkCache.Cache link_cache) (M m) ~ev_lid ev =
         (ref_ev_lid, LinkCache.last_before)
   in
   let ref_ev_gid = m.evs.(ref_ev_lid) in
-  assert (ref_ev_gid <> 1) ;
+  assert (ref_ev_gid <> -1) ;
   let link = List.map (fun i -> m.ags.(i)) ev.link_agents in
   match access_cache link_cache ev_lid link ref_ev_gid with
   | None | Some (_, Event_matcher.Failure) ->
@@ -392,11 +392,13 @@ let dump_trace ~trace_file =
         q ) ;
   `Assoc (Utils.list_of_queue q)
 
-let with_queries qs f =
-  Array.iteri
+let map_queries qs f =
+  Array.mapi
     (fun i (q, fmt) ->
       Log.with_current_query q.Query.title (fun () -> f i q fmt) )
     qs
+
+let with_queries qs f = ignore (map_queries qs f)
 
 let batch_dump ~level file queries f =
   Tql_output.debug_json ~level file (fun () ->
@@ -441,9 +443,8 @@ let eval_batch ~trace_file queries_and_formatters =
           LinkCache.dump q caches.(i) ) ;
       let matchings =
         Terminal.task "Computing matchings" (fun () ->
-            Array.map2
-              (fun (q, _) c -> compute_all_matchings q c)
-              complex caches )
+            map_queries complex (fun i q _ ->
+                compute_all_matchings q caches.(i) ) )
       in
       batch_dump ~level:2 "matchings.json" complex (fun i q ->
           dump_all_matchings q matchings.(i) ) ;

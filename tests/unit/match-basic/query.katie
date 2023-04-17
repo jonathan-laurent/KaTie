@@ -195,3 +195,27 @@ query 'multi_5_bis__matches_1__all_true.csv'
 match f:{ k:K(x{/p}) }
 and first e:{ S(x{/p}, d[1]), k:K(d[1]) } after f
 return rule[f] = 'Kp', rule[e] = 'Sp'
+
+// Find the event that immediately follows in the trace
+query 'multi_6__matches_1__all_true.csv'
+match e:{ 'Sp' }
+and first f:{ } after e
+return rule[f] = "-Sp"
+
+// Nothing after the last event
+query 'multi_6_bis__matches_0.csv'
+match e:{ '-Sp' }
+and first f:{ } after e
+return 1
+
+// Find the event that immediately precedes in the trace
+query 'multi_7__matches_1__all_true.csv'
+match f:{ '-Sp' }
+and last e:{ } before f
+return rule[e] = "Sp"
+
+// Match _init_
+query 'multi_8__matches_2__all_true.csv'
+match f:{ '_init_' }
+and last e:{ } before f
+return rule[e] = "_init_"

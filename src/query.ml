@@ -41,11 +41,10 @@ type pattern =
 
 (* Trace patterns *)
 
-type rule_constraint =
-  | Init
-  | End_of_trace (* Not supported yet *)
-  | Rule of int list
-  | Obs of string
+type rule_constraint_disjunct = Rule of int | Init
+[@@deriving show, yojson_of]
+
+type rule_constraint = rule_constraint_disjunct list
 [@@deriving show, yojson_of]
 
 type event_pattern =

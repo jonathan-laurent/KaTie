@@ -1,3 +1,5 @@
+let init_label = "_init_"
+
 let actions_from_side_effects ev =
   let open Instantiation in
   List.map (fun (s, _) -> Free s) ev.side_effects_src
@@ -26,7 +28,7 @@ let rule_name model step =
       in
       name
   | Trace.Init _ ->
-      "_init_"
+      init_label
   | Trace.Dummy _ ->
       "_dummy_"
   | Trace.Subs _ ->

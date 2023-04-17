@@ -197,8 +197,6 @@ let compile_event_measure env in_action cur_ev_id ev_expr m =
         Measure.(Event_measure Time)
     | Ast.Rule ->
         Measure.(Event_measure Rule)
-    | Ast.Init_event ->
-        Measure.(Event_measure Init_event)
     | Ast.Debug_event ->
         Measure.(Event_measure Debug_event)
   in
@@ -409,11 +407,15 @@ let compile_mixture_pattern env ags =
 (* Compile events                                                            *)
 (*****************************************************************************)
 
+let compile_rule_constraint_disjuncts env = function
+  | Ast.Rule r ->
+      List.map (fun r -> Rule r) (Model.nums_of_rule r env.model)
+  | Ast.Init ->
+      [Init]
+
 let compile_rule_constraint env = function
-  | Some (Ast.Rule rs) ->
-      Some (Rule (List.concat_map (fun r -> Model.nums_of_rule r env.model) rs))
-  | Some (Ast.Obs s) ->
-      Some (Obs s)
+  | Some rs ->
+      Some (List.concat_map (compile_rule_constraint_disjuncts env) rs)
   | None ->
       None
 

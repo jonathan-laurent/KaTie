@@ -18,6 +18,9 @@ let make_agent ag_mod id1 id2_opt ag_sites =
     { ag_constr = None ; ag_kind = id1 ; ag_mod ; ag_sites}
   | Some id2 ->
     { ag_constr = Some id1 ; ag_kind = id2 ; ag_mod ; ag_sites}
+
+let parse_rule_constraint_disjunct l =
+  if String.equal l Trace_util.init_label then Init else Rule l
 %}
 
 
@@ -28,7 +31,7 @@ let make_agent ag_mod id1 id2_opt ag_sites =
 %token OP_PAR CL_PAR OP_SQPAR CL_SQPAR OP_CURL CL_CURL BAR
 %token SLASH SHARP
 %token MATCH RETURN AND WITH LAST FIRST BEFORE AFTER WHEN
-%token TIME NPHOS RULE COUNT COMPONENT DIST SIZE INIT_EVENT PRINT_CC DEBUG_EVENT
+%token TIME NPHOS RULE COUNT COMPONENT DIST SIZE PRINT_CC DEBUG_EVENT
 %token INT_STATE SIMILARITY AGENT_ID
 %token EVERY SECONDS
 %token SNAPSHOT
@@ -172,8 +175,6 @@ expr:
   | SNAPSHOT st_expr=st_measure_annot
     { State_measure (st_expr, Snapshot) }
   | AGENT_ID OP_CURL id=ID CL_CURL { Agent_id id }
-  | INIT_EVENT ev_expr=ev_measure_annot
-    {Event_measure (ev_expr, Init_event) }
   | DEBUG_EVENT ev_expr=ev_measure_annot
     {Event_measure (ev_expr, Debug_event)}
 
@@ -190,8 +191,9 @@ ev_name: id=ID COLON { id }
 
 with_clause: WITH e=expr { e }
 
-rule_constraint:
-  | rs=separated_nonempty_list(BAR, STRING) { Rule rs }
+rule_constraint_disjunct: d=STRING { parse_rule_constraint_disjunct d }
+
+rule_constraint: c=separated_nonempty_list(BAR, rule_constraint_disjunct) { c }
 
 ev_pattern:
   | event_id=option(ev_name)

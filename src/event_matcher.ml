@@ -19,18 +19,21 @@ let meaningful_step = function
   | _ ->
       true
 
+let satisfy_rule_constraint_disjunct d step =
+  match (d, step) with
+  | Init, Trace.Init _ ->
+      true
+  | Rule r, Trace.Rule (r', _, _) ->
+      r = r'
+  | _ ->
+      false
+
 let satisfy_rule_constraint cs _state step =
   match cs with
   | None ->
       meaningful_step step
-  | Some Init ->
-      false (* TODO *)
-  | Some End_of_trace ->
-      false (* TODO *)
-  | Some (Obs s) -> (
-    match step with Trace.Obs (s', _, _) -> s = s' | _ -> false )
-  | Some (Rule rs) -> (
-    match step with Trace.Rule (r, _, _) -> List.mem r rs | _ -> false )
+  | Some disjs ->
+      List.exists (fun d -> satisfy_rule_constraint_disjunct d step) disjs
 
 (* For each pair in the result, its symmetric is also in it *)
 let pattern_tested_links pat =
