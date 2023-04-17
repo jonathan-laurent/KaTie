@@ -175,29 +175,23 @@ match f:{ 'Sp' }
 and first e:{ '-Sp' } after f
 return time[f] < time[e]
 
-// Bug: two matches?
-// The second match gives the same time for e and f
-// query 'multi_3__matches_2.csv'
-// match e:{ '-Sp' }
-// and last f:{ 'Sp' } before e
-// and first g: { '-Sp' } after f
-// return time[e] = time[g], time[e], time[f]
+query 'multi_3__matches_1__all_true.csv'
+match e:{ '-Sp' }
+and last f:{ 'Sp' } before e
+and first g: { '-Sp' } after f
+return time[e] = time[g]
 
-// Bug
-// Exact same result as before
-// query 'multi_3_bis__matches_2.csv'
-// match e:{ '-Sp' -s:S() }
-// and last f:{ 'Sp' s:S(x{/p}) } before e
-// and first g: { '-Sp' -s:S() } after f
-// return time[e] = time[g], time[e], time[f]
+query 'multi_3_bis__matches_1__all_true.csv'
+match e:{ '-Sp' -s:S() }
+and last f:{ 'Sp' s:S(x{/p}) } before e
+and first g: { '-Sp' -s:S() } after f
+return time[e] = time[g]
 
-// Bug: two matches again?
-// The second match gives the same time for e and f
-// query 'multi_4__matches_2.csv'
-// match e:{ '-Sp' }
-// and last f:{ 'Sp' } before e
-// and first g:{ '-Sp' } after e
-// return time[e], time[f], time[g]
+query 'multi_4__matches_0__all_true.csv'
+match e:{ '-Sp' }
+and last f:{ 'Sp' } before e
+and first g:{ '-Sp' } after e
+return time[e] = time[g]
 
 // OK
 query 'multi_5__matches_1__all_true.csv'
