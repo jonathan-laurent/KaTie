@@ -1,0 +1,22 @@
+// A more convoluted example
+
+%agent: S(x{u,p}, du, dp)
+%agent: K(x{u,p})
+%agent: K2(st{on,off})
+
+'Kp'      K(x{u/p}), K2(st{on/off}) @ 1
+
+'K.Sdu'   S(du[./1]), K(x[./1]) @ 1
+'K.Sdp'   S(dp[./1]), K(x[./1]) @ 1
+'K..Sdu'  S(du[1/.]), K(x[1/.]) @ 1
+'K..Sdp'  S(dp[1/.]), K(x[1/.]) @ 1
+
+'Sp'      S(x{u/p}, du[1], dp[2]), K(x{u}[1]), K(x{p}[2]) @ 1
+'-Sp'     S(x{p}) -> . @ 1
+'-K2'     K2(st{off}) -> . @1
+
+%init: 2 K2(st{on})
+%init: 5 K(x{u})
+%init: 2 S(x{u})
+
+%mod: |S()| = 0 do $STOP ;

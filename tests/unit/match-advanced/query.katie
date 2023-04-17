@@ -1,0 +1,11 @@
+// The substrate is always phosphorilated when it gets degraded
+query 'always_phos__matches_0.csv'
+match deg:{ '-Sp' -S(x{u}) }
+return 1
+
+query 'convoluted__matches_2__always_true.csv'
+match deg:{ -s:S() }
+and last p:{ s:S(x{/p}, du[1], dp[2]), ku:K(x{u}[1]), kp:K(x[2]) } before deg
+and last kp:{ kp:K(x{/p}), k2:K2(st{/off}) } before p
+and first { -k2:K2(st{off}) } after kp
+return int_state[.p]{ku.x} = 'u', int_state[.p]{kp.x} = 'p'
