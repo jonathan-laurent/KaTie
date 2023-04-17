@@ -12,6 +12,7 @@
   ANSITerminal)
  (preprocess
   (pps ppx_deriving.show ppx_yojson_conv))
+ (ocamlopt_flags -O3)
  (flags
   (:standard
    -open
