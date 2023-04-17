@@ -629,6 +629,11 @@ let open_progress_bar msg step =
       last := !processed ) ;
     processed := !processed + n
 
+let with_elapsed_time f =
+  let t = Sys.time () in
+  let v = f () in
+  (v, Sys.time () -. t)
+
 let eval_batch ~trace_file qs =
   let header = Trace_header.load ~trace_file in
   let queries = Array.of_list (List.map fst qs) in
@@ -643,9 +648,12 @@ let eval_batch ~trace_file qs =
                ignore (first_pass_process_step q window envs.(i)) ) )
   in
   print_endline "Finding matchings..." ;
-  ignore
-  @@ Streaming.fold_trace ~update_ccs:true ~compute_previous_states:true
-       ~skip_init_events:false ~trace_file step1 () ;
+  let _, dt =
+    with_elapsed_time (fun () ->
+        Streaming.fold_trace ~update_ccs:true ~compute_previous_states:true
+          ~skip_init_events:false ~trace_file step1 () )
+  in
+  Printf.printf "\nElapsed time: %.2fs" dt ;
   let cms = Array.map extract_complete_matchings envs in
   let accs = Array.map prepare_second_pass cms in
   List.iter print_legend qs ;
@@ -664,7 +672,9 @@ let eval_batch ~trace_file qs =
                  second_pass_process_step ~header ~matchings_processed q
                    fmts.(i) cms.(i) window accs.(i) ) )
   in
-  ignore
-  @@ Streaming.fold_trace ~update_ccs:true ~compute_previous_states:true
-       ~skip_init_events:false ~trace_file step2 () ;
-  print_newline ()
+  let _, dt =
+    with_elapsed_time (fun () ->
+        Streaming.fold_trace ~update_ccs:true ~compute_previous_states:true
+          ~skip_init_events:false ~trace_file step2 () )
+  in
+  Printf.printf "\nElapsed time: %.2fs\n" dt

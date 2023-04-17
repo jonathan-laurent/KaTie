@@ -17,14 +17,14 @@ let print s msg =
 
 let println s msg = print s msg ; print s "\n"
 
-let with_elapsed_time f () =
+let with_elapsed_time f =
   let t = Sys.time () in
   let v = f () in
   (v, Sys.time () -. t)
 
 let task ?(style = []) msg f =
   print style msg ;
-  let v, elapsed = with_elapsed_time f () in
+  let v, elapsed = with_elapsed_time f in
   println style (Fmt.str " (%.2fs)" elapsed) ;
   v
 
@@ -67,8 +67,7 @@ let open_progress_bar ~step ~info ~prefix =
 
 let with_progress_bar prefix bar f =
   let {progress; final_info} = bar ~prefix in
-  let res, dt = with_elapsed_time (fun () -> f ~progress) () in
-  let pad = String.make 20 ' ' in
+  let res, dt = with_elapsed_time (fun () -> f ~progress) in
   let info = match final_info () with None -> "" | Some i -> i ^ ", " in
-  println [] (Fmt.str "%s (%s%.2fs)%s" prefix info dt pad) ;
+  println [] (Fmt.str "%s (%s%.2fs)" prefix info dt) ;
   res
