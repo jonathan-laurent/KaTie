@@ -59,9 +59,7 @@ let main () =
     Tql_output.set_snapshots_name_format "snapshot.%.ka" ;
   if !trace_file = "" || !query_file = "" then Arg.usage options usage
   else
-    let () = Terminal.println [] "Before header" in
     let header = Trace_header.load ~trace_file:!trace_file in
-    let () = Terminal.println [] "After header" in
     let queries, asts = parse_and_compile_queries header.model !query_file in
     Tql_output.debug_json "queries-ast.json" (fun () ->
         [%yojson_of: Query_ast.t list] asts ) ;
