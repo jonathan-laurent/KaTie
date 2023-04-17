@@ -75,14 +75,17 @@ let with_file ?kind filename f =
   f fmt ; close_out oc
 
 let debug_json ?(level = 1) ?show_message filename make_json =
-  let show_message = Option.value show_message ~default:(level > 1) in
-  if !debug_level >= level then (
-    if show_message then
-      Terminal.println [] ("Producing debug info: " ^ filename) ;
-    with_file ~kind:`Debug filename (fun fmt ->
-        Format.fprintf fmt "%a@.]"
-          (Yojson.Safe.pretty_print ~std:false)
-          (make_json ()) ) )
+  if !debug_level >= level then
+    let run f =
+      let show_message = Option.value show_message ~default:(level > 1) in
+      if show_message then Terminal.task ("Producing debug info: " ^ filename) f
+      else f ()
+    in
+    run (fun () ->
+        with_file ~kind:`Debug filename (fun fmt ->
+            Format.fprintf fmt "%a@.]"
+              (Yojson.Safe.pretty_print ~std:false)
+              (make_json ()) ) )
 
 let set_snapshots_name_format fmt =
   snapshot_counter := 0 ;
