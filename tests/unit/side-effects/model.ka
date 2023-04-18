@@ -7,13 +7,17 @@
 %init: 1 A(b[1], x{i}), B(a[1], c[2]), C(b[2])
 %init: 1 A(b[1], x{j}), B(a[1], c[2]), C(b[2])
 
-B(a[_])- @ 10
-A(x{i}, b[_/2]), A(x{j}, b[1/.]), B(a[1/2]) @ 1
+B(a[_])- @ 10                                       // side-effect via agent deletion
+A(x{i}, b[_/2]), A(x{j}, b[1/.]), B(a[1/2]) @ 1     // side-effect via semi-link swap
 
 C(x{k}) <-> C(x{q}) @ 10, 10
 
-// The original perturbation triggers a bug in KaSim,
-// causing an invalid trace file to be generated.
+// The time & number of Q <-> K conversions will be seed dependent; with
+//  OCaml 4's generator, seed 0 produced the included results, validated
+//  against per-event snapshots. When OCaml 5 is adopted, this output will
+//  likely need re-validating.
+// This perturbation triggers a bug in KaSim, causing an invalid trace file to
+//  be generated, and so is commented-out.
 // %mod: [true] do $SNAPSHOT "snap".[E].".json"; $SNAPSHOT [true] ; repeat [true]
 // %mod: |B()| = 0 do $SNAPSHOT "snap".[E].".json"; $SNAPSHOT [true] ; $STOP ;
 
