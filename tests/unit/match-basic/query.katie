@@ -11,36 +11,28 @@ query 'k_freed__matches_2__all_true.csv'
 match e:{ K(d[/.]) }
 return rule[e] = "_init_" || rule[e] = "-Sp"
 
-// In contrast, this works as expected:
 query 'unbinding__matches_1.csv'
 match e:{ U1(x[/.]) }
 return rule[e] = "U1..U2"
 
-// (and this too of course)
 query 'unbinding__matches_1__all_true.csv'
 match e:{ U1(x[1/.]), U2(x[1/.]) }
 return rule[e] = "U1..U2"
 
-// WARNING: this one is tricky
-// The tests are performed on the state BEFORE the rule is applied
-// Here, the agent S does not exist yet when the x{u} test is performed.
-query 'create_S_warn__matches_0.csv'
+query 'create_Sp__matches_0.csv'
+match e:{ +s:S(x{p}) }
+return 1
+
+query 'create_Su__matches_1.csv'
 match e:{ +s:S(x{u}) }
 return 1
 
-// This works since we test the state update
-query 'create_S_warn2__matches_1.csv'
-match e:{ +s:S(x{/u}[/.]) }
+query 'create_U1U2__matches_1.csv'
+match e:{ +U1(x[1]), +U2(x[1]) }
 return 1
 
-// And this correctly does not match!
-query 'create_S_warn3__matches_0.csv'
-match e:{ +s:S(x{/p}) }
-return 1
-
-// This too!
-query 'create_S_warn4__matches_0.csv'
-match e:{ +s:S(x[/_]) }
+query 'create_U1U2_bis__matches_0.csv'
+match e:{ +U1(x[1]), +U2(x[1]{p}) }
 return 1
 
 query 'delete_S__matches_1.csv'

@@ -1,0 +1,30 @@
+// Creation and deletion tests
+
+query 'create_1__matches_2.csv'
+match e:{ +b:Bob() }
+return int_state[e.]{b.s}
+
+query 'create_2__matches_1__all_true.csv'
+match e:{ +b:Bob(s{a}) }
+return int_state[e.]{b.s} = "a", rule[e] = "r1"
+
+query 'create_3__matches_1__all_true.csv'
+match e:{ +b:Bob(s{b}) }
+return int_state[e.]{b.s} = "b", rule[e] = "r2"
+
+query 'F1_lifespan__matches_1.csv'
+match c:{ +f:F1() }
+and first d:{ -f:F1() } after c
+return 1
+
+// The two following queries fail because of the same id is assigned to both Bob and F1.
+
+// query 'create_delete__matches_1.csv'
+// match { +b:Bob(), -f:F1() }
+// return 1
+
+// query 'story_1__matches_1__all_true.csv'
+// match e:{ +f:F1() }
+// // and first r:{ +b:Bob() } after e
+// and first r:{ +b:Bob(), -F1() } after e
+// return rule[e] = "_init_", rule[r] = "_r1_"

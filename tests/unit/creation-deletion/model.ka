@@ -1,0 +1,14 @@
+// https://github.com/jonathan-laurent/Kappa-TQL/issues/9
+
+%agent: Bob(s{a, b})
+%agent: F1()
+%agent: F2()
+
+'r1' Bob()+, F1()- @ 1
+'r2' Bob(s{b})+, F2()- @ 1
+
+// If the following rule is included, then any query matching +S becomes ambiguous...
+//'r3' Bob(s[1])+, Bob(s[1])+ @ 1
+
+%init: 1 F1(), F2()
+%mod: |F1()|+|F2()| = 0 do $STOP ;

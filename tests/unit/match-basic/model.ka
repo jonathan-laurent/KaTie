@@ -16,8 +16,8 @@
 
 // 2. Unbinding
 
-%agent: U1(x)
-%agent: U2(x)
+%agent: U1(x{u,p})
+%agent: U2(x{u,p})
 
 'U1..U2' U1(x[1/.]), U2(x[1/.]) @ 1
 
