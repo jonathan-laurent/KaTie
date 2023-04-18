@@ -140,6 +140,18 @@ let same_sites fam (a, s) (a', s') = same_agents fam a a' && s = s'
 (* Discover potential event matching                                         *)
 (*****************************************************************************)
 
+(* The trace format features two kinds of actions: [Bind] and [Bind_to].
+   Presumably, [Bind_to] is used for initial steps and [Bind] is used
+   for rule applications. Importantly, [Bind] is symmetric whereas
+   [Bind_to] is not. In spirit, [[Bind (s, s')]] is equivalent to
+   [[Bind_to (s, s'), Bind_to (s', s)]]. In order to treat the two
+   equivalently in our matching code, we eliminate half of the instances
+   of [Bind_to]. *)
+let preprocess_bind_to actions =
+  List.filter
+    (function Instantiation.Bind_to (s, s') -> s < s' | _ -> true)
+    actions
+
 (* Take a pattern action and a step action and return all possible
    partial agent matchings that are induced by matching the two
    together. For example, the binding action in the event pattern
@@ -192,6 +204,7 @@ let match_action pat pat_action step_action =
    mandate that each pattern action matches unambiguously with a single
    trace action. *)
 let add_matchings_implied_by_actions pat step_actions amm =
+  let step_actions = preprocess_bind_to step_actions in
   pat.main_pattern.mods
   |> List.fold_left
        (fun amm pat_action ->
