@@ -2,7 +2,6 @@
 (* Event matcher                                                             *)
 (*****************************************************************************)
 
-open Aliases
 open Query
 open Utils
 open Streaming
@@ -84,9 +83,11 @@ let rec fixpoint eq f x =
 (* Matching lists and maps                                                   *)
 (*****************************************************************************)
 
-type agent_matching_list = AML of (pat_agent_id * global_agent_id) list
+type agent_matching_list =
+  | AML of (Aliases.pat_agent_id * Aliases.global_agent_id) list
 
-type agent_matching_map = AMM of global_agent_id pat_agent_id_map
+type agent_matching_map =
+  | AMM of Aliases.global_agent_id Aliases.pat_agent_id_map
 
 exception No_match
 
@@ -118,7 +119,7 @@ let same_cardinal (AMM m) (AMM m') = IntMap.cardinal m = IntMap.cardinal m'
 (*****************************************************************************)
 
 (* Maps pattern ids to global ids *)
-type full_agent_matching = FAM of global_agent_id array
+type full_agent_matching = FAM of Aliases.global_agent_id array
 
 (* Make a full agent matching from an [agent_matching_map]. Raises
    [No_match] if matchings are missing for some local agents. *)
@@ -206,7 +207,7 @@ let add_matchings_implied_by_actions pat step_actions amm =
 (* Take a Kappa mixture and a list of known bindings between local
    agents and augment the map of known agent matchings accordingly. *)
 let propagate_link_constraints_with (graph : Edges.t)
-    (links : (local_site * local_site) list) amm =
+    (links : (Aliases.local_site * Aliases.local_site) list) amm =
   links
   |> List.fold_left
        (fun amm (s, s') ->
@@ -327,8 +328,8 @@ let check_full_matching pat w fam =
 
 (* Once we have a mapping from the agents of [pat] to the agents of [w],
    this function tests that [pat] effectively matches [w] *)
-let match_simple_pattern pat w =
-  match match_agents_in_pattern pat w with
+let match_simple_pattern ?constrs pat w =
+  match match_agents_in_pattern ?constrs pat w with
   | Some fam ->
       if check_full_matching pat w fam then Some fam else None
   | None ->
@@ -338,10 +339,12 @@ let match_simple_pattern pat w =
 (* Main function                                                             *)
 (*****************************************************************************)
 
-type status = Failure | Success of {other_constrained: global_agent_id list}
+type status =
+  | Failure
+  | Success of {other_constrained: Aliases.global_agent_id list}
 [@@deriving show, yojson_of]
 
-type potential_matching = {link: global_agent_id list; status: status}
+type potential_matching = {link: Aliases.global_agent_id list; status: status}
 [@@deriving show, yojson_of]
 
 (* Returns [None] when the provided local id is not constrained by the
@@ -353,6 +356,24 @@ let gid_of_lid pat (FAM m) lid =
   with Not_found -> None
 
 let gid_of_lid_exn pat fam lid = gid_of_lid pat fam lid |> Option.get
+
+(* Given a pattern [pat], a full matching from [pat_id] to [global_id]
+   and another pattern [pat'], we want a matching from [pat_id'] to
+   [global_id] for [pat']. To do so, we look at the agent constraints of
+   [pat']. If such a constraint says lid->pid' and we have lid->gid from
+   [pat]'s matching, then we have pid'->gid. The resulting matching
+   cannot contain a conflict since all global ids from [pat]'s matching are
+   distint. *)
+let _transpose_constraints pat fam pat' =
+  AMM
+    (IntMap.fold
+       (fun lid pid' eqs ->
+         match gid_of_lid pat fam lid with
+         | None ->
+             eqs
+         | Some gid ->
+             IntMap.add pid' gid eqs )
+       pat'.agent_constraints IntMap.empty )
 
 let match_event ev w : potential_matching option =
   match (defining_pattern ev, ev.event_pattern) with
@@ -370,6 +391,11 @@ let match_event ev w : potential_matching option =
                 List.map (gid_of_lid_exn pat fam) ev.other_constrained_agents }
         in
         Some {link; status} )
-  | Some _, Some _ ->
-      Tql_error.failwith
-        "Having several clauses for an event is not supported yet."
+  | Some def_pat, Some main_pat -> (
+    match match_simple_pattern def_pat w with
+    | None ->
+        None
+    | Some _fam -> (
+        let constrs = assert false in
+        match match_simple_pattern ~constrs main_pat w with _ -> assert false )
+    )
