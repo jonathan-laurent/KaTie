@@ -36,15 +36,14 @@ let options =
     , Arg.String Tql_output.set_output_directory
     , "set the output directory (default: '.')" ) ]
 
-let parse_and_compile_queries model file =
+let parse_queries file =
   try
     let ic = open_in file in
     let lexbuf = Lexing.from_channel ic in
     try
       let asts = Query_parser.queries Query_lexer.token lexbuf in
-      let queries = List.map (Query_compile.compile model) asts in
-      close_in ic ; (queries, asts)
-    with Query_parser.Error ->
+      close_in ic ; asts
+    with Query_parser.Error | Tql_error.User_error {kind= Parse_error; _} ->
       Tql_error.(fail ~loc:(Lexing.lexeme_start_p lexbuf) Parse_error)
   with Sys_error _ -> Tql_error.(fail (File_not_found file))
 
@@ -60,9 +59,10 @@ let main () =
   if !trace_file = "" || !query_file = "" then Arg.usage options usage
   else
     let header = Trace_header.load ~trace_file:!trace_file in
-    let queries, asts = parse_and_compile_queries header.model !query_file in
+    let asts = parse_queries !query_file in
     Tql_output.debug_json "queries-ast.json" (fun () ->
         [%yojson_of: Query_ast.t list] asts ) ;
+    let queries = List.map (Query_compile.compile header.model) asts in
     Tql_output.debug_json "compiled-queries.json" (fun () ->
         [%yojson_of: Query.t list] queries ) ;
     let queries_and_formatters =

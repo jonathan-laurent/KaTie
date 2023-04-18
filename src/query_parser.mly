@@ -12,12 +12,36 @@ let make_site site_name = {
     site_int_test = None ;
     site_int_mod  = None }
 
+let has_mod site = Option.is_some site.site_int_mod || Option.is_some site.site_lnk_mod
+
+(* When writing +S(x{u}), x{u} must be regarded as a modification and not a test! *)
+let correct_test_mods_on ag_mod site =
+  match ag_mod with
+  | None -> site
+  | Some Create ->
+    if has_mod site
+    then Tql_error.(fail Parse_error)  (* Invalid site update for created agent. *)
+    else {
+      site_name= site.site_name;
+      site_lnk_test= None;
+      site_lnk_mod= site.site_lnk_test;
+      site_int_test= None;
+      site_int_mod= site.site_int_test}
+  | Some Erase ->
+    if has_mod site
+    then Tql_error.(fail Parse_error)  (* Invalid site update for deleted agent. *)
+    else site
+
+let correct_test_modes ag = {ag with
+  ag_sites= List.map (correct_test_mods_on ag.ag_mod) ag.ag_sites}
+
 let make_agent ag_mod id1 id2_opt ag_sites =
-  match id2_opt with
+  begin match id2_opt with
   | None ->
     { ag_constr = None ; ag_kind = id1 ; ag_mod ; ag_sites}
   | Some id2 ->
     { ag_constr = Some id1 ; ag_kind = id2 ; ag_mod ; ag_sites}
+  end |> correct_test_modes
 
 let parse_rule_constraint_disjunct l =
   if String.equal l Trace_util.init_label then Init else Rule l
