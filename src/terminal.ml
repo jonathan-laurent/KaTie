@@ -4,6 +4,9 @@
 
 type style = ANSITerminal.style
 
+(* Useful when performing print debugging *)
+let disable_progress_bars = true
+
 let enable_party_emoji = false
 
 let no_color = ref false
@@ -46,7 +49,7 @@ let progress_bar ~nsteps ~prefix =
     let p = !processed * 100 / nsteps in
     if p > !lastp then (
       let msg = Fmt.str "%s (%d%%) \r" prefix p in
-      print [] msg ;
+      if not disable_progress_bars then print [] msg ;
       lastp := p )
   in
   let final_info () = None in
@@ -58,7 +61,7 @@ let open_progress_bar ~step ~info ~prefix =
   let progress n =
     if !processed >= !last + step then (
       let msg = Fmt.str "%s (%s) \r" prefix (info !processed) in
-      print [] msg ;
+      if not disable_progress_bars then print [] msg ;
       last := !processed ) ;
     processed := !processed + n
   in
