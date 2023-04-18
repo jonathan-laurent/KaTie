@@ -54,7 +54,7 @@ let parse_rule_constraint_disjunct l =
 %token NOT LOGIC_AND LOGIC_OR
 %token OP_PAR CL_PAR OP_SQPAR CL_SQPAR OP_CURL CL_CURL BAR
 %token SLASH SHARP
-%token MATCH RETURN AND WITH LAST FIRST BEFORE AFTER WHEN
+%token MATCH RETURN AND LAST FIRST BEFORE AFTER WHEN
 %token TIME NPHOS RULE COUNT COMPONENT DIST SIZE PRINT_CC DEBUG_EVENT
 %token INT_STATE SIMILARITY AGENT_ID
 %token EVERY SECONDS
@@ -212,8 +212,6 @@ clause:
   | LAST evp=ev_pattern BEFORE id=ID { Last_before (evp, id) }
 
 ev_name: id=ID COLON { id }
-
-with_clause: WITH e=expr { e }
 
 rule_constraint_disjunct: d=STRING { parse_rule_constraint_disjunct d }
 
