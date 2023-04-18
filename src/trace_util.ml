@@ -67,8 +67,10 @@ let dump_action model =
         (show_internal model (Agent.sort a) s st)
   | Free q ->
       Fmt.str "free(%s)" (show_quark model q)
-  | Bind (q, q') | Bind_to (q, q') ->
+  | Bind (q, q') ->
       Fmt.str "bind(%s, %s)" (show_quark model q) (show_quark model q')
+  | Bind_to (q, q') ->
+      Fmt.str "bind-to(%s, %s)" (show_quark model q) (show_quark model q')
 
 let dump_step_actions model step =
   let _, actions = extract_tests_actions step in
