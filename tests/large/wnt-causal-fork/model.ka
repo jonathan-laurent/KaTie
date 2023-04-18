@@ -1,0 +1,97 @@
+// scaffolds
+%agent: Axn(axn1, axn2, apc, ck1, gsk, tcp, prt, cat)
+%agent: APC(axn1, axn2, axn3, cat1, cat2, cat3, cat4, cat5)
+// forward-model enzymes
+%agent: CK1(axn, active_site)
+%agent: GSK(axn, active_site)
+%agent: TCP(axn, cat, active_site)
+%agent: Prt(axn, cat, active_site)
+// undoing enzymes
+%agent: PP1(axn, active_site)
+%agent: PP2(axn, active_site)
+// substrate
+%agent: Cat(foo, S1{un, ph}, S2{un, ph}, S3{un, ph}, S4{un, ph}, S5{un, ub})
+%init: 20 Axn(), APC()
+%init: 10 CK1(), GSK(), TCP(), Prt()
+%init: 1 PP1(), PP2()
+
+// scaffold binding
+Axn(axn1[.]), Axn(axn2[.]) <-> Axn(axn1[1]), Axn(axn2[1]) @ 1 {100}, 10
+APC(axn1[.]), Axn(apc[.]) <-> APC(axn1[1]), Axn(apc[1]) @ 1 {100}, 10
+APC(axn2[.]), Axn(apc[.]) <-> APC(axn2[1]), Axn(apc[1]) @ 1 {100}, 10
+APC(axn3[.]), Axn(apc[.]) <-> APC(axn3[1]), Axn(apc[1]) @ 1 {100}, 10
+// enzyme binding
+CK1(axn[.]), Axn(ck1[.]) <-> CK1(axn[1]), Axn(ck1[1]) @ 1 {100}, 10
+GSK(axn[.]), Axn(gsk[.]) <-> GSK(axn[1]), Axn(gsk[1]) @ 1 {100}, 10
+TCP(axn[.]), Axn(tcp[.]) <-> TCP(axn[1]), Axn(tcp[1]) @ 1 {100}, 10
+Prt(axn[.]), Axn(prt[.]) <-> Prt(axn[1]), Axn(prt[1]) @ 1 {100}, 10
+PP1(axn[.]), Axn(ck1[.]) <-> PP1(axn[1]), Axn(ck1[1]) @ 1 {100}, 10
+PP2(axn[.]), Axn(gsk[.]) <-> PP2(axn[1]), Axn(gsk[1]) @ 1 {100}, 10
+// substrate binding
+Axn(cat[.]), Cat(foo[.]) <-> Axn(cat[1]), Cat(foo[1]) @ 1 {100}, 10
+APC(cat1[.]), Cat(foo[.]) <-> APC(cat1[1]), Cat(foo[1]) @ 1 {100}, 10
+APC(cat2[.]), Cat(foo[.]) <-> APC(cat2[1]), Cat(foo[1]) @ 1 {100}, 10
+APC(cat3[.]), Cat(foo[.]) <-> APC(cat3[1]), Cat(foo[1]) @ 1 {100}, 10
+APC(cat4[.]), Cat(foo[.]) <-> APC(cat4[1]), Cat(foo[1]) @ 1 {100}, 10
+APC(cat5[.]), Cat(foo[.]) <-> APC(cat5[1]), Cat(foo[1]) @ 1 {100}, 10
+// additional direct enzyme-substrate binding
+Cat(foo[.]), TCP(cat[.]) <-> Cat(foo[1]), TCP(cat[1]) @ 1 {100}, 10
+Cat(foo[.]), Prt(cat[.]) <-> Cat(foo[1]), Prt(cat[1]) @ 1 {100}, 10
+
+// forward enzymatics:
+//  a) if eligible (primed, unmodified, etc) and co-located, bind
+//  b) once bound to the active site, modify & unbind instantaneously
+// This "idiom" allows matching the specific enzyme responsible for
+//  the modification, as the event has an explicit bond between
+//  substrate and agent.
+// Simple agents are used to track rule activity, and produce snapshots.
+//  Those are used for manual validation of query outputs. Tokens were
+//  considered, but a valid syntax was not found to achieve these snaps.
+
+%agent: S1s()		%init: 0 S1s()		%obs: 'S1s' |S1s()|
+Cat(S1{un}[./1]), CK1(active_site[./1])             	@ 0.0 {1.0}
+Cat(S1{un/ph}[1/.]), CK1(active_site[1/.]), S1s()+  	@ inf
+
+%agent: S2s()		%init: 0 S2s()		%obs: 'S2s' |S2s()|
+Cat(S1{ph}, S2{un}[./1]), GSK(active_site[./1])             @ 0.0 {1.0}
+Cat(        S2{un/ph}[1/.]), GSK(active_site[1/.]), S2s()+  @ inf
+
+%agent: S3s()		%init: 0 S3s()		%obs: 'S3s' |S3s()|
+Cat(S2{ph}, S3{un}[./1]), GSK(active_site[./1])             @ 0.0 {1.0}
+Cat(        S3{un/ph}[1/.]), GSK(active_site[1/.]), S3s()+  @ inf
+
+%agent: S4s()		%init: 0 S4s()		%obs: 'S4s' |S4s()|
+Cat(S2{ph}, S4{un}[./1]), GSK(active_site[./1])             @ 0.0 {1.0}
+Cat(        S4{un/ph}[1/.]), GSK(active_site[1/.]), S4s()+	@ inf
+
+%agent: S5s()		%init: 0 S5s()		%obs: 'S5s' |S5s()|
+Cat(S3{ph}, S4{ph}, S5{un}[./1]), TCP(active_site[./1])             @ 0.0 {1.0}
+Cat(                S5{un/ub}[1/.]), TCP(active_site[1/.]), S5s()+	@ inf
+
+%agent: ghosts()		%init: 0 ghosts()		%obs: 'ghosts' |ghosts()|
+Cat(S5{ub}[./1]), Prt(active_site[./1])			@ 0.0 {1.0}
+Cat(S5[1])-, Prt(active_site[1/.]), ghosts()+	@ inf
+
+// undo enzymatics
+Cat(S1{ph}[./1]), PP1(active_site[./1])     @ 0.0 {1.0}
+Cat(S1[1/.]{ph/un}), PP1(active_site[1/.])	@ inf
+
+Cat(S2{ph}[./1]), PP2(active_site[./1])     @ 0.0 {1.0}
+Cat(S2[1/.]{ph/un}), PP2(active_site[1/.])	@ inf
+
+Cat(S3{ph}[./1]), PP2(active_site[./1])     @ 0.0 {1.0}
+Cat(S3[1/.]{ph/un}), PP2(active_site[1/.])	@ inf
+
+Cat(S4{ph}[./1]), PP2(active_site[./1])     @ 0.0 {1.0}
+Cat(S4[1/.]{ph/un}), PP2(active_site[1/.])	@ inf
+
+%init: 100 Cat()
+// %mod: [T] > 10 do $ADD 100 Cat() ;
+%mod: |Cat()| = 10 do $STOP ;
+
+// %mod: S1s = 1 do $SNAPSHOT "snap_S1s_".[T].".ka" ; $DEL 1 S1s() ; repeat [true]
+// %mod: S2s = 1 do $SNAPSHOT "snap_S2s_".[T].".ka" ; $DEL 1 S2s() ; repeat [true]
+// %mod: S3s = 1 do $SNAPSHOT "snap_S3s_".[T].".ka" ; $DEL 1 S3s() ; repeat [true]
+// %mod: S4s = 1 do $SNAPSHOT "snap_S4s_".[T].".ka" ; $DEL 1 S4s() ; repeat [true]
+// %mod: S5s = 1 do $SNAPSHOT "snap_S5s_".[T].".ka" ; $DEL 1 S5s() ; repeat [true]
+// %mod: ghosts = 1 do $SNAPSHOT "snap_ghosts_".[T].".ka" ; $DEL 1 ghosts(); repeat [true]

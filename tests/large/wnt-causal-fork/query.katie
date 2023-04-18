@@ -1,0 +1,31 @@
+query 'query_out_kinase_complex_characterization.csv' {
+	'deg_u_T', 'Axin-deg_u', 'APC-deg_u', 'size-deg_u', 'id-prot_deg_u',
+	'ubi_u_T', 'Axin-ubi_u', 'APC-ubi_u', 'size-ubi_u', 'id-trcp_ubi_u',
+	'S33_u_T', 'Axin-S33_u', 'APC-S33_u', 'size-S33_u', 'id-gsk3_S33_u',
+	'S37_u_T', 'Axin-S37_u', 'APC-S37_u', 'size-S37_u', 'id-gsk3_S37_u',
+	'T41_a_T', 'Axin-T41_a', 'APC-T41_a', 'size-T41_a', 'id-gsk3_T41_a',
+	'T41_b_T', 'Axin-T41_b', 'APC-T41_b', 'size-T41_b', 'id-gsk3_T41_b',
+	'S45_a_T', 'Axin-S45_a', 'APC-S45_a', 'size-S45_a', 'id-ck1a_S45_a',
+	'S45_b_T', 'Axin-S45_b', 'APC-S45_b', 'size-S45_b', 'id-ck1a_S45_b',
+	'cre_u_T'
+    }
+match deg_u:{ prot_deg_u: Prt(active_site[1/.]), -cat: Cat(S5{ub}[1]) } and
+    last ubi_u:{ trcp_ubi_u: TCP(active_site[1/.]), cat: Cat(S5{un/ub}[1/.]) } before deg_u and
+    last S33_u:{ gsk3_S33_u: GSK(active_site[1/.]), cat: Cat(S4{un/ph}[1/.]) } before ubi_u and
+    last S37_u:{ gsk3_S37_u: GSK(active_site[1/.]), cat: Cat(S3{un/ph}[1/.]) } before ubi_u and
+    last T41_a:{ gsk3_T41_a: GSK(active_site[1/.]), cat: Cat(S2{un/ph}[1/.]) } before S37_u and
+    last T41_b:{ gsk3_T41_b: GSK(active_site[1/.]), cat: Cat(S2{un/ph}[1/.]) } before S33_u and
+    last S45_a:{ ck1a_S45_a: CK1(active_site[1/.]), cat: Cat(S1{un/ph}[1/.]) } before T41_a and
+    last S45_b:{ ck1a_S45_b: CK1(active_site[1/.]), cat: Cat(S1{un/ph}[1/.]) } before T41_b and
+last cre_u:{ +cat: Cat() } before deg_u
+return (
+	time[deg_u], count{'Axn'}{component[.deg_u]{cat}}, count{'APC'}{component[.deg_u]{cat}}, size{component[.deg_u]{cat}}, agent_id{prot_deg_u},
+	time[ubi_u], count{'Axn'}{component[.ubi_u]{cat}}, count{'APC'}{component[.ubi_u]{cat}}, size{component[.ubi_u]{cat}}, agent_id{trcp_ubi_u},
+	time[S33_u], count{'Axn'}{component[.S33_u]{cat}}, count{'APC'}{component[.S33_u]{cat}}, size{component[.S33_u]{cat}}, agent_id{gsk3_S33_u},
+	time[S37_u], count{'Axn'}{component[.S37_u]{cat}}, count{'APC'}{component[.S37_u]{cat}}, size{component[.S37_u]{cat}}, agent_id{gsk3_S37_u},
+	time[T41_a], count{'Axn'}{component[.T41_a]{cat}}, count{'APC'}{component[.T41_a]{cat}}, size{component[.T41_a]{cat}}, agent_id{gsk3_T41_a},
+	time[T41_b], count{'Axn'}{component[.T41_b]{cat}}, count{'APC'}{component[.T41_b]{cat}}, size{component[.T41_b]{cat}}, agent_id{gsk3_T41_b},
+	time[S45_a], count{'Axn'}{component[.S45_a]{cat}}, count{'APC'}{component[.S45_a]{cat}}, size{component[.S45_a]{cat}}, agent_id{ck1a_S45_a},
+	time[S45_b], count{'Axn'}{component[.S45_b]{cat}}, count{'APC'}{component[.S45_b]{cat}}, size{component[.S45_b]{cat}}, agent_id{ck1a_S45_b},
+	time[cre_u]
+    )
