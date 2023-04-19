@@ -1,0 +1,6 @@
+%agent: S()
+
+'r' S()+, S()- @ 1
+
+%init: 1 S()
+%mod: [E] > 1 do $STOP ;

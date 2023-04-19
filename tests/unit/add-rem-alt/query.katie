@@ -1,0 +1,3 @@
+query 'trace.csv'
+match e:{ }
+return rule[e]
