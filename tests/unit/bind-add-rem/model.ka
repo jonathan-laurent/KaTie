@@ -3,4 +3,4 @@
 'r' S(x[1/2]), S(x[1]{u})-, S(x[2]{p})+ @ 1
 
 %init: 1 S(x[1]), S(x[1])
-%mod: [E] > 1 do $STOP ;
+%mod: [E] > 1 do $STOP ;  // 'r' is triggered twice

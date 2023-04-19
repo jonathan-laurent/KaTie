@@ -17,14 +17,11 @@ match c:{ +f:F1() }
 and first d:{ -f:F1() } after c
 return 1
 
-// The two following queries fail because of the same id is assigned to both Bob and F1.
+query 'create_delete__matches_1.csv'
+match { +b:Bob(), -f:F1() }
+return 1
 
-// query 'create_delete__matches_1.csv'
-// match { +b:Bob(), -f:F1() }
-// return 1
-
-// query 'story_1__matches_1__all_true.csv'
-// match e:{ +f:F1() }
-// // and first r:{ +b:Bob() } after e
-// and first r:{ +b:Bob(), -F1() } after e
-// return rule[e] = "_init_", rule[r] = "_r1_"
+query 'story_1__matches_1__all_true.csv'
+match e:{ +f:F1() }
+and first r:{ +b:Bob(), -F1() } after e
+return rule[e] = "_init_", rule[r] = "r1"

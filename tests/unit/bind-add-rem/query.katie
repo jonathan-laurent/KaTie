@@ -1,3 +1,43 @@
-query 'trace.csv'
-match e:{ }
-return rule[e]
+// Ambiguous every _init_ event creates two S at once
+// query 'ambiguous_1.csv'
+// match e:{ +S }
+// return rule[e]
+
+query 'deletions_1__matches_2.csv'
+match e:{ -s:S(x[_]) }
+return 1
+
+query 'deletions_2__matches_0.csv'
+match e:{ -s:S(x[.]) }
+return 1
+
+// Influenced by the random seed
+query 'multi__matches_1.csv'
+match e:{ -s:S(x[1]), s2:S(x[1]) }
+and first { -s2:S() } after e
+return 1
+
+// Note that like for snapshots, agents in printed connected components
+// are annotated with simulator ids and not unique ids. Such ids are not unique
+// across time.
+
+// We check the existence of an event after e to ensure
+// we only match the first triggering of rue 'r'
+query 'print_cc_1__matches_1__all_true.csv'
+match e:{ -s:S() }
+and first { } after e
+return print_cc[.e]{s} = "x0:S(x{u}[1]), x1:S(x{u}[1])"
+
+query 'print_cc_2__matches_1__all_true.csv'
+match e:{ -s:S() }
+and last b:{ } before e
+and last c:{ } before b
+return print_cc[.e]{s} = "x1:S(x{u}[1]), x0:S(x{p}[1])"
+
+// No ambiguity since e is never matched with _init_ due to
+// the rule constraint
+query 'print_cc_3__matches_1__all_true.csv'
+match e:{ 'r' +s:S() }
+and first { } after e
+return print_cc[e.]{s} = "x0:S(x{p}[1]), x1:S(x{u}[1])"
+
