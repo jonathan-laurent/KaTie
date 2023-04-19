@@ -4,6 +4,8 @@ val init_state : with_connected_components:bool -> state
 
 val replay_and_translate_step : Signature.s -> state -> Trace.step -> Trace.step
 
+exception Inexisting_agent
+
 module Graph : sig
   type t
 

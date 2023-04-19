@@ -44,7 +44,13 @@ let delete_agent state simid =
 
 let s2u state simid = Hashtbl.find state.simid_to_uid simid
 
-let u2s state uid = Hashtbl.find state.uid_to_simid uid
+(* Functions from the [Graph] module raise this exception when called
+   with an id that does not map to an existing agent. *)
+exception Inexisting_agent
+
+let u2s state uid =
+  try Hashtbl.find state.uid_to_simid uid
+  with Not_found -> raise Inexisting_agent
 
 let rename_agent f (ag_id, ag_ty) = (f ag_id, ag_ty)
 

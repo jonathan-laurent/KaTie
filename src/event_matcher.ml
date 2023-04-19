@@ -316,17 +316,7 @@ let test_holds pat state fam test =
           ag_kind' = ag_kind'' && s' = s'' )
     | Int_state_is ((ag_pid, s), st) ->
         G.get_internal (translate_ag fam ag_pid) s state = st
-  with
-  (* TODO: this is dirty. We are doing this in case some agent
-         does not exist in the previous state and KaSim throws
-         an exception. KaSim should throw a more specific
-         exception or expose a `valid_agent_id` API. *)
-  | Invalid_argument _ ->
-      false
-  | e ->
-      Log.warn "TODO: catch more specific exception." ~loc:__LOC__
-        ~details:[Printexc.to_string e] ;
-      false
+  with Safe_replay.Inexisting_agent -> false
 
 let check_full_matching pat w fam =
   let _tests, actions = extract_tests_actions w.step in
