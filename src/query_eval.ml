@@ -378,8 +378,16 @@ let iter_trace ~trace_file f =
     (fun w () -> f w)
     ()
 
+let dump_trace_full ~trace_file =
+  let q = Queue.create () in
+  let header = Trace_header.load ~trace_file in
+  iter_trace ~trace_file (fun w ->
+      Queue.push
+        (string_of_int w.step_id, Trace_util.dump_step header.model w.step)
+        q ) ;
+  `Assoc (Utils.list_of_queue q)
+
 let dump_trace ~trace_file =
-  let open Streaming in
   let open Trace_util in
   let q = Queue.create () in
   let header = Trace_header.load ~trace_file in
@@ -434,6 +442,8 @@ let eval_batch ~trace_file queries_and_formatters =
   (* Dump a summary of the trace along with query execution paths *)
   Tql_output.debug_json ~level:2 "trace-summary.json" (fun () ->
       dump_trace ~trace_file ) ;
+  Tql_output.debug_json ~level:2 "trace-summary-long.json" (fun () ->
+      dump_trace_full ~trace_file ) ;
   batch_dump ~level:1 "execution-paths.json" complex (fun _ q ->
       `String (dump_execution_path q q.Query.pattern.execution_path) ) ;
   (* First pass through the trace (for complex queries only) *)
