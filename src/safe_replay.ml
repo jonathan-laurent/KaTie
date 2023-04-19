@@ -2,11 +2,27 @@
 (* Safe Replay                                                               *)
 (*****************************************************************************)
 
-include Replay
+(* This module is a wrapper over [Replay] that assigns unique ids to all
+   agents in such a way that no two agents can ever share the same id,
+   even if their existence never overlaps in time. Indeed, for
+   performance reasons, KaSim reuses ids of deleted agents when creating
+   new ones. This is unsuitable for reasoning about causality, where
+   tracking agent identity over time is important. *)
+
+(* There is currently a bug in the traces produced by KaSim where the
+   same identifier can sometimes refer to multiples agents _within_ the
+   same trace step. In addition, executing actions in the order they are
+   presented can lead to attempting to create an agent that is already
+   in the mixture. Thus, our procedure for translating trace steps is
+   somewhat more convoluted than it should be. In particular, we reorder
+   all action lists to put deletion firsts. We also translate actions
+   sequentially, potentially updating the mapping between simulator ids
+   (simids) and unique ids (uids) between each action. *)
 
 (* We have an imperative interface since Replay.state is not persistent
-   anyway (the graph gets updated in place). *)
-
+   anyway (the graph gets updated in place). In this file, [simid]
+   denotes simulator ids (agent ids as used in the original trace files)
+   and [uid] denotes unique agent ids, as manipulated by this tool. *)
 type state =
   { mutable state: Replay.state
   ; uid_to_simid: (int, int) Hashtbl.t
