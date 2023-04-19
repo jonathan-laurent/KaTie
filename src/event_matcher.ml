@@ -219,7 +219,7 @@ let add_matchings_implied_by_actions pat step_actions amm =
 
 (* Take a Kappa mixture and a list of known bindings between local
    agents and augment the map of known agent matchings accordingly. *)
-let propagate_link_constraints_with (graph : Edges.t)
+let propagate_link_constraints_with (graph : Safe_replay.Graph.t)
     (links : (Aliases.local_site * Aliases.local_site) list) amm =
   links
   |> List.fold_left
@@ -228,7 +228,7 @@ let propagate_link_constraints_with (graph : Edges.t)
          | None ->
              amm
          | Some (src_ag, src_s) -> (
-           match Edges.link_destination src_ag src_s graph with
+           match Safe_replay.Graph.link_destination src_ag src_s graph with
            | None ->
                raise No_match
            | Some dst ->
@@ -239,9 +239,11 @@ let propagate_link_constraints_with (graph : Edges.t)
 let propagate_link_constraints pat w amm =
   let amm =
     amm
-    |> propagate_link_constraints_with w.previous_state.Replay.graph
+    |> propagate_link_constraints_with
+         (Safe_replay.graph w.previous_state)
          (pattern_tested_links pat)
-    |> propagate_link_constraints_with w.state.Replay.graph
+    |> propagate_link_constraints_with
+         (Safe_replay.graph w.state)
          (pattern_created_links pat)
   in
   check_injective amm ; amm
@@ -295,25 +297,26 @@ let test_matching_action fam pat_action step_action =
       false
 
 let test_holds pat state fam test =
+  let module G = Safe_replay.Graph in
   try
     match test with
     | Agent_exists ag_pid ->
-        Edges.is_agent (translate_ag fam ag_pid, p_agent_ty pat ag_pid) state
+        G.is_agent (translate_ag fam ag_pid, p_agent_ty pat ag_pid) state
     | Lnk_state_is ((ag_pid, s), Free) ->
-        Edges.is_free (translate_ag fam ag_pid) s state
+        G.is_free (translate_ag fam ag_pid) s state
     | Lnk_state_is ((ag_pid, s), Bound_to (ag_pid', s')) ->
-        Edges.link_exists (translate_ag fam ag_pid) s (translate_ag fam ag_pid')
-          s' state
+        G.link_exists (translate_ag fam ag_pid) s (translate_ag fam ag_pid') s'
+          state
     | Lnk_state_is ((ag_pid, s), Bound_to_any) ->
-        not (Edges.is_free (translate_ag fam ag_pid) s state)
+        not (G.is_free (translate_ag fam ag_pid) s state)
     | Lnk_state_is ((ag_pid, s), Bound_to_type (ag_kind', s')) -> (
-      match Edges.link_destination (translate_ag fam ag_pid) s state with
+      match G.link_destination (translate_ag fam ag_pid) s state with
       | None ->
           false
       | Some ((_, ag_kind''), s'') ->
           ag_kind' = ag_kind'' && s' = s'' )
     | Int_state_is ((ag_pid, s), st) ->
-        Edges.get_internal (translate_ag fam ag_pid) s state = st
+        G.get_internal (translate_ag fam ag_pid) s state = st
   with
   (* TODO: this is dirty. We are doing this in case some agent
          does not exist in the previous state and KaSim throws
@@ -334,7 +337,7 @@ let check_full_matching pat w fam =
            actions |> List.exists (test_matching_action fam pat_action) )
   in
   let tests_ok =
-    let state = w.previous_state.Replay.graph in
+    let state = Safe_replay.graph w.previous_state in
     pat.main_pattern.tests |> List.for_all (test_holds pat state fam)
   in
   mods_ok && tests_ok

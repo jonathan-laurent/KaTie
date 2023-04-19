@@ -1,6 +1,6 @@
 type window =
-  { previous_state: Replay.state
-  ; state: Replay.state
+  { previous_state: Safe_replay.state
+  ; state: Safe_replay.state
   ; step: Trace.step
   ; step_id: int }
 

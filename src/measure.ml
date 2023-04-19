@@ -24,54 +24,19 @@ type t =
 
 (* Measure implementations *)
 
-let component ag_id state =
-  match state.Replay.connected_components with
-  | None ->
-      Log.failwith "No connected component information available."
-  | Some ccs -> (
-      let cc_id = Edges.get_connected_component ag_id state.Replay.graph in
-      match
-        Option.bind cc_id (fun cc_id -> Mods.IntMap.find_option cc_id ccs)
-      with
-      | None ->
-          Log.(
-            failwith
-              (fmt "Impossible to find the connected component of agent %d."
-                 ag_id )
-              ~details:
-                [ fmt "`cc_id` is equal to None: %b." (cc_id = None)
-                ; fmt "`ag_id` is a valid ID: %b."
-                    (Edges.is_agent_id ag_id state.Replay.graph) ] )
-      | Some cc ->
-          VAgentSet cc )
-
-let time state = VFloat state.Replay.time
-
 let int_state model (ag_id, ag_site) state =
-  let graph = state.Replay.graph in
-  let ag_kind = Edges.get_sort ag_id graph in
-  let st =
-    try Edges.get_internal ag_id ag_site graph
-    with e ->
-      Log.warn "TODO: catch more specific exception." ~loc:__LOC__
-        ~details:[Printexc.to_string e] ;
-      Log.(
-        error "Unable to access agent's internal state"
-          ~details:
-            [ fmt "(%d, %d), %d" ag_id ag_kind ag_site
-            ; fmt "%d" state.Replay.event
-            ; pp Edges.debug_print graph ] ) ;
-      assert false
-  in
+  let graph = Safe_replay.graph state in
+  let ag_kind = Safe_replay.Graph.get_sort ag_id graph in
+  let st = Safe_replay.Graph.get_internal ag_id ag_site graph in
   VString (Trace_util.show_internal model ag_kind ag_site st)
 
 let take_snapshot ?uuid model state file =
-  let graph = state.Replay.graph in
+  let graph = Safe_replay.graph state in
   let signature = Model.signatures model in
-  let snapshot = Edges.build_snapshot ~raw:true signature graph in
+  let snapshot = Safe_replay.Graph.build_snapshot ~raw:true signature graph in
   let snapshot =
-    { Data.snapshot_event= state.Replay.event
-    ; Data.snapshot_time= state.Replay.time
+    { Data.snapshot_event= Safe_replay.event state
+    ; Data.snapshot_time= Safe_replay.time state
     ; Data.snapshot_agents=
         Snapshot.export ~raw:true ~debugMode:true signature snapshot
     ; Data.snapshot_tokens= [||] }
@@ -89,9 +54,9 @@ let take_snapshot ?uuid model state file =
   close_out oc
 
 let print_cc model state ag_id =
-  let edges = state.Replay.graph in
   let ugraph =
-    Edges.species ~debugMode:false (Model.signatures model) ag_id edges
+    Safe_replay.Graph.species ~debugMode:false (Model.signatures model) ag_id
+      (Safe_replay.graph state)
   in
   VString (Fmt.str "@[<h>%a@]" User_graph.print_cc ugraph)
 
@@ -110,7 +75,7 @@ let take_measure ~header ag_matching w measure =
       in
       match measure with
       | Component ag_id ->
-          component (ag_matching ag_id) state (* Absurd *)
+          VAgentSet (Safe_replay.connected_component (ag_matching ag_id) state)
       | Int_state (ag_id, ag_site) ->
           int_state model (ag_matching ag_id, ag_site) state
       | Snapshot ->
@@ -122,7 +87,7 @@ let take_measure ~header ag_matching w measure =
   | Event_measure measure -> (
     match measure with
     | Time ->
-        time w.state
+        VFloat (Safe_replay.time w.state)
     | Rule ->
         VString (Trace_util.rule_name model w.step)
     | Init_event ->

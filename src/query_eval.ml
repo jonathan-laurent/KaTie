@@ -348,7 +348,7 @@ let enough_time_elapsed query state t =
       t -. state.last_action_time >= delta
 
 let perform_measurement_step_for_simple_query ~header ~fmt query state window =
-  let t = Replay.(window.Streaming.state.time) in
+  let t = Safe_replay.time window.Streaming.state in
   if enough_time_elapsed query state t then
     let event = query.Query.pattern.events.(0) in
     match Event_matcher.match_event event window with

@@ -17,6 +17,8 @@ let graph st = st
 
 let time st = st.state.time
 
+let event st = st.state.event
+
 let init_hashtbl_size = 1_000_000
 
 let init_state ~with_connected_components =
@@ -66,8 +68,85 @@ let s2u state simid = Hashtbl.find state.simid_to_uid simid
 
 let u2s state uid = Hashtbl.find state.uid_to_simid uid
 
-module Edges = struct
+let rename_agent f (ag_id, ag_ty) = (f ag_id, ag_ty)
+
+let s2u_ag state simid_ag = rename_agent (s2u state) simid_ag
+
+let u2s_ag state uid_ag = rename_agent (u2s state) uid_ag
+
+let s2u_site state (ag, s) = (s2u_ag state ag, s)
+
+module Graph = struct
   type t = state
 
+  let is_agent ag g = Edges.is_agent (u2s_ag g ag) g.state.graph
+
   let is_agent_id uid g = Edges.is_agent_id (u2s g uid) g.state.graph
+
+  let get_sort uid g = Edges.get_sort (u2s g uid) g.state.graph
+
+  let is_free uid site g = Edges.is_free (u2s g uid) site g.state.graph
+
+  let get_internal uid site g =
+    Edges.get_internal (u2s g uid) site g.state.graph
+
+  let link_exists uid1 site1 uid2 site2 g =
+    Edges.link_exists (u2s g uid1) site1 (u2s g uid2) site2 g.state.graph
+
+  let link_destination ag site g =
+    Edges.link_destination (u2s g ag) site g.state.graph
+    |> Option.map (s2u_site g)
+
+  (* TODO: this may show simulation ids *)
+  let species ~debugMode sigs uid g =
+    Edges.species ~debugMode sigs (u2s g uid) g.state.graph
+
+  (* TODO: this shows simulation ids *)
+  let build_snapshot ~raw sigs g = Edges.build_snapshot ~raw sigs g.state.graph
 end
+
+let simid_connected_component simid state =
+  match state.Replay.connected_components with
+  | None ->
+      Log.failwith "No connected component information available."
+  | Some ccs -> (
+      let cc_id = Edges.get_connected_component simid state.Replay.graph in
+      match
+        Option.bind cc_id (fun cc_id -> Mods.IntMap.find_option cc_id ccs)
+      with
+      | None ->
+          Log.(
+            failwith
+              (fmt "Impossible to find the cc of agent with simid %d." simid)
+              ~details:
+                [ fmt "`cc_id` is equal to None: %b." (cc_id = None)
+                ; fmt "`ag_id` is a valid ID: %b."
+                    (Edges.is_agent_id simid state.Replay.graph) ] )
+      | Some cc ->
+          cc )
+
+(* Same than [simid_connected_component] but works with uids *)
+let connected_component uid st =
+  let simid = u2s st uid in
+  let scc = simid_connected_component simid st.state in
+  let open Agent.SetMap.Set in
+  fold (fun sa ucc -> add (s2u_ag st sa) ucc) scc empty
+
+(** How should we translate the step? every time an action is executed,
+
+    Delete 8
+    Delete 9
+
+    Side effects: src in Rule and Pert.
+
+    Some tests are performed before removing...
+
+    Translate side_effects before.
+
+    reorder in an advanced way...
+
+    what about renaming step on the fly?
+
+    if there are several agent 8 in step, we are done...
+
+*)

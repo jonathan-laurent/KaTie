@@ -417,7 +417,7 @@ let match_event ev w =
       let common_to_all =
         { ev_id_in_trace= w.step_id
         ; ev_id_in_query= ev.event_id
-        ; ev_time= w.state.Replay.time
+        ; ev_time= Safe_replay.time w.state
         ; indexing_ag_matchings= link }
       in
       match status with
