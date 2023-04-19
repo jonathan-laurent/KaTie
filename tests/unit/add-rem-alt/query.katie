@@ -1,3 +1,13 @@
-query 'trace.csv'
+query 'snapshots.csv'
 match e:{ }
-return rule[e]
+when not (rule[e] = '_init_')
+return snapshot[e.]
+
+query 'created__matches_2__all_true.csv'
+match e:{ +s:S }
+when not (rule[e] = "_init_")
+return agent_id{s} = 1 || agent_id{s} = 2
+
+query 'destroyed__matches_2__all_true.csv'
+match e:{ -s:S }
+return agent_id{s} = 0 || agent_id{s} = 1
