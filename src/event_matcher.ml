@@ -141,10 +141,9 @@ let same_sites fam (a, s) (a', s') = same_agents fam a a' && s = s'
 (*****************************************************************************)
 
 (* The trace format features two kinds of actions: [Bind] and [Bind_to].
-   Presumably, [Bind_to] is used for initial steps and [Bind] is used
-   for rule applications. Importantly, [Bind] is symmetric whereas
-   [Bind_to] is not. In spirit, [[Bind (s, s')]] is equivalent to
-   [[Bind_to (s, s'), Bind_to (s', s)]]. In order to treat the two
+   In spirit, [[Bind (s, s')]] is equivalent to [[Bind_to (s, s'),
+   Bind_to (s', s)]]. Only [Bind_to] can be used in initialization steps
+   and both are used in standard rules. In order to treat the two
    equivalently in our matching code, we eliminate half of the instances
    of [Bind_to]. *)
 let preprocess_bind_to actions =
