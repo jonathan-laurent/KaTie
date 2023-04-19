@@ -42,28 +42,6 @@ let delete_agent state simid =
   Hashtbl.remove state.uid_to_simid uid ;
   Hashtbl.remove state.simid_to_uid simid
 
-let update_uids_for_action state = function
-  | Instantiation.Create (ag, _) ->
-      let simid = Agent.id ag in
-      create_agent state simid
-  | Remove ag ->
-      let simid = Agent.id ag in
-      delete_agent state simid
-  | _ ->
-      ()
-
-let update_uids_for_step state step =
-  let actions, _ = Trace.actions_of_step step in
-  let is_removal = function Instantiation.Remove _ -> true | _ -> false in
-  let removals, others = List.partition is_removal actions in
-  List.iter (update_uids_for_action state) removals ;
-  List.iter (update_uids_for_action state) others
-
-let do_step sigs st step =
-  let state, _ = Replay.do_step sigs st.state step in
-  st.state <- state ;
-  update_uids_for_step st step
-
 let s2u state simid = Hashtbl.find state.simid_to_uid simid
 
 let u2s state uid = Hashtbl.find state.uid_to_simid uid
@@ -75,6 +53,68 @@ let s2u_ag state simid_ag = rename_agent (s2u state) simid_ag
 let u2s_ag state uid_ag = rename_agent (u2s state) uid_ag
 
 let s2u_site state (ag, s) = (s2u_ag state ag, s)
+
+let update_action state action =
+  let open Instantiation in
+  let tr = subst_map_agent_in_concrete_action (s2u state) in
+  match action with
+  | Instantiation.Create (ag, _) ->
+      let simid = Agent.id ag in
+      create_agent state simid ; tr action
+  | Remove ag ->
+      let simid = Agent.id ag in
+      let action = tr action in
+      delete_agent state simid ; action
+  | _ ->
+      tr action
+
+let update_actions state actions =
+  (* Removals actions are placed and processed first *)
+  let is_removal = function Instantiation.Remove _ -> true | _ -> false in
+  let removals, others = List.partition is_removal actions in
+  let removals = List.map (update_action state) removals in
+  let others = List.map (update_action state) others in
+  removals @ others
+
+let update_tests state tests =
+  List.map (Instantiation.subst_map_agent_in_concrete_test (s2u state)) tests
+
+let update_event state e =
+  let open Instantiation in
+  (* Tests and side effects are translated BEFORE we process the actions
+     and update the id correspondence table *)
+  let tests = List.map (update_tests state) e.tests in
+  let side_effects_src =
+    List.map
+      (subst_map_agent_in_concrete_side_effect (s2u state))
+      e.side_effects_src
+  in
+  let connectivity_tests = update_tests state e.connectivity_tests in
+  let side_effects_dst = List.map (s2u_site state) e.side_effects_dst in
+  (* Processing actions updates the mapping imperatively *)
+  let actions = update_actions state e.actions in
+  {tests; side_effects_src; side_effects_dst; connectivity_tests; actions}
+
+let update_step st =
+  let open Trace in
+  function
+  | Subs (i, j) ->
+      Subs (s2u st i, s2u st j)
+  | Rule (r, e, info) ->
+      Rule (r, update_event st e, info)
+  | Pert (s, e, info) ->
+      Pert (s, update_event st e, info)
+  | Init actions ->
+      Init (update_actions st actions)
+  | Obs (s, tests, info) ->
+      Obs (s, List.map (update_tests st) tests, info)
+  | Dummy s ->
+      Dummy s
+
+let replay_and_translate_step sigs st raw_step =
+  let state, _ = Replay.do_step sigs st.state raw_step in
+  st.state <- state ;
+  update_step st raw_step
 
 module Graph = struct
   type t = state
@@ -131,22 +171,3 @@ let connected_component uid st =
   let scc = simid_connected_component simid st.state in
   let open Agent.SetMap.Set in
   fold (fun sa ucc -> add (s2u_ag st sa) ucc) scc empty
-
-(** How should we translate the step? every time an action is executed,
-
-    Delete 8
-    Delete 9
-
-    Side effects: src in Rule and Pert.
-
-    Some tests are performed before removing...
-
-    Translate side_effects before.
-
-    reorder in an advanced way...
-
-    what about renaming step on the fly?
-
-    if there are several agent 8 in step, we are done...
-
-*)

@@ -2,7 +2,7 @@ type state
 
 val init_state : with_connected_components:bool -> state
 
-val do_step : Signature.s -> state -> Trace.step -> unit
+val replay_and_translate_step : Signature.s -> state -> Trace.step -> Trace.step
 
 module Graph : sig
   type t
