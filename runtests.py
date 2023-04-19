@@ -158,6 +158,9 @@ def run(dir):
         print(red(f"KaTie return code: {katie_ret}"))
         print(f"  See {join(katie_out, STDOUT_FILE)}")
         print(f"  See {join(katie_out, STDERR_FILE)}")
+    with open(join(katie_out, STDERR_FILE), "r") as f:
+        if f.read().strip():
+            print(f"  See {join(katie_out, STDERR_FILE)}")
     return katie_ret == 0
 
 
