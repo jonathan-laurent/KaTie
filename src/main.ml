@@ -32,6 +32,9 @@ let options =
     , Arg.Unit native_snapshots
     , "dump snapshot using KaSim's native format" )
   ; ("--no-color", Arg.Set Terminal.no_color, "disable colored output")
+  ; ( "--no-progress-bars"
+    , Arg.Set Terminal.disable_progress_bars
+    , "disable progress bars to avoid polluting stdout" )
   ; ( "--output-dir"
     , Arg.String Tql_output.set_output_directory
     , "set the output directory (default: '.')" ) ]

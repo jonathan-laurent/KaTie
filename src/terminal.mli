@@ -2,6 +2,8 @@ type style
 
 val no_color : bool ref
 
+val disable_progress_bars : bool ref
+
 val print : style list -> string -> unit
 
 val println : style list -> string -> unit
