@@ -362,6 +362,16 @@ let gid_of_lid pat (FAM m) lid =
 
 let gid_of_lid_exn pat fam lid = gid_of_lid pat fam lid |> Option.get
 
+let gid_of_lid_2 pat fam pat' fam' lid =
+  match gid_of_lid pat fam lid with
+  | Some gid ->
+      Some gid
+  | None ->
+      gid_of_lid pat' fam' lid
+
+let gid_of_lid_2_exn pat fam pat' fam' lid =
+  gid_of_lid_2 pat fam pat' fam' lid |> Option.get
+
 (* Given a pattern [pat], a full matching from [pat_id] to [global_id]
    and another pattern [pat'], we want a matching from [pat_id'] to
    [global_id] for [pat']. To do so, we look at the agent constraints of
@@ -369,7 +379,7 @@ let gid_of_lid_exn pat fam lid = gid_of_lid pat fam lid |> Option.get
    [pat]'s matching, then we have pid'->gid. The resulting matching
    cannot contain a conflict since all global ids from [pat]'s matching are
    distint. *)
-let _transpose_constraints pat fam pat' =
+let transpose_constraints pat fam pat' =
   AMM
     (IntMap.fold
        (fun lid pid' eqs ->
@@ -378,7 +388,7 @@ let _transpose_constraints pat fam pat' =
              eqs
          | Some gid ->
              IntMap.add pid' gid eqs )
-       pat'.agent_constraints IntMap.empty )
+       pat'.main_pattern.agent_constraints IntMap.empty )
 
 let match_event ev w : potential_matching option =
   match (defining_pattern ev, ev.event_pattern) with
@@ -400,7 +410,18 @@ let match_event ev w : potential_matching option =
     match match_simple_pattern def_pat w with
     | None ->
         None
-    | Some _fam -> (
-        let constrs = assert false in
-        match match_simple_pattern ~constrs main_pat w with _ -> assert false )
-    )
+    | Some fam -> (
+        let constrs = transpose_constraints def_pat fam main_pat in
+        let link = List.map (gid_of_lid_exn def_pat fam) ev.link_agents in
+        match match_simple_pattern ~constrs main_pat w with
+        | None ->
+            Some {link; status= Failure}
+        | Some fam' ->
+            let status =
+              Success
+                { other_constrained=
+                    List.map
+                      (gid_of_lid_2_exn def_pat fam main_pat fam')
+                      ev.other_constrained_agents }
+            in
+            Some {link; status} ) )
