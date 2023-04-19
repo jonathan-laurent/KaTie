@@ -25,9 +25,10 @@ module Graph : sig
 
   val species :
     debugMode:bool -> Signature.s -> int -> t -> User_graph.connected_component
-
-  val build_snapshot : raw:bool -> Signature.s -> t -> Snapshot.t
 end
+
+val snapshot :
+  raw:bool -> Model.t -> state -> (int * User_graph.connected_component) list
 
 val graph : state -> Graph.t
 

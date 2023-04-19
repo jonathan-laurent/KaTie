@@ -31,14 +31,11 @@ let int_state model (ag_id, ag_site) state =
   VString (Trace_util.show_internal model ag_kind ag_site st)
 
 let take_snapshot ?uuid model state file =
-  let graph = Safe_replay.graph state in
-  let signature = Model.signatures model in
-  let snapshot = Safe_replay.Graph.build_snapshot ~raw:true signature graph in
+  let snapshot = Safe_replay.snapshot ~raw:true model state in
   let snapshot =
     { Data.snapshot_event= Safe_replay.event state
     ; Data.snapshot_time= Safe_replay.time state
-    ; Data.snapshot_agents=
-        Snapshot.export ~raw:true ~debugMode:true signature snapshot
+    ; Data.snapshot_agents= snapshot
     ; Data.snapshot_tokens= [||] }
   in
   let oc = open_out file in

@@ -122,6 +122,11 @@ let replay_and_translate_step sigs st raw_step =
   st.state <- state ;
   update_step st raw_step
 
+let rename_agents_in_user_graph_cc f cc =
+  let open User_graph in
+  let rename_node n = {n with node_id= (Option.map f) n.node_id} in
+  Array.map (Array.map (Option.map rename_node)) cc
+
 module Graph = struct
   type t = state
 
@@ -143,13 +148,17 @@ module Graph = struct
     Edges.link_destination (u2s g ag) site g.state.graph
     |> Option.map (s2u_site g)
 
-  (* TODO: this may show simulation ids *)
   let species ~debugMode sigs uid g =
     Edges.species ~debugMode sigs (u2s g uid) g.state.graph
-
-  (* TODO: this shows simulation ids *)
-  let build_snapshot ~raw sigs g = Edges.build_snapshot ~raw sigs g.state.graph
+    |> rename_agents_in_user_graph_cc (s2u g)
 end
+
+(* TODO: what is the integer associated to each connected component? *)
+let snapshot ~raw model g =
+  let sigs = Model.signatures model in
+  let snap = Edges.build_snapshot ~raw sigs g.state.graph in
+  let ug = Snapshot.export ~raw:true ~debugMode:true sigs snap in
+  List.map (fun (i, cc) -> (i, rename_agents_in_user_graph_cc (s2u g) cc)) ug
 
 let simid_connected_component simid state =
   match state.Replay.connected_components with
