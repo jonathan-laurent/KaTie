@@ -12,8 +12,7 @@ type state_measure =
   | Snapshot
 [@@deriving show, yojson_of]
 
-type event_measure = Time | Rule | Debug_event | Init_event
-[@@deriving show, yojson_of]
+type event_measure = Time | Rule | Debug_event [@@deriving show, yojson_of]
 
 type state_measure_time = Before | After [@@deriving show, yojson_of]
 
@@ -87,7 +86,5 @@ let take_measure ~header ag_matching w measure =
         VFloat (Safe_replay.time w.state)
     | Rule ->
         VString (Trace_util.rule_name model w.step)
-    | Init_event ->
-        VBool (Trace.step_is_init w.step)
     | Debug_event ->
         VString (Trace_util.dump_step_actions model w.step) )
