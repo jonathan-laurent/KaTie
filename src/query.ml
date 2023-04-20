@@ -47,8 +47,7 @@ type rule_constraint_disjunct = Rule of int | Init
 type rule_constraint = rule_constraint_disjunct list
 [@@deriving show, yojson_of]
 
-type event_pattern =
-  {main_pattern: pattern; rule_constraint: rule_constraint option}
+type event_pattern = {pattern: pattern; rule_constraint: rule_constraint option}
 [@@deriving show, yojson_of]
 
 type defining_relation =
@@ -146,12 +145,12 @@ type action = Print of Expr.t | If of Expr.t * action
 type t =
   { title: string
   ; legend: string list option (* Used as headers for the resulting CSV file. *)
-  ; pattern: trace_pattern
+  ; trace_pattern: trace_pattern
   ; action: action
   ; every_clause: float option }
 [@@deriving show, yojson_of]
 
-let is_simple q = Array.length q.pattern.events = 1
+let is_simple q = Array.length q.trace_pattern.events = 1
 
 let defining_pattern ev =
   match ev.defining_rel with

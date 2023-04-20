@@ -2,10 +2,10 @@
 (* Pretty-printing utilities for debugging                                   *)
 (*****************************************************************************)
 
-let dump_ag_lid query ~lid = query.Query.pattern.agents.(lid).agent_name
+let dump_ag_lid query ~lid = query.Query.trace_pattern.agents.(lid).agent_name
 
 let dump_ev_lid query ~lid =
-  query.Query.pattern.events.(lid).event_name |> Option.value ~default:"?"
+  query.Query.trace_pattern.events.(lid).event_name |> Option.value ~default:"?"
 
 let dump_agent_mapping query ~lid ~gid =
   Fmt.str "%s:%d" (dump_ag_lid query ~lid) gid
@@ -34,7 +34,7 @@ let dump_execution_path query path =
   let ag_name lid = dump_ag_lid query ~lid in
   path
   |> List.map (fun ev_lid ->
-         let ev = query.Query.pattern.events.(ev_lid) in
+         let ev = query.Query.trace_pattern.events.(ev_lid) in
          let ev_name = dump_ev_lid query ~lid:ev_lid in
          let link = List.map ag_name ev.link_agents in
          let other_constrained = List.map ag_name ev.other_constrained_agents in

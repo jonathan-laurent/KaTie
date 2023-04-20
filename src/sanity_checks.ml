@@ -24,7 +24,7 @@ let dummy_eval_measure =
 
 let dummy_eval_expr q e =
   let read_measure ev_lid m_id =
-    q.Query.pattern.events.(ev_lid).measures.(m_id).measure
+    q.Query.trace_pattern.events.(ev_lid).measures.(m_id).measure
     |> dummy_eval_measure
   in
   let matching _ag_lid = 0 in
@@ -98,13 +98,13 @@ let check_patterns_rooted_in_ev e =
   | None, None ->
       assert false
   | Some p, None | None, Some p ->
-      check_rooted ~ev_name p.main_pattern
+      check_rooted ~ev_name p.pattern
   | Some def_p, Some main_p ->
-      check_rooted ~ev_name def_p.main_pattern ;
-      check_rooted ~ev_name ~constrained:e.link_agents main_p.main_pattern
+      check_rooted ~ev_name def_p.pattern ;
+      check_rooted ~ev_name ~constrained:e.link_agents main_p.pattern
 
 let check_patterns_rooted q =
-  Array.iter check_patterns_rooted_in_ev q.Query.pattern.events
+  Array.iter check_patterns_rooted_in_ev q.Query.trace_pattern.events
 
 (* Main checking function *)
 

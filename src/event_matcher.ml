@@ -48,7 +48,7 @@ let satisfy_rule_constraint cs _state step =
 
 (* For each pair in the result, its symmetric is also in it *)
 let pattern_tested_links pat =
-  pat.main_pattern.tests
+  pat.pattern.tests
   |> List.concat_map (function
        | Lnk_state_is (s, Bound_to s') ->
            [(s, s'); (s', s)]
@@ -56,7 +56,7 @@ let pattern_tested_links pat =
            [] )
 
 let pattern_created_links pat =
-  pat.main_pattern.mods
+  pat.pattern.mods
   |> List.concat_map (function
        | Mod_lnk_state (s, Bound_to s') ->
            [(s, s'); (s', s)]
@@ -71,7 +71,7 @@ let agent_ty ag = snd ag
 
 let agent_id ag = fst ag
 
-let p_agent_ty pat ag_pid = pat.main_pattern.agents.(ag_pid).pat_agent_kind
+let p_agent_ty pat ag_pid = pat.pattern.agents.(ag_pid).pat_agent_kind
 
 let site_has_type (kind, s) ((_, kind'), s') = kind = kind' && s = s'
 
@@ -126,7 +126,7 @@ type full_agent_matching = FAM of Aliases.global_agent_id array
 (* Make a full agent matching from an [agent_matching_map]. Raises
    [No_match] if matchings are missing for some local agents. *)
 let make_full_agent_matching pat (AMM amm) =
-  let n = Array.length pat.main_pattern.agents in
+  let n = Array.length pat.pattern.agents in
   FAM
     (Array.init n (fun i ->
          try IntMap.find i amm with Not_found -> Error.(fail Agent_ambiguity) )
@@ -206,7 +206,7 @@ let match_action pat pat_action step_action =
    trace action. *)
 let add_matchings_implied_by_actions pat step_actions amm =
   let step_actions = preprocess_bind_to step_actions in
-  pat.main_pattern.mods
+  pat.pattern.mods
   |> Utils.monadic_fold
        (fun amm pat_action ->
          let* step_action = step_actions in
@@ -335,13 +335,13 @@ let test_holds pat state fam test =
 let check_full_matching pat w fam =
   let _tests, actions = extract_tests_actions w.step in
   let mods_ok =
-    pat.main_pattern.mods
+    pat.pattern.mods
     |> List.for_all (fun pat_action ->
            actions |> List.exists (test_matching_action fam pat_action) )
   in
   let tests_ok =
     let state = Safe_replay.graph w.previous_state in
-    pat.main_pattern.tests |> List.for_all (test_holds pat state fam)
+    pat.pattern.tests |> List.for_all (test_holds pat state fam)
   in
   mods_ok && tests_ok
 
@@ -370,7 +370,7 @@ type related_matchings =
    pattern. *)
 let gid_of_lid pat (FAM m) lid =
   try
-    let pid = IntMap.find lid pat.main_pattern.agent_constraints in
+    let pid = IntMap.find lid pat.pattern.agent_constraints in
     Some m.(pid)
   with Not_found -> None
 
@@ -410,7 +410,7 @@ let transpose_constraints pat fam pat' =
              eqs
          | Some gid ->
              IntMap.add pid' gid eqs )
-       pat'.main_pattern.agent_constraints IntMap.empty )
+       pat'.pattern.agent_constraints IntMap.empty )
 
 let match_event ev w : related_matchings list =
   match (Query.defining_pattern ev, ev.event_pattern) with

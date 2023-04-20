@@ -128,11 +128,11 @@ type env =
 
 (* Utils on queries *)
 
-let number_of_events q = Array.length q.pattern.events
+let number_of_events q = Array.length q.trace_pattern.events
 
-let number_of_agents q = Array.length q.pattern.agents
+let number_of_agents q = Array.length q.trace_pattern.agents
 
-let query_root_event q = List.hd q.pattern.execution_path
+let query_root_event q = List.hd q.trace_pattern.execution_path
 
 (* Computing the legacy matching tree *)
 
@@ -150,7 +150,7 @@ let compute_traversal_tree q =
   (* We compute the inverse of the precedence relation. *)
   (* Note that hash-tables in OCaml can map each key to several values. *)
   let succs = Hashtbl.create 100 in
-  q.pattern.events
+  q.trace_pattern.events
   |> Array.iteri (fun ev_id ev ->
          match predecessor ev with
          | None ->
@@ -218,7 +218,7 @@ let first_after_in_cache, last_before_in_cache =
 (* Obtain a valuation for the indexing agents of an event given a
    partial matching. *)
 let indexing_ag_valuation query ev_id pm =
-  let val_ags = query.pattern.events.(ev_id).link_agents in
+  let val_ags = query.trace_pattern.events.(ev_id).link_agents in
   let find_valuation ag =
     try IntMap.find ag pm.constrained_agents
     with Not_found -> Log.(failwith (fmt "No mapping found for agent %d." ag))
@@ -277,7 +277,7 @@ let fresh_id env =
   env.next_fresh_id <- id + 1 ;
   id
 
-let get_event env ev_id = env.query.pattern.events.(ev_id)
+let get_event env ev_id = env.query.trace_pattern.events.(ev_id)
 
 let recorder_status env ev_id = env.recorders.(ev_id).recorder_status
 
@@ -444,7 +444,7 @@ let match_event ev w =
      this.)
 *)
 let first_pass_process_step query window env =
-  query.pattern.events
+  query.trace_pattern.events
   |> Array.iteri (fun ev_id ev ->
          match recorder_status env ev_id with
          (* | Disabled -> () *)
@@ -521,7 +521,7 @@ let read_or_take_measure ~header query ag_matchings window cm ev_id measure_id =
   | Some x ->
       x
   | None ->
-      let ev = query.pattern.events.(ev_id) in
+      let ev = query.trace_pattern.events.(ev_id) in
       let measure = ev.measures.(measure_id).measure in
       Measure.take_measure ~header (fun id -> ag_matchings.(id)) window measure
 
@@ -592,7 +592,7 @@ let second_pass_process_step ~header ~(matchings_processed : int -> unit)
                only be used later (when the action is performed). *)
           take_all_measures ~header cm.cm_agents window
             (cm_set_measure cm ev_id)
-            query.pattern.events.(ev_id) ;
+            query.trace_pattern.events.(ev_id) ;
         (* We proceed with our todo list *)
         process remaining
     | remaining ->

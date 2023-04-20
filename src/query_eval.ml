@@ -26,11 +26,11 @@ let return x = [x]
 
 let fail = []
 
-let number_of_events q = Array.length q.Query.pattern.events
+let number_of_events q = Array.length q.Query.trace_pattern.events
 
-let number_of_agents q = Array.length q.Query.pattern.agents
+let number_of_agents q = Array.length q.Query.trace_pattern.agents
 
-let query_root_event q = List.hd q.Query.pattern.execution_path
+let query_root_event q = List.hd q.Query.trace_pattern.execution_path
 
 (*****************************************************************************)
 (* Link cache computation                                                    *)
@@ -96,7 +96,7 @@ module LinkCache = struct
     `Assoc
       ( Array.to_list cache
       |> List.mapi (fun ev_lid ev_cache ->
-             let ev = query.Query.pattern.events.(ev_lid) in
+             let ev = query.Query.trace_pattern.events.(ev_lid) in
              ( dump_ev_lid query ~lid:ev_lid
              , `Assoc
                  ( LinkMap.bindings ev_cache
@@ -117,7 +117,7 @@ let compute_link_cache_step query window cache =
       |> List.iter (fun rel_matchings ->
              LinkCache.add cache ~ev_lid ~ev_gid:window.Streaming.step_id
                rel_matchings ) )
-    query.Query.pattern.events
+    query.Query.trace_pattern.events
 
 (*****************************************************************************)
 (* Enumerate all matchings                                                   *)
@@ -142,12 +142,12 @@ let dump_matching query (M {evs; ags}) =
   let indexes t = Array.mapi (fun i _ -> i) t in
   let evs =
     dump_events_mapping_list query
-      ~lids:(Array.to_list (indexes query.Query.pattern.events))
+      ~lids:(Array.to_list (indexes query.Query.trace_pattern.events))
       ~gids:(Array.to_list evs)
   in
   let ags =
     dump_agents_mapping_list query
-      ~lids:(Array.to_list (indexes query.Query.pattern.agents))
+      ~lids:(Array.to_list (indexes query.Query.trace_pattern.agents))
       ~gids:(Array.to_list ags)
   in
   Fmt.str "%s | %s" evs ags
@@ -229,10 +229,10 @@ let nonroot_delta (LinkCache.Cache link_cache) (PM m) ~ev_lid ev =
       return (PMD {ev_lid; ev_gid; eqs})
 
 let complete_matching query link_cache (RM root) =
-  query.pattern.execution_path
+  query.trace_pattern.execution_path
   |> Utils.monadic_fold
        (fun m ev_lid ->
-         let ev = query.Query.pattern.events.(ev_lid) in
+         let ev = query.trace_pattern.events.(ev_lid) in
          let* delta =
            if ev_lid = query_root_event query then
              return (root_delta (RM root) ~ev_lid ev)
@@ -329,7 +329,7 @@ let perform_measurement_step ~header ~fmt query env matchings window =
       cache.measures <-
         Array.map
           (fun ev -> Array.make (Array.length ev.Query.measures) Value.VNull)
-          query.Query.pattern.events ;
+          query.Query.trace_pattern.events ;
     (* We perform all measurements *)
     Array.iteri
       (fun measure_id mdescr ->
@@ -337,7 +337,7 @@ let perform_measurement_step ~header ~fmt query env matchings window =
           Measure.take_measure ~header
             (fun lid -> matching.ags.(lid))
             window mdescr.Query.measure )
-      query.Query.pattern.events.(ev_lid).measures ;
+      query.Query.trace_pattern.events.(ev_lid).measures ;
     (* Possibly execute the action *)
     cache.rem <- cache.rem - 1 ;
     if cache.rem <= 0 then (
@@ -370,7 +370,7 @@ let enough_time_elapsed query state t =
 let perform_measurement_step_for_simple_query ~header ~fmt query state window =
   let t = Safe_replay.time window.Streaming.state in
   if enough_time_elapsed query state t then
-    let event = query.Query.pattern.events.(0) in
+    let event = query.Query.trace_pattern.events.(0) in
     Event_matcher.match_event event window
     |> List.iter (fun Event_matcher.{other_constrained; _} ->
            other_constrained
@@ -464,7 +464,7 @@ let eval_batch ~trace_file queries_and_formatters =
   Output.debug_json ~level:2 "trace-summary-long.json" (fun () ->
       dump_trace_full ~trace_file ) ;
   batch_dump ~level:1 "execution-paths.json" complex (fun _ q ->
-      `String (dump_execution_path q q.Query.pattern.execution_path) ) ;
+      `String (dump_execution_path q q.Query.trace_pattern.execution_path) ) ;
   (* First pass through the trace (for complex queries only) *)
   let complex_matchings =
     if Array.length complex = 0 then [||]

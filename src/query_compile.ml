@@ -428,8 +428,8 @@ let compile_event_pattern env pat =
         Dict.id_of_name env.query_events name
   in
   let rule_constraint = compile_rule_constraint env pat.Ast.rule_constraint in
-  let main_pattern = compile_mixture_pattern env pat.Ast.main_pattern in
-  (cur_ev_id, {main_pattern; rule_constraint})
+  let pattern = compile_mixture_pattern env pat.Ast.main_pattern in
+  (cur_ev_id, {pattern; rule_constraint})
 
 (* We compile a trace pattern by going over each clause sequentially. *)
 let process_clauses env (tpat : Ast.clause list) =
@@ -567,7 +567,7 @@ let constrained_agents = function
   | None ->
       []
   | Some p ->
-      List.map fst (IntMap.bindings p.main_pattern.agent_constraints)
+      List.map fst (IntMap.bindings p.pattern.agent_constraints)
 
 let schedule_agents_capture p =
   let module IntSet = Utils.IntSet in
@@ -624,6 +624,6 @@ let compile (model : Model.t) (q : Ast.t) =
       let pattern = build_trace_pattern env in
       let legend = q.Ast.legend in
       let every_clause = q.Ast.every_clause in
-      let pattern = schedule_execution pattern in
-      let query = {pattern; action; title; legend; every_clause} in
+      let trace_pattern = schedule_execution pattern in
+      let query = {trace_pattern; action; title; legend; every_clause} in
       final_sanity_checks query ; query )
