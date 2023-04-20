@@ -8,14 +8,12 @@ and first u:{ S(x[/.]) } after e
 and u:{ S(x[1]), K(x[1]) }
 return 1
 
-// Warning: runtests.py performs static checks on this query
-// but does not run it since other queries in the same fiel will error
-query "ok_1.csv"
+query "ok_1__matches_7.csv"
 match e:{ }
 and first u:{ s:S(x[/.]) } after e
 and u:{ s:S(x[1]) }
 return 1
 
-query "ok_2.csv"
+query "ok_2__matches_8.csv"
 match e:{ }
 return 1

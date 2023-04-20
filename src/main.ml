@@ -12,10 +12,15 @@ let snapshots_name_format = ref ""
 
 let use_legacy_evaluator = ref false
 
-let export_errors = ref false
+let skip_invalid = ref false
+
+(* state variables *)
 
 let execution_started =
   ref false (* used to differentiate static and dynamic errors *)
+
+let some_queries_are_invalid = ref false
+(* set to true if some queries are invalid and were skipped *)
 
 let native_snapshots () = Output.snapshots_native_format := true
 
@@ -40,9 +45,9 @@ let options =
   ; ( "--no-progress-bars"
     , Arg.Set Terminal.disable_progress_bars
     , "disable progress bars to avoid polluting stdout" )
-  ; ( "--export-errors"
-    , Arg.Set export_errors
-    , "export all static errors in an errors.json file" )
+  ; ( "--skip-invalid"
+    , Arg.Set skip_invalid
+    , "skip invalid queries while outputting an errors.json file" )
   ; ( "--output-dir"
     , Arg.String Output.set_output_directory
     , "set the output directory (default: '.')" ) ]
@@ -63,20 +68,24 @@ let compile_and_check model query =
       let query = Query_compile.compile model query in
       Sanity_checks.run query ; query )
 
-let perform_static_checks model queries =
-  let errors : Yojson.Safe.t =
-    `Assoc
-      (List.filter_map
-         (fun q ->
-           try
-             ignore (compile_and_check model q) ;
-             None
-           with Error.User_error e ->
-             Some (q.query_name, [%yojson_of: Error.error_kind] e.kind) )
-         queries )
+let compile_and_check_all model queries =
+  let errors = Queue.create () in
+  let queries =
+    List.filter_map
+      (fun q ->
+        try Some (compile_and_check model q)
+        with Error.User_error e as exn ->
+          if not !skip_invalid then raise exn ;
+          Queue.add (q.query_name, [%yojson_of: Error.error_kind] e.kind) errors ;
+          None )
+      queries
   in
-  Output.with_file "errors.json" (fun fmt ->
-      Format.fprintf fmt "%a@.]" (Yojson.Safe.pretty_print ~std:false) errors )
+  if not (Queue.is_empty errors) then some_queries_are_invalid := true ;
+  if !skip_invalid then
+    Output.with_file "errors.json" (fun fmt ->
+        let json = `Assoc (Utils.list_of_queue errors) in
+        Format.fprintf fmt "%a@.]" (Yojson.Safe.pretty_print ~std:false) json ) ;
+  queries
 
 let formatter_of_file f = Format.formatter_of_out_channel (open_out f)
 
@@ -91,10 +100,9 @@ let main () =
   else
     let header = Trace_header.load ~trace_file:!trace_file in
     let asts = parse_queries !query_file in
-    if !export_errors then perform_static_checks header.model asts ;
     Output.debug_json "queries-ast.json" (fun () ->
         [%yojson_of: Query_ast.t list] asts ) ;
-    let queries = List.map (compile_and_check header.model) asts in
+    let queries = compile_and_check_all header.model asts in
     Output.debug_json "compiled-queries.json" (fun () ->
         [%yojson_of: Query.t list] queries ) ;
     let queries_and_formatters =
@@ -116,7 +124,10 @@ let main () =
     Terminal.(println [bold; green] "Done.")
 
 let () =
-  try main () ; exit 0 with
+  try
+    main () ;
+    exit (if !some_queries_are_invalid then 1 else 0)
+  with
   (* Normal user errors *)
   | Error.User_error e ->
       Terminal.(println [red] (Error.string_of_error e)) ;

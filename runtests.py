@@ -82,7 +82,7 @@ def update_expected(dir):
     if not os.path.isdir(expected):
         return
     for f in expected_files(expected):
-        print(f"Updating {join(expected, f)}...")
+        print(f"Updating {join(expected, f)}")
         shutil.copyfile(join(dir, KATIE_OUT_DIR, f), join(expected, f))
 
 
@@ -131,7 +131,7 @@ def run_cmd_saving_output(cmd, stdout_file, stderr_file):
 def all_query_names(dir):
     with open(join(dir, QUERY_FILE), "r") as f:
         for line in f:
-            if m := re.search(r"query\s+('|\")([^'\"]+)('|\")", line):
+            if m := re.search(r"^query\s+('|\")([^'\"]+)('|\")", line):
                 yield m.group(2)
 
 
@@ -153,7 +153,7 @@ def check_static_errors(dir):
 
 def run(dir):
     clean(dir)
-    print(f"Running test in: {dir}...")
+    print(f"Running test in: {dir}")
     model = join(dir, MODEL_FILE)
     kasim_out = join(dir, KASIM_OUT_DIR)
     katie_out = join(dir, KATIE_OUT_DIR)
@@ -165,7 +165,7 @@ def run(dir):
     )
     if kasim_ret != 0:
         print(red(f"KaSim failed: see {join(kasim_out, STDERR_FILE)}"))
-        return False
+        return
     katie_args = ["-t", join(kasim_out, TRACE_FILE), "-q", query]
     katie_options = [
         "--debug-level",
@@ -173,7 +173,7 @@ def run(dir):
         "--output-dir",
         katie_out,
         "--no-color",
-        "--export-errors",
+        "--skip-invalid",
     ]
     katie_ret = run_cmd_saving_output(
         KATIE_EXE + katie_args + katie_options,
@@ -187,7 +187,6 @@ def run(dir):
     with open(join(katie_out, STDERR_FILE), "r") as f:
         if f.read().strip():
             print(f"  See {join(katie_out, STDERR_FILE)}")
-    return katie_ret == 0
 
 
 def clean(dir):
@@ -242,8 +241,8 @@ if __name__ == "__main__":
             clean(dir)
     elif args.command == "run":
         for dir in test_dirs(args.tests):
-            ok = run(dir)
-            if ok:
+            run(dir)
+            if os.path.isdir(join(dir, KATIE_OUT_DIR, RESULTS_DIR)):
                 autocheck_result(dir)
                 check_diff(dir, verbose=False)
     elif args.command == "list":

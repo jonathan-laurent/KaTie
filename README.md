@@ -55,3 +55,5 @@ Here are some tips for debugging and inspectign tests:
 
 - The `runtests.py` script captures the standard output and uses specific KaTie options that must not be changed. To explore running the test with other options or just have the standard output printed on your terminal, you can use the `exec.sh` script instead.
 - The `runtests.py` script runs KaTie with a maximal debug level, meaning that a lot of useful files are generated in the `katie-output/debug` directory to help understanding how the trace was processed. In particular, `trace-summary.json` contains a summary of the trace that is friendlier than the original `trace.json` file and `matchings.json` enumerates all found matchings.
+
+In addition to ensuring valid queries are correctly executed, it is also important to ensure that as many invalid queries as possible are detected as such statically (i.e. before they are executed) to avoid having queries failing at runtime, possibly wasting weeks of computation. Thus, users are encouraged to add invalid queries to the tests while including the `errors__` substring in their name.
