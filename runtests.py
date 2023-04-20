@@ -1,5 +1,5 @@
 """
-A script for running the TQL test suite.
+A script for running KaTie's test suite.
 
 Usage: python runtests.py [TEST_SUBDIRS] {run,clean,diff,promote}.
 """

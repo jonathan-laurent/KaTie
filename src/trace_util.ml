@@ -78,7 +78,7 @@ let dump_action model =
   | Bind_to (q, q') ->
       Fmt.str "bind-to(%s, %s)" (show_quark model q) (show_quark model q')
 
-(* Trace tests are not read by the TQL engine but we print those anyway. *)
+(* Trace tests are not read by the engine but we print those anyway. *)
 let dump_test model =
   let open Instantiation in
   function

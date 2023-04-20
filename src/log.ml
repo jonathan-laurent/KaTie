@@ -1,4 +1,4 @@
-(* TQL custom logging module *)
+(* KaTie's custom logging module *)
 
 let current_query = ref None
 

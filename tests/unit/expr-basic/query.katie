@@ -16,7 +16,7 @@ return
     print_cc[e.]{s} = 'x0:S(x{u}[.])',
     snapshot[.e] = 'tests/unit/expr-basic/katie-output/snapshots/snapshot.0.json',
     snapshot[e.] = 'tests/unit/expr-basic/katie-output/snapshots/snapshot.1.json',
-    // int_state[.e]{s.x} = 'u', // this crashes the TQL
+    // int_state[.e]{s.x} = 'u', // this crashes KaTie
     // Testing arithmetic and promotions
     1 + 1.0 = 2,
     1 - 1 = 0,

@@ -1,4 +1,4 @@
-(* User-facing errors raised by TQL *)
+(* User-facing errors raised by KaTie *)
 
 type error_kind =
   | Generic of string

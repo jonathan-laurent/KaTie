@@ -79,7 +79,7 @@ let equal v v' =
              (Fmt.str "unable to test equality between values '%s' and '%s'."
                 (Value.show v) (Value.show v') ) ) )
 
-(* Special TQL operations *)
+(* Special KaTie operations *)
 
 let concat v v' =
   let elts = function VTuple vs -> vs | v -> [v] in
