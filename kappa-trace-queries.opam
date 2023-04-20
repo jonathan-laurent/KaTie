@@ -7,8 +7,8 @@ in simulation traces of Kappa models
 """
 maintainer: ["jonathan.laurent@cs.cmu.edu"]
 authors: ["Jonathan Laurent"]
-homepage: "https://github.com/jonathan-laurent/Kappa-TQL"
-bug-reports: "https://github.com/jonathan-laurent/Kappa-TQL/issues"
+homepage: "https://github.com/jonathan-laurent/KaTie"
+bug-reports: "https://github.com/jonathan-laurent/KaTie/issues"
 depends: [
   "dune" {>= "3.3"}
   "ANSITerminal" {>= "0.8.5"}
@@ -29,4 +29,4 @@ build: [
     "@doc" {with-doc}
   ]
 ]
-dev-repo: "git+https://github.com/jonathan-laurent/Kappa-TQL.git"
+dev-repo: "git+https://github.com/jonathan-laurent/KaTie.git"

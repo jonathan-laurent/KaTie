@@ -10,7 +10,7 @@
  (name kappa-trace-queries)
  (allow_empty)
  (synopsis "The Kappa Trace Query Language")
- (source (github "jonathan-laurent/Kappa-TQL"))
+ (source (github "jonathan-laurent/KaTie"))
  (description
   "\| A unified language for querying causal patterns
   "\| in simulation traces of Kappa models
