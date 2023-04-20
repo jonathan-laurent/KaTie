@@ -20,6 +20,12 @@ open Dump
 (* Utilities                                                                 *)
 (*****************************************************************************)
 
+let ( let* ) x f = List.concat_map f x
+
+let return x = [x]
+
+let fail = []
+
 let number_of_events q = Array.length q.Query.pattern.events
 
 let number_of_agents q = Array.length q.Query.pattern.agents
@@ -45,22 +51,26 @@ module LinkMap = Utils.MapV2.Make (Link)
 
 module LinkCache = struct
   (* For every event [ev], we map a matching of [ev.link_agents] (i.e. a
-     link) to a sequence of [(step_id_in_trace, potential_matching)]
-     pairs. The sequence is represented using a [History.t]
-     datastructure for efficient access. *)
-  type t = Cache of Event_matcher.status History.t LinkMap.t array
+     link) to a sequence of [(step_id_in_trace,
+     matchings_for_other_constrained)] pairs. The sequence is
+     represented using a [History.t] datastructure for efficient access.
+  *)
+  type matchings_for_other_constrained = Aliases.global_agent_id list list
+  [@@deriving show, yojson_of]
+
+  type t = Cache of matchings_for_other_constrained History.t LinkMap.t array
   [@@deriving show, yojson_of]
 
   let create query =
     Cache (Array.init (number_of_events query) (fun _ -> LinkMap.empty))
 
-  let add (Cache cache) ~ev_lid ~ev_gid pot_match =
+  let add (Cache cache) ~ev_lid ~ev_gid rel_matchings =
     let ev_cache = cache.(ev_lid) in
-    let link = pot_match.Event_matcher.link in
+    let link = rel_matchings.Event_matcher.link in
     let hist =
       LinkMap.find_opt link ev_cache
       |> Option.value ~default:History.empty
-      |> History.add ev_gid pot_match.status
+      |> History.add ev_gid rel_matchings.other_constrained
     in
     cache.(ev_lid) <- LinkMap.add link hist ev_cache
 
@@ -76,6 +86,12 @@ module LinkCache = struct
 
   let last_before cache = access_cache History.last_before cache
 
+  let dump_matchings_for_other_constrained query ev matchings =
+    `List
+      (List.map
+         (fun o -> `String (dump_other_constrained query ev o))
+         matchings )
+
   let dump query (Cache cache) : Yojson.Safe.t =
     `Assoc
       ( Array.to_list cache
@@ -90,18 +106,17 @@ module LinkCache = struct
                             ( History.to_alist hist
                             |> List.map (fun (ev_gid, status) ->
                                    ( string_of_int ev_gid
-                                   , `String (dump_status query ev status) ) )
-                            ) ) ) ) ) ) )
+                                   , dump_matchings_for_other_constrained query
+                                       ev status ) ) ) ) ) ) ) ) )
 end
 
 let compute_link_cache_step query window cache =
   Array.iteri
     (fun ev_lid ev ->
-      match Event_matcher.match_event ev window with
-      | None ->
-          ()
-      | Some pot_match ->
-          LinkCache.add cache ~ev_lid ~ev_gid:window.step_id pot_match )
+      Event_matcher.match_event ev window
+      |> List.iter (fun rel_matchings ->
+             LinkCache.add cache ~ev_lid ~ev_gid:window.Streaming.step_id
+               rel_matchings ) )
     query.Query.pattern.events
 
 (*****************************************************************************)
@@ -112,6 +127,16 @@ let compute_link_cache_step query window cache =
 type matching =
   | M of {evs: Aliases.global_event_id array; ags: Aliases.global_agent_id array}
 [@@deriving show, yojson_of]
+
+module Imap = Utils.IntMap
+
+(* Persistent version of [matching], useful for branching *)
+type persistent_matching = PM of {evs: int Imap.t; ags: int Imap.t}
+
+let matching_of_persistent q (PM {evs; ags}) =
+  M
+    { evs= Array.init (number_of_events q) (fun i -> Imap.find i evs)
+    ; ags= Array.init (number_of_agents q) (fun i -> Imap.find i ags) }
 
 let dump_matching query (M {evs; ags}) =
   let indexes t = Array.mapi (fun i _ -> i) t in
@@ -145,21 +170,12 @@ let compute_root_matchings query (LinkCache.Cache link_cache) =
       (* We have [root_event.link_agents = []] so the map must have a
          unique binding at most *)
       History.to_alist hist
-      |> List.map (fun (step_id, status) ->
-             match status with
-             | Event_matcher.Failure ->
-                 (* The root event has no defining relation pattern so a
-                    potential matching cannot fail. *)
-                 assert false
-             | Success {other_constrained} ->
-                 RM {ev= step_id; constrained= other_constrained} )
+      |> List.concat_map (fun (step_id, other_constrained_list) ->
+             List.map
+               (fun constrained -> RM {ev= step_id; constrained})
+               other_constrained_list )
   | _ ->
       assert false
-
-(* This exception is raised within [complete_matching] when an
-   inconsistency is detected and therefore the partial matching must be
-   thrown away *)
-exception No_match
 
 type agent_matching_list =
   | AML of (Aliases.local_agent_id * Aliases.global_agent_id) list
@@ -168,12 +184,20 @@ type partial_matching_delta =
   | PMD of {ev_lid: int; ev_gid: int; eqs: agent_matching_list}
 
 (* In a partial matching, non-matched ids are mapped to -1. *)
-let update_partial_matching (M m) (PMD {ev_lid; ev_gid; eqs= AML eqs}) =
-  m.evs.(ev_lid) <- ev_gid ;
-  eqs
-  |> List.iter (fun (lid, gid) ->
-         if m.ags.(lid) <> -1 && m.ags.(lid) <> gid then raise No_match ;
-         m.ags.(lid) <- gid )
+let update_partial_matching (PM {evs; ags}) (PMD {ev_lid; ev_gid; eqs= AML eqs})
+    =
+  let evs = Imap.add ev_lid ev_gid evs in
+  let* ags =
+    Utils.monadic_fold
+      (fun ags (lid, gid) ->
+        match Imap.find_opt lid ags with
+        | Some gid' when gid <> gid' ->
+            fail
+        | _ ->
+            return (Imap.add lid gid ags) )
+      ags eqs
+  in
+  return (PM {evs; ags})
 
 let root_delta (RM root) ~ev_lid ev =
   let eqs =
@@ -181,7 +205,7 @@ let root_delta (RM root) ~ev_lid ev =
   in
   PMD {ev_lid; ev_gid= root.ev; eqs}
 
-let nonroot_delta (LinkCache.Cache link_cache) (M m) ~ev_lid ev =
+let nonroot_delta (LinkCache.Cache link_cache) (PM m) ~ev_lid ev =
   let ref_ev_lid, access_cache =
     match ev.Query.defining_rel with
     | None ->
@@ -191,40 +215,37 @@ let nonroot_delta (LinkCache.Cache link_cache) (M m) ~ev_lid ev =
     | Some (Last_before (ref_ev_lid, _)) ->
         (ref_ev_lid, LinkCache.last_before)
   in
-  let ref_ev_gid = m.evs.(ref_ev_lid) in
-  assert (ref_ev_gid <> -1) ;
-  let link = List.map (fun i -> m.ags.(i)) ev.link_agents in
+  let ref_ev_gid = Imap.find ref_ev_lid m.evs in
+  let link = List.map (fun i -> Imap.find i m.ags) ev.link_agents in
   match access_cache link_cache ev_lid link ref_ev_gid with
-  | None | Some (_, Event_matcher.Failure) ->
-      raise No_match
-  | Some (ev_gid, Success {other_constrained}) ->
+  | None ->
+      fail
+  | Some (ev_gid, other_constrained_possibilities) ->
+      let* other_constrained = other_constrained_possibilities in
       let eqs =
         AML
           ( Utils.list_zip ev.link_agents link
           @ Utils.list_zip ev.other_constrained_agents other_constrained )
       in
-      PMD {ev_lid; ev_gid; eqs}
+      return (PMD {ev_lid; ev_gid; eqs})
 
 let complete_matching query link_cache (RM root) =
-  let evs = Array.make (number_of_events query) (-1) in
-  let ags = Array.make (number_of_agents query) (-1) in
-  let m = M {evs; ags} in
-  try
-    query.pattern.execution_path
-    |> List.iter (fun ev_lid ->
-           let ev = query.pattern.events.(ev_lid) in
-           let delta =
-             if ev_lid = query_root_event query then
-               root_delta (RM root) ~ev_lid ev
-             else nonroot_delta link_cache m ~ev_lid ev
-           in
-           update_partial_matching m delta ) ;
-    Some (M {evs; ags})
-  with No_match -> None
+  query.pattern.execution_path
+  |> Utils.monadic_fold
+       (fun m ev_lid ->
+         let ev = query.Query.pattern.events.(ev_lid) in
+         let* delta =
+           if ev_lid = query_root_event query then
+             return (root_delta (RM root) ~ev_lid ev)
+           else nonroot_delta link_cache m ~ev_lid ev
+         in
+         update_partial_matching m delta )
+       (PM {evs= Imap.empty; ags= Imap.empty})
+  |> List.map (matching_of_persistent query)
 
 let compute_all_matchings query link_cache =
   compute_root_matchings query link_cache
-  |> List.filter_map (complete_matching query link_cache)
+  |> List.concat_map (complete_matching query link_cache)
   |> Array.of_list
 
 (*****************************************************************************)
@@ -351,22 +372,21 @@ let perform_measurement_step_for_simple_query ~header ~fmt query state window =
   let t = Safe_replay.time window.Streaming.state in
   if enough_time_elapsed query state t then
     let event = query.Query.pattern.events.(0) in
-    match Event_matcher.match_event event window with
-    | None ->
-        ()
-    | Some {status= Failure; _} ->
-        assert false (* No defining clauses for simple queries *)
-    | Some {status= Success {other_constrained}; _} ->
-        let ag_matching =
-          Utils.list_zip event.other_constrained_agents other_constrained
-        in
-        let read_id lid = List.assoc lid ag_matching in
-        execute_action ~fmt ~read_id
-          ~read_measure:(fun _ m_id ->
-            Measure.take_measure ~header read_id window
-              event.measures.(m_id).measure )
-          query.Query.action ;
-        state.last_action_time <- t
+    Event_matcher.match_event event window
+    |> List.iter (fun Event_matcher.{other_constrained; _} ->
+           other_constrained
+           |> List.iter (fun other_constrained ->
+                  let ag_matching =
+                    Utils.list_zip event.other_constrained_agents
+                      other_constrained
+                  in
+                  let read_id lid = List.assoc lid ag_matching in
+                  execute_action ~fmt ~read_id
+                    ~read_measure:(fun _ m_id ->
+                      Measure.take_measure ~header read_id window
+                        event.measures.(m_id).measure )
+                    query.Query.action ;
+                  state.last_action_time <- t ) )
 
 (*****************************************************************************)
 (* Main function                                                             *)

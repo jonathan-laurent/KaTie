@@ -1,9 +1,7 @@
 open Aliases
 
-type status = Failure | Success of {other_constrained: global_agent_id list}
+type related_matchings =
+  {link: global_agent_id list; other_constrained: global_agent_id list list}
 [@@deriving show, yojson_of]
 
-type potential_matching = {link: global_agent_id list; status: status}
-[@@deriving show, yojson_of]
-
-val match_event : Query.event -> Streaming.window -> potential_matching option
+val match_event : Query.event -> Streaming.window -> related_matchings list

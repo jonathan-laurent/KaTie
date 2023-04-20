@@ -7,6 +7,18 @@ open Utils
 open Streaming
 
 (*****************************************************************************)
+(* List monad                                                                *)
+(*****************************************************************************)
+
+(* To handle nondeterminism, most computations happen within the list monad. *)
+
+let ( let* ) x f = List.concat_map f x
+
+let return x = [x]
+
+let fail = []
+
+(*****************************************************************************)
 (* Simple utilities                                                          *)
 (*****************************************************************************)
 
@@ -89,25 +101,22 @@ type agent_matching_list =
 type agent_matching_map =
   | AMM of Aliases.global_agent_id Aliases.pat_agent_id_map
 
-exception No_match
-
 let empty_amm = AMM IntMap.empty
 
 let append (AMM m) (ag_pid, ag_id) =
-  AMM
-    ( match IntMap.find_opt ag_pid m with
-    | Some ag_id' when ag_id' <> ag_id ->
-        raise No_match
-    | _ ->
-        IntMap.add ag_pid ag_id m )
+  match IntMap.find_opt ag_pid m with
+  | Some ag_id' when ag_id' <> ag_id ->
+      fail
+  | _ ->
+      return (AMM (IntMap.add ag_pid ag_id m))
 
-(* We raise [No_match] if we make an incompatible update at any point. *)
-let append_aml amm (AML eqs) = List.fold_left (fun m eq -> append m eq) amm eqs
+let append_aml amm (AML eqs) =
+  Utils.monadic_fold (fun m eq -> append m eq) amm eqs
 
 let injective (AMM m) =
   IntMap.bindings m |> List.map snd |> Utils.no_duplicates Int.compare
 
-let check_injective amm = if not (injective amm) then raise No_match
+let check_injective amm = if not (injective amm) then fail else return ()
 
 let translate_psite (AMM ms) (ag_pid, s) =
   try Some (IntMap.find ag_pid ms, s) with Not_found -> None
@@ -199,21 +208,17 @@ let match_action pat pat_action step_action =
   | _ ->
       []
 
-(* Return the agent matching map induced by the step actions alone. We
+(* Return the agent matching maps induced by the step actions alone. We
    mandate that each pattern action matches unambiguously with a single
    trace action. *)
 let add_matchings_implied_by_actions pat step_actions amm =
   let step_actions = preprocess_bind_to step_actions in
   pat.main_pattern.mods
-  |> List.fold_left
+  |> Utils.monadic_fold
        (fun amm pat_action ->
-         match List.concat_map (match_action pat pat_action) step_actions with
-         | [] ->
-             raise No_match
-         | [aml] ->
-             append_aml amm aml
-         | _ ->
-             Tql_error.(fail Agent_ambiguity) )
+         let* step_action = step_actions in
+         let* aml = match_action pat pat_action step_action in
+         append_aml amm aml )
        amm
 
 (* Take a Kappa mixture and a list of known bindings between local
@@ -221,31 +226,50 @@ let add_matchings_implied_by_actions pat step_actions amm =
 let propagate_link_constraints_with (graph : Safe_replay.Graph.t)
     (links : (Aliases.local_site * Aliases.local_site) list) amm =
   links
-  |> List.fold_left
+  |> Utils.monadic_fold
        (fun amm (s, s') ->
          match translate_psite amm s with
          | None ->
-             amm
+             return amm
          | Some (src_ag, src_s) -> (
            match Safe_replay.Graph.link_destination src_ag src_s graph with
            | None ->
-               raise No_match
+               fail
            | Some dst ->
                append amm (psite_ag_id s', site_ag_id dst) ) )
        amm
 
 (* Perform one step of link constraint propagation. *)
 let propagate_link_constraints pat w amm =
-  let amm =
-    amm
-    |> propagate_link_constraints_with
-         (Safe_replay.graph w.previous_state)
-         (pattern_tested_links pat)
-    |> propagate_link_constraints_with
-         (Safe_replay.graph w.state)
-         (pattern_created_links pat)
+  let* amm =
+    propagate_link_constraints_with
+      (Safe_replay.graph w.previous_state)
+      (pattern_tested_links pat) amm
   in
-  check_injective amm ; amm
+  let* amm =
+    propagate_link_constraints_with
+      (Safe_replay.graph w.state)
+      (pattern_created_links pat)
+      amm
+  in
+  let* () = check_injective amm in
+  return amm
+
+exception Link_propagation_failure
+
+let propagate_link_constraints_exn pat w amm =
+  match propagate_link_constraints pat w amm with
+  | [] ->
+      raise Link_propagation_failure
+  | [amm] ->
+      amm
+  | _ ->
+      assert
+        false (* propagating link constraints should not introduce branching *)
+
+let propagate_link_constraints_until_fixpoint pat w amm =
+  try return (fixpoint same_cardinal (propagate_link_constraints_exn pat w) amm)
+  with Link_propagation_failure -> fail
 
 (* Try to match the agents of [pat] in [w] by only looking at
    modifications and connectivity. Only uses w.step (not the mixture)
@@ -254,19 +278,16 @@ let propagate_link_constraints pat w amm =
    algorithm starts with preexisting agent matchings. *)
 let match_agents_in_pattern ?(constrs = empty_amm) pat w =
   if satisfy_rule_constraint pat.rule_constraint w.state w.step then
-    try
-      let _tests, step_actions = extract_tests_actions w.step in
-      let amm = add_matchings_implied_by_actions pat step_actions constrs in
-      check_injective amm ;
-      let amm = fixpoint same_cardinal (propagate_link_constraints pat w) amm in
-      (* If we reached this point without [No_match] being thrown, it
-         means that every action in the pattern was successfully matched
-         and all the link information propagated. Thus, by the local
-         rigidity assumption, the identity of all pattern agents must be
-         resolved. *)
-      Some (make_full_agent_matching pat amm)
-    with No_match -> None
-  else None
+    let _tests, step_actions = extract_tests_actions w.step in
+    let* amm = add_matchings_implied_by_actions pat step_actions constrs in
+    let* () = check_injective amm in
+    let* amm = propagate_link_constraints_until_fixpoint pat w amm in
+    (* If we reached this point without failing, it means that every
+       action in the pattern was successfully matched and all the link
+       information propagated. Thus, by the local rigidity assumption,
+       the identity of all pattern agents must be resolved. *)
+    return (make_full_agent_matching pat amm)
+  else fail
 
 (*****************************************************************************)
 (* Check the validity of event matchings                                     *)
@@ -332,24 +353,24 @@ let check_full_matching pat w fam =
   mods_ok && tests_ok
 
 (* Once we have a mapping from the agents of [pat] to the agents of [w],
-   this function tests that [pat] effectively matches [w] *)
+   this function tests that [pat] effectively matches [w]. *)
 let match_simple_pattern ?constrs pat w =
-  match match_agents_in_pattern ?constrs pat w with
-  | Some fam ->
-      if check_full_matching pat w fam then Some fam else None
-  | None ->
-      None
+  let* fam = match_agents_in_pattern ?constrs pat w in
+  if check_full_matching pat w fam then return fam else fail
+
+(* TODO: do we have to deduplicate matchings after a call to
+   [match_simple_pattern]? I do not believe so since branching should
+   never yield to identical matchings. *)
 
 (*****************************************************************************)
 (* Main function                                                             *)
 (*****************************************************************************)
 
-type status =
-  | Failure
-  | Success of {other_constrained: Aliases.global_agent_id list}
-[@@deriving show, yojson_of]
-
-type potential_matching = {link: Aliases.global_agent_id list; status: status}
+(* A list of possible matchings that all share the same mapping for the
+   link agents *)
+type related_matchings =
+  { link: Aliases.global_agent_id list
+  ; other_constrained: Aliases.global_agent_id list list }
 [@@deriving show, yojson_of]
 
 (* Returns [None] when the provided local id is not constrained by the
@@ -372,6 +393,14 @@ let gid_of_lid_2 pat fam pat' fam' lid =
 let gid_of_lid_2_exn pat fam pat' fam' lid =
   gid_of_lid_2 pat fam pat' fam' lid |> Option.get
 
+(* Group matchings that share a link valuation together *)
+let group_matchings ev pat fams =
+  fams
+  |> List.map (fun fam ->
+         let link = List.map (gid_of_lid_exn pat fam) ev.link_agents in
+         (link, fam) )
+  |> Utils.sort_and_group_list ~compare:(List.compare Int.compare)
+
 (* Given a pattern [pat], a full matching from [pat_id] to [global_id]
    and another pattern [pat'], we want a matching from [pat_id'] to
    [global_id] for [pat']. To do so, we look at the agent constraints of
@@ -390,38 +419,30 @@ let transpose_constraints pat fam pat' =
              IntMap.add pid' gid eqs )
        pat'.main_pattern.agent_constraints IntMap.empty )
 
-let match_event ev w : potential_matching option =
+let match_event ev w : related_matchings list =
   match (defining_pattern ev, ev.event_pattern) with
   | None, None ->
       assert false
-  | Some pat, None | None, Some pat -> (
-    match match_simple_pattern pat w with
-    | None ->
-        None
-    | Some fam ->
-        let link = List.map (gid_of_lid_exn pat fam) ev.link_agents in
-        let status =
-          Success
-            { other_constrained=
-                List.map (gid_of_lid_exn pat fam) ev.other_constrained_agents }
-        in
-        Some {link; status} )
-  | Some def_pat, Some main_pat -> (
-    match match_simple_pattern def_pat w with
-    | None ->
-        None
-    | Some fam -> (
+  | Some pat, None | None, Some pat ->
+      let fams = match_simple_pattern pat w in
+      let* link, fams = group_matchings ev pat fams in
+      let other_constrained =
+        List.map
+          (fun fam ->
+            List.map (gid_of_lid_exn pat fam) ev.other_constrained_agents )
+          fams
+      in
+      return {link; other_constrained}
+  | Some def_pat, Some main_pat ->
+      let fams = match_simple_pattern def_pat w in
+      let* link, fams = group_matchings ev def_pat fams in
+      let other_constrained =
+        let* fam = fams in
         let constrs = transpose_constraints def_pat fam main_pat in
-        let link = List.map (gid_of_lid_exn def_pat fam) ev.link_agents in
-        match match_simple_pattern ~constrs main_pat w with
-        | None ->
-            Some {link; status= Failure}
-        | Some fam' ->
-            let status =
-              Success
-                { other_constrained=
-                    List.map
-                      (gid_of_lid_2_exn def_pat fam main_pat fam')
-                      ev.other_constrained_agents }
-            in
-            Some {link; status} ) )
+        let* fam' = match_simple_pattern ~constrs main_pat w in
+        return
+          (List.map
+             (gid_of_lid_2_exn def_pat fam main_pat fam')
+             ev.other_constrained_agents )
+      in
+      return {link; other_constrained}

@@ -410,25 +410,30 @@ let is_delay_respected env cur_time =
 
 (* Wrapper to recover the old interface *)
 let match_event ev w =
-  match Event_matcher.match_event ev w with
-  | None ->
+  let open Event_matcher in
+  match match_event ev w with
+  | [] ->
       None
-  | Some {link; status} -> (
+  | [{link; other_constrained}] -> (
       let common_to_all =
         { ev_id_in_trace= w.step_id
         ; ev_id_in_query= ev.event_id
         ; ev_time= Safe_replay.time w.state
         ; indexing_ag_matchings= link }
       in
-      match status with
-      | Failure ->
+      match other_constrained with
+      | [] ->
           Some {common_to_all; matchings= []}
-      | Success {other_constrained} ->
+      | [other_constrained] ->
           let specific =
             { new_ag_matchings= other_constrained
             ; recorded_measures= IntMap.empty }
           in
-          Some {common_to_all; matchings= [{common= common_to_all; specific}]} )
+          Some {common_to_all; matchings= [{common= common_to_all; specific}]}
+      | _ ->
+          Tql_error.(fail Agent_ambiguity) )
+  | _ ->
+      Tql_error.(fail Agent_ambiguity)
 
 (* Main function that is called on every trace event during the first pass. *)
 (* - If the root of the query matches the current event, then we create

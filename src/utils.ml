@@ -76,3 +76,16 @@ let list_zip l l' = List.map2 (fun x y -> (x, y)) l l'
 let list_unzip l = (List.map fst l, List.map snd l)
 
 let no_duplicates cmp l = List.length (List.sort_uniq cmp l) = List.length l
+
+let rec group_list ~compare = function
+  | [] ->
+      []
+  | (k, v) :: rest -> (
+    match group_list ~compare rest with
+    | [] ->
+        [(k, [v])]
+    | (k', vs') :: rest' as all' ->
+        if compare k k' = 0 then (k, v :: vs') :: rest' else (k, [v]) :: all' )
+
+let sort_and_group_list ~compare l =
+  List.sort (fun (k, _) (k', _) -> compare k k') l |> group_list ~compare

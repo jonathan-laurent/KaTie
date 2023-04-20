@@ -28,12 +28,6 @@ let dump_other_constrained query ev other_constrained =
 let dump_link query ev link =
   dump_agents_mapping_list query ~lids:ev.Query.link_agents ~gids:link
 
-let dump_status query ev = function
-  | Event_matcher.Failure ->
-      "fail"
-  | Success {other_constrained} ->
-      dump_other_constrained query ev other_constrained
-
 (* Execution path *)
 
 let dump_execution_path query path =
