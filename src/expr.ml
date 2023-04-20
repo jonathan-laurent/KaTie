@@ -22,7 +22,7 @@ type t =
 (* Typing utilities *)
 
 let type_error op ~expected ~got =
-  Tql_error.fail
+  Error.fail
     (Type_error
        (Fmt.str "in an argument to '%s', expected '%s' and got '%s'." op
           expected got ) )
@@ -73,7 +73,7 @@ let equal v v' =
   | Some b ->
       VBool b
   | None ->
-      Tql_error.(
+      Error.(
         fail
           (Type_error
              (Fmt.str "unable to test equality between values '%s' and '%s'."

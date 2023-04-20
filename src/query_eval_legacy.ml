@@ -162,9 +162,9 @@ let compute_traversal_tree q =
   let roots = Utils.list_of_queue roots in
   match roots with
   | [] ->
-      Tql_error.(fail No_root_event)
+      Error.(fail No_root_event)
   | _ :: _ :: _ ->
-      Tql_error.(fail Disconnected_query_graph)
+      Error.(fail Disconnected_query_graph)
   | [root_id] ->
       let rec build_tree i =
         let children =
@@ -431,9 +431,9 @@ let match_event ev w =
           in
           Some {common_to_all; matchings= [{common= common_to_all; specific}]}
       | _ ->
-          Tql_error.(fail Agent_ambiguity) )
+          Error.(fail Agent_ambiguity) )
   | _ ->
-      Tql_error.(fail Agent_ambiguity)
+      Error.(fail Agent_ambiguity)
 
 (* Main function that is called on every trace event during the first pass. *)
 (* - If the root of the query matches the current event, then we create
@@ -538,8 +538,7 @@ let execute_action q fmt read_measure cm =
         let b = Expr.eval_expr read_measure read_id cond in
         match Value.(cast TBool b) with
         | None ->
-            Tql_error.failwith
-              "The 'when' clause was passed a non-boolean value"
+            Error.failwith "The 'when' clause was passed a non-boolean value"
         | Some b ->
             if b then aux action )
   in

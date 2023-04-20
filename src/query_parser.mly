@@ -20,7 +20,7 @@ let correct_test_mods_on ag_mod site =
   | None -> site
   | Some Create ->
     if has_mod site
-    then Tql_error.(fail Parse_error)  (* Invalid site update for created agent. *)
+    then Error.(fail Parse_error)  (* Invalid site update for created agent. *)
     else {
       site_name= site.site_name;
       site_lnk_test= None;
@@ -29,7 +29,7 @@ let correct_test_mods_on ag_mod site =
       site_int_mod= site.site_int_test}
   | Some Erase ->
     if has_mod site
-    then Tql_error.(fail Parse_error)  (* Invalid site update for deleted agent. *)
+    then Error.(fail Parse_error)  (* Invalid site update for deleted agent. *)
     else site
 
 let correct_test_modes ag = {ag with
@@ -183,7 +183,7 @@ expr:
     { Count_agents (agents, e) }
   | SIMILARITY OP_CURL e1=expr CL_CURL OP_CURL e2=expr CL_CURL
     { Binop (e1, Similarity, e2) }
-  | DIST { Tql_error.(fail (Unimplemented "'dist'"))}
+  | DIST { Error.(fail (Unimplemented "'dist'"))}
   | TIME ev_expr=ev_measure_annot
     { Event_measure (ev_expr, Time) }
   | RULE ev_expr=ev_measure_annot

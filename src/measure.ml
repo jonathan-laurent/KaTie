@@ -39,7 +39,7 @@ let take_snapshot ?uuid model state file =
     ; Data.snapshot_tokens= [||] }
   in
   let oc = open_out file in
-  ( if !Tql_output.snapshots_native_format then
+  ( if !Output.snapshots_native_format then
       let fmt = Format.formatter_of_out_channel oc in
       Data.print_snapshot ?uuid fmt snapshot
     else
@@ -76,7 +76,7 @@ let take_measure ~header ag_matching w measure =
       | Int_state (ag_id, ag_site) ->
           int_state model (ag_matching ag_id, ag_site) state
       | Snapshot ->
-          let filename = Tql_output.new_snapshot_file () in
+          let filename = Output.new_snapshot_file () in
           take_snapshot ?uuid model state filename ;
           VString filename
       | Print_cc ag_id ->

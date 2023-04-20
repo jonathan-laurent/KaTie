@@ -36,7 +36,7 @@ let rec mkdir_p dir =
   if dir <> Filename.current_dir_name then (
     mkdir_p (Filename.dirname dir) ;
     if Sys.file_exists dir && not (Sys.is_directory dir) then
-      Tql_error.failwith
+      Error.failwith
         ( "This directory cannot be created since a file with the same name \
            already exists: " ^ dir ) ;
     if not (Sys.file_exists dir) then Sys.mkdir dir 0O777 )
@@ -95,7 +95,7 @@ let set_snapshots_name_format fmt =
       snapshot_prefix := pre ;
       snapshot_suffix := suf
   | _ ->
-      Tql_error.failwith "Illegal snapshots name format."
+      Error.failwith "Illegal snapshots name format."
 
 let new_snapshot_file () =
   let f =

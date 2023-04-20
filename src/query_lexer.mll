@@ -100,7 +100,7 @@ rule token = parse
   | ident as s {kword_or_id s}
 
   | eof {EOF}
-  | _ { Tql_error.(fail ~loc:(lexeme_start_p lexbuf) Lexer_error) }
+  | _ { Error.(fail ~loc:(lexeme_start_p lexbuf) Lexer_error) }
 
 
 and comment multiline = parse

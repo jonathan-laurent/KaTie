@@ -136,8 +136,8 @@ let make_full_agent_matching pat (AMM amm) =
   let n = Array.length pat.main_pattern.agents in
   FAM
     (Array.init n (fun i ->
-         try IntMap.find i amm
-         with Not_found -> Tql_error.(fail Agent_ambiguity) ) )
+         try IntMap.find i amm with Not_found -> Error.(fail Agent_ambiguity) )
+    )
 
 let translate_ag (FAM m) ag_pid = m.(ag_pid)
 

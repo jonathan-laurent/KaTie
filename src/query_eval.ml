@@ -313,7 +313,7 @@ let rec execute_action ~fmt ~read_measure ~read_id = function
       let b = Expr.eval_expr read_measure read_id cond in
       match Value.(cast TBool b) with
       | None ->
-          Tql_error.failwith "The 'when' clause was passed a non-boolean value"
+          Error.failwith "The 'when' clause was passed a non-boolean value"
       | Some b ->
           if b then execute_action ~fmt ~read_measure ~read_id action )
 
@@ -429,7 +429,7 @@ let map_queries qs f =
 let with_queries qs f = ignore (map_queries qs f)
 
 let batch_dump ~level file queries f =
-  Tql_output.debug_json ~level file (fun () ->
+  Output.debug_json ~level file (fun () ->
       `Assoc
         ( Array.mapi (fun i (q, _) -> (q.Query.title, f i q)) queries
         |> Array.to_list ) )
@@ -460,9 +460,9 @@ let eval_batch ~trace_file queries_and_formatters =
       (Fmt.str "Evaluating queries: %d simple and %d complex"
          (Array.length simple) (Array.length complex) ) ) ;
   (* Dump a summary of the trace along with query execution paths *)
-  Tql_output.debug_json ~level:2 "trace-summary.json" (fun () ->
+  Output.debug_json ~level:2 "trace-summary.json" (fun () ->
       dump_trace ~trace_file ) ;
-  Tql_output.debug_json ~level:2 "trace-summary-long.json" (fun () ->
+  Output.debug_json ~level:2 "trace-summary-long.json" (fun () ->
       dump_trace_full ~trace_file ) ;
   batch_dump ~level:1 "execution-paths.json" complex (fun _ q ->
       `String (dump_execution_path q q.Query.pattern.execution_path) ) ;

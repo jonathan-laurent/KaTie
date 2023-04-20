@@ -232,7 +232,7 @@ let compile_state_measure env in_action cur_ev_id st_expr m =
   let measure =
     match m with
     | Ast.Nphos _ ->
-        Tql_error.failwith "The 'nphos' measure is unimplemented."
+        Error.failwith "The 'nphos' measure is unimplemented."
     | Ast.Component ag_name ->
         Measure.(State_measure (m_time, Component (tr_agent env ag_name)))
     | Ast.Int_state quark ->
@@ -462,7 +462,7 @@ let make_event i (tmp_ev, event_name) =
       | [p] ->
           Some p
       | _ ->
-          Tql_error.(
+          Error.(
             fail
               (Compilation_error
                  "There can be at most one main clause for every event." ) ) )
@@ -473,7 +473,7 @@ let make_event i (tmp_ev, event_name) =
       | [r] ->
           Some r
       | _ ->
-          Tql_error.(
+          Error.(
             fail
               (Compilation_error
                  "There can be at most one defining relation for an event." ) )
@@ -485,7 +485,7 @@ let make_event i (tmp_ev, event_name) =
 let make_agent ({tmp_ag_kind}, agent_name) =
   match tmp_ag_kind with
   | None ->
-      Tql_error.(fail (Compilation_error "Unbound agent identifier."))
+      Error.(fail (Compilation_error "Unbound agent identifier."))
   | Some agent_kind ->
       {agent_kind; agent_name= Option.get agent_name}
 
@@ -542,9 +542,9 @@ let compute_traversal_tree p =
   let roots = Utils.list_of_queue roots in
   match roots with
   | [] ->
-      Tql_error.(fail No_root_event)
+      Error.(fail No_root_event)
   | _ :: _ :: _ ->
-      Tql_error.(fail Disconnected_query_graph)
+      Error.(fail Disconnected_query_graph)
   | [root_id] ->
       (* Hashtbl.find_all returns elements in reversed order of their
          introduction so we reverse the successor list so that the
@@ -605,7 +605,7 @@ let schedule_execution p =
 
 let final_sanity_checks q =
   if (not (Query.is_simple q)) && Option.is_some q.Query.every_clause then
-    Tql_error.failwith
+    Error.failwith
       "The 'every' clause construct is not supported for queries with more \
        than a single event clause."
 
