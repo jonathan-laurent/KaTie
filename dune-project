@@ -18,7 +18,7 @@
   "\| in simulation traces of Kappa models
  )
  (depends
-  (ocaml (>= 4.12))
+  (ocaml (>= 4.14.1))
   (kappa-library (>= 4.1~dev))
   (kappa-binaries (>= 4.1~dev))
   (ANSITerminal (>= 0.8.5))
