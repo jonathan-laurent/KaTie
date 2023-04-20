@@ -1,11 +1,16 @@
+(*****************************************************************************)
+(* Output Files                                                              *)
+(*****************************************************************************)
+
 (* KaTie outputs the following directory structure:
    - out
-    - debug
-      - trace-raw.json, queries-ast.json, ...
-    - results
-      - query_1.csv, ..., query_n.csv
-    - snapshots
-      - snapshot.1.json, ..., snapshot.k.json
+      - errors.json
+      - debug
+          - trace-raw.json, queries-ast.json, ...
+      - results
+          - query_1.csv, ..., query_n.csv
+      - snapshots
+          - snapshot.1.json, ..., snapshot.k.json
 *)
 
 (* Constants *)

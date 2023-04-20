@@ -1,3 +1,7 @@
+(*****************************************************************************)
+(* Utilities for manipulating and inspecting trace files                     *)
+(*****************************************************************************)
+
 let init_label = "_init_"
 
 let actions_from_side_effects ev =

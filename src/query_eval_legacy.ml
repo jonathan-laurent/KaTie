@@ -1,5 +1,6 @@
 (*****************************************************************************)
-(* Simple query interpreter                                                  *)
+(* Legacy query interpreter                                                  *)
+(* By default, [Query_eval] should be used instead                           *)
 (*****************************************************************************)
 
 open Aliases

@@ -1,3 +1,7 @@
+(*****************************************************************************)
+(* Sparse persistent dictionaries indexed by integers                        *)
+(*****************************************************************************)
+
 type 'a t =
   (* [Cat a b c left right]:
      Elements indexed in the [a,b) interval are in the left child

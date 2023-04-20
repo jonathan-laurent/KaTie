@@ -1,3 +1,7 @@
+(*****************************************************************************)
+(* Sanity checks                                                             *)
+(*****************************************************************************)
+
 (* Some sanity checks to be performed on a query before it is executed
    to avoid time-wasting runtime errors. *)
 
