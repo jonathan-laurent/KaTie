@@ -12,6 +12,11 @@ let snapshots_name_format = ref ""
 
 let use_legacy_evaluator = ref false
 
+let export_errors = ref false
+
+let execution_started =
+  ref false (* used to differentiate static and dynamic errors *)
+
 let native_snapshots () = Output.snapshots_native_format := true
 
 let usage = Sys.argv.(0) ^ " queries a Kappa trace"
@@ -35,6 +40,9 @@ let options =
   ; ( "--no-progress-bars"
     , Arg.Set Terminal.disable_progress_bars
     , "disable progress bars to avoid polluting stdout" )
+  ; ( "--export-errors"
+    , Arg.Set export_errors
+    , "export all static errors in an errors.json file" )
   ; ( "--output-dir"
     , Arg.String Output.set_output_directory
     , "set the output directory (default: '.')" ) ]
@@ -55,6 +63,21 @@ let compile_and_check model query =
       let query = Query_compile.compile model query in
       Sanity_checks.run query ; query )
 
+let perform_static_checks model queries =
+  let errors : Yojson.Safe.t =
+    `Assoc
+      (List.filter_map
+         (fun q ->
+           try
+             ignore (compile_and_check model q) ;
+             None
+           with Error.User_error e ->
+             Some (q.query_name, [%yojson_of: Error.error_kind] e.kind) )
+         queries )
+  in
+  Output.with_file "errors.json" (fun fmt ->
+      Format.fprintf fmt "%a@.]" (Yojson.Safe.pretty_print ~std:false) errors )
+
 let formatter_of_file f = Format.formatter_of_out_channel (open_out f)
 
 let main () =
@@ -68,6 +91,7 @@ let main () =
   else
     let header = Trace_header.load ~trace_file:!trace_file in
     let asts = parse_queries !query_file in
+    if !export_errors then perform_static_checks header.model asts ;
     Output.debug_json "queries-ast.json" (fun () ->
         [%yojson_of: Query_ast.t list] asts ) ;
     let queries = List.map (compile_and_check header.model) asts in
@@ -86,6 +110,7 @@ let main () =
       if !use_legacy_evaluator then (module Query_eval_legacy)
       else (module Query_eval)
     in
+    execution_started := true ;
     Evaluator.eval_batch ~trace_file:!trace_file queries_and_formatters ;
     List.iter (fun (_, fmt) -> Format.fprintf fmt "@]@.") queries_and_formatters ;
     Terminal.(println [bold; green] "Done.")
@@ -95,7 +120,9 @@ let () =
   (* Normal user errors *)
   | Error.User_error e ->
       Terminal.(println [red] (Error.string_of_error e)) ;
-      exit 1
+      (* We use return code 1 for a user error that is detected
+         statically and 2 for a user error that is detected dynamically. *)
+      exit (if !execution_started then 2 else 1)
   | Sys_error msg ->
       (* This typically happens when a file is not found or a directory
          cannot be created. *)
@@ -104,7 +131,7 @@ let () =
   (* Internal errors *)
   | (Failure _ | Assert_failure _) as exn ->
       Log.error "A top-level exception was caught." ~exn ;
-      exit 2
+      exit 3
   | ExceptionDefn.Malformed_Decl _ as exn ->
       Log.error "A KaSim internal exception was raised." ~exn ;
-      exit 2
+      exit 3

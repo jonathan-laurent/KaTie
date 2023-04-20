@@ -15,6 +15,7 @@ type error_kind =
   | Agent_ambiguity
   | Type_error of string
   | Expr_failure of string
+[@@deriving yojson_of]
 
 type error =
   {kind: error_kind; loc: Lexing.position option; query: string option}

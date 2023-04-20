@@ -1,0 +1,3 @@
+query 'errors__not_grounded'
+match e:{ S(x{u}) }
+return 1
