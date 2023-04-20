@@ -113,6 +113,8 @@ let rec equal v v' =
   match (v, v') with
   | VNull, VNull ->
       Some true
+  | VNull, _ | _, VNull ->
+      Some false
   | VBool b, VBool b' ->
       Some (Bool.equal b b')
   | VInt n, VInt n' ->

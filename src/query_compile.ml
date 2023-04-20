@@ -250,6 +250,8 @@ let compile_state_measure env in_action cur_ev_id st_expr m =
 
 let rec compile_expr env in_action cur_ev_id e =
   match e with
+  | Ast.Null_const ->
+      Expr.Null_const
   | Ast.Int_const i ->
       Expr.Int_const i
   | Ast.Float_const f ->

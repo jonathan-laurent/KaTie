@@ -1,4 +1,4 @@
-%agent: S()
+%agent: S(x{u,p})
 
 'r' S()+, S()- @ 1
 

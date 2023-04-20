@@ -60,6 +60,7 @@ let parse_rule_constraint_disjunct l =
 %token EVERY SECONDS
 %token SNAPSHOT
 
+%token NULL
 %token <int> INT
 %token <float> FLOAT
 %token <string> STRING
@@ -172,6 +173,7 @@ quark: ag_id=ID DOT site_name=ID { (ag_id, site_name) }
 
 expr:
   | OP_PAR e=expr CL_PAR { e }
+  | NULL { Null_const }
   | i=INT { Int_const i }
   | f=FLOAT { Float_const f }
   | s=STRING { String_const s }

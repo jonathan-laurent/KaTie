@@ -9,14 +9,16 @@ return
     rule[e] = 'create',
     debug_event[e] = 'new(S.0) free(S.0.x) mod(S.0.x, u)',
     int_state[e.]{s.x} = 'u',
+    int_state[.e]{s.x} = null, // the agent does not exist yet
     agent_id{s} = 0, // first created agent
     size{component[e.]{s}} = 1,
+    size{component[.e]{s}} = null,
     count{'S','S'}{component[e.]{s}}, // returns the (1, 1) tuple
     similarity{component[e.]{s}}{component[e.]{s}} = 1.0,
+    similarity{component[.e]{s}}{component[e.]{s}} = null,
     print_cc[e.]{s} = 'x0:S(x{u}[.])',
     snapshot[.e] = 'tests/unit/expr-basic/katie-output/snapshots/snapshot.0.json',
     snapshot[e.] = 'tests/unit/expr-basic/katie-output/snapshots/snapshot.1.json',
-    // int_state[.e]{s.x} = 'u', // this crashes KaTie
     // Testing arithmetic and promotions
     1 + 1.0 = 2,
     1 - 1 = 0,

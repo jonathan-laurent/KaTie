@@ -59,32 +59,35 @@ let print_cc model state ag_id =
 (* Measure interpreter *)
 
 let take_measure ~header ag_matching w measure =
-  let {Trace_header.uuid; model} = header in
-  match measure with
-  | State_measure (time, measure) -> (
-      let state =
-        match time with
-        | Before ->
-            w.Streaming.previous_state
-        | After ->
-            w.state
-      in
-      match measure with
-      | Component ag_id ->
-          VAgentSet (Safe_replay.connected_component (ag_matching ag_id) state)
-      | Int_state (ag_id, ag_site) ->
-          int_state model (ag_matching ag_id, ag_site) state
-      | Snapshot ->
-          let filename = Output.new_snapshot_file () in
-          take_snapshot ?uuid model state filename ;
-          VString filename
-      | Print_cc ag_id ->
-          print_cc model state (ag_matching ag_id) )
-  | Event_measure measure -> (
+  try
+    let {Trace_header.uuid; model} = header in
     match measure with
-    | Time ->
-        VFloat (Safe_replay.time w.state)
-    | Rule ->
-        VString (Trace_util.rule_name model w.step)
-    | Debug_event ->
-        VString (Trace_util.dump_step_actions model w.step) )
+    | State_measure (time, measure) -> (
+        let state =
+          match time with
+          | Before ->
+              w.Streaming.previous_state
+          | After ->
+              w.state
+        in
+        match measure with
+        | Component ag_id ->
+            VAgentSet
+              (Safe_replay.connected_component (ag_matching ag_id) state)
+        | Int_state (ag_id, ag_site) ->
+            int_state model (ag_matching ag_id, ag_site) state
+        | Snapshot ->
+            let filename = Output.new_snapshot_file () in
+            take_snapshot ?uuid model state filename ;
+            VString filename
+        | Print_cc ag_id ->
+            print_cc model state (ag_matching ag_id) )
+    | Event_measure measure -> (
+      match measure with
+      | Time ->
+          VFloat (Safe_replay.time w.state)
+      | Rule ->
+          VString (Trace_util.rule_name model w.step)
+      | Debug_event ->
+          VString (Trace_util.dump_step_actions model w.step) )
+  with Safe_replay.Inexisting_agent -> VNull

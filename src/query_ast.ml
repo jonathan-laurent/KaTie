@@ -55,6 +55,7 @@ type expr =
   | Binop of expr * binop * expr
   | Concat of expr * expr
   | Count_agents of string list * expr
+  | Null_const
   | Int_const of int
   | Float_const of float
   | String_const of string

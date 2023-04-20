@@ -12,6 +12,7 @@ type t =
   | Binop of t * Query_ast.binop * t
   | Concat of t * t
   | Count_agents of agent_kind list * t
+  | Null_const
   | Int_const of int
   | Float_const of float
   | String_const of string
@@ -110,6 +111,8 @@ type measurer = local_event_id -> measure_id -> Value.t
 
 type agent_matching = local_agent_id -> global_agent_id
 
+let is_null = function VNull -> true | _ -> false
+
 let eval_expr (read_measure : measurer) (matching : agent_matching) =
   let rec eval = function
     | Agent_id local_id ->
@@ -120,6 +123,8 @@ let eval_expr (read_measure : measurer) (matching : agent_matching) =
         let e = eval e in
         let e' = eval e' in
         concat e e'
+    | Null_const ->
+        VNull
     | Int_const c ->
         VInt c
     | Float_const x ->
@@ -127,39 +132,46 @@ let eval_expr (read_measure : measurer) (matching : agent_matching) =
     | String_const s ->
         VString s
     | Unop (Not, e) ->
-        VBool (not (cast "not" TBool (eval e)))
+        let e = eval e in
+        if is_null e then VNull else VBool (not (cast "not" TBool e))
     | Unop (Size, e) ->
-        VInt (AgentSet.size (cast "size" TAgentSet (eval e)))
+        let e = eval e in
+        if is_null e then VNull
+        else VInt (AgentSet.size (cast "size" TAgentSet e))
     | Count_agents (ags, e) ->
-        count_agents ags (cast "count" TAgentSet (eval e))
+        let e = eval e in
+        if is_null e then VTuple (List.map (fun _ -> VNull) ags)
+        else count_agents ags (cast "count" TAgentSet e)
     | Binop (e, op, e') -> (
         let e = eval e in
         let e' = eval e' in
-        match op with
-        | Add ->
-            arith "+" ( + ) ( +. ) e e'
-        | Sub ->
-            arith "-" ( - ) ( -. ) e e'
-        | Mul ->
-            arith "*" ( * ) ( *. ) e e'
-        | Gt ->
-            comparison ">" ( > ) ( > ) e e'
-        | Ge ->
-            comparison ">=" ( >= ) ( >= ) e e'
-        | Lt ->
-            comparison "<" ( < ) ( < ) e e'
-        | Le ->
-            comparison "<=" ( <= ) ( <= ) e e'
-        | Or ->
-            bool_binop "||" ( || ) e e'
-        | And ->
-            bool_binop "&&" ( && ) e e'
-        | Eq ->
-            equal e e'
-        | Similarity ->
-            VFloat
-              (set_similarity
-                 (cast "similarity" TAgentSet e)
-                 (cast "similarity" TAgentSet e') ) )
+        if (is_null e || is_null e') && op <> Eq then VNull
+        else
+          match op with
+          | Add ->
+              arith "+" ( + ) ( +. ) e e'
+          | Sub ->
+              arith "-" ( - ) ( -. ) e e'
+          | Mul ->
+              arith "*" ( * ) ( *. ) e e'
+          | Gt ->
+              comparison ">" ( > ) ( > ) e e'
+          | Ge ->
+              comparison ">=" ( >= ) ( >= ) e e'
+          | Lt ->
+              comparison "<" ( < ) ( < ) e e'
+          | Le ->
+              comparison "<=" ( <= ) ( <= ) e e'
+          | Or ->
+              bool_binop "||" ( || ) e e'
+          | And ->
+              bool_binop "&&" ( && ) e e'
+          | Eq ->
+              equal e e'
+          | Similarity ->
+              VFloat
+                (set_similarity
+                   (cast "similarity" TAgentSet e)
+                   (cast "similarity" TAgentSet e') ) )
   in
   eval

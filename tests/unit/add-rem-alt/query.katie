@@ -9,9 +9,11 @@ query 'full_chain__matches_1__all_true.csv'
 match e1:{ +s1:S, -s2:S }
 and last e2: { +s2:S, -s3:S } before e1
 and last e3: { +s3:S } before e2
-return rule[e3] = '_init_', rule[e2] = 'r', rule[e1] = 'r'
+return
+    rule[e3] = '_init_', rule[e2] = 'r', rule[e1] = 'r',
+    int_state[e1.]{s2.x} = null, int_state[.e1]{s2.x} = 'u'
 
-// Same query but uses two clauses for e2
+// Same query pattern but uses two clauses for e2
 query 'full_chain_alt__matches_1__all_true.csv'
 match e1:{ +s1:S, -s2:S }
 and last e2: { +s2:S } before e1
