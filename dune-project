@@ -7,13 +7,13 @@
 (maintainers "jonathan.laurent@cs.cmu.edu")
 
 (package
- (name kappa-tql)
+ (name kappa-trace-queries)
  (allow_empty)
  (synopsis "The Kappa Trace Query Language")
  (source (github "jonathan-laurent/Kappa-TQL"))
  (description
-  "\| A utility to examine and query trace files generated
-  "\| by the Kappa simulator.
+  "\| A unified language for querying causal patterns
+  "\| in simulation traces of Kappa models
  )
  (depends
   (ANSITerminal (>= 0.8.5))

@@ -1,7 +1,7 @@
 (executable
  (name main)
  (public_name KaTie)
- (package kappa-tql)
+ (package kappa-trace-queries)
  (libraries
   kappa-library.generic
   kappa-library.runtime

@@ -2,8 +2,8 @@
 opam-version: "2.0"
 synopsis: "The Kappa Trace Query Language"
 description: """
-A utility to examine and query trace files generated
-by the Kappa simulator.
+A unified language for querying causal patterns
+in simulation traces of Kappa models
 """
 maintainer: ["jonathan.laurent@cs.cmu.edu"]
 authors: ["Jonathan Laurent"]
