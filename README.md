@@ -1,4 +1,4 @@
-# KaTie: The Kappa Trace Inquiry Engine
+# The Kappa Trace Inquiry Engine
 
 This tool implements a unified language for querying simulation traces of rule-based models written in Kappa about the statistical behavior of individual agents and the relative frequency of different causal patterns. This language was first described in this [paper](https://www.cs.cmu.edu/~jlaurent/pdf/papers/cmsb18.pdf).
 
