@@ -8,6 +8,7 @@
 
 (package
  (name kappa-trace-queries)
+ (version 0.3)
  (allow_empty)
  (synopsis "The Kappa Trace Query Language")
  (source (github "jonathan-laurent/KaTie"))
