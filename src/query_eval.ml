@@ -38,7 +38,7 @@ let query_root_event q = List.hd q.Query.pattern.execution_path
 
 (* A "link" is an ordered matching of all agents in [event.link_agents] *)
 module Link = struct
-  type t = Aliases.global_agent_id list [@@deriving show, yojson]
+  type t = Aliases.global_agent_id list [@@deriving yojson]
 
   let pp = Fmt.(list int)
 
@@ -56,10 +56,10 @@ module LinkCache = struct
      represented using a [History.t] datastructure for efficient access.
   *)
   type matchings_for_other_constrained = Aliases.global_agent_id list list
-  [@@deriving show, yojson_of]
+  [@@deriving yojson_of]
 
   type t = Cache of matchings_for_other_constrained History.t LinkMap.t array
-  [@@deriving show, yojson_of]
+  [@@deriving yojson_of]
 
   let create query =
     Cache (Array.init (number_of_events query) (fun _ -> LinkMap.empty))
@@ -126,7 +126,7 @@ let compute_link_cache_step query window cache =
 (* Arrays indexed by [local_event_id] and [local_agent_id] respectively *)
 type matching =
   | M of {evs: Aliases.global_event_id array; ags: Aliases.global_agent_id array}
-[@@deriving show, yojson_of]
+[@@deriving yojson_of]
 
 module Imap = Utils.IntMap
 
@@ -158,7 +158,6 @@ let dump_all_matchings q ms : Yojson.Safe.t =
 type root_matching =
   | RM of
       {ev: Aliases.global_event_id; constrained: Aliases.global_agent_id list}
-[@@deriving show, yojson_of]
 
 (* Compute the list of all matchings of the root event *)
 let compute_root_matchings query (LinkCache.Cache link_cache) =
