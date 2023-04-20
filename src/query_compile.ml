@@ -220,7 +220,7 @@ let tr_quark env (ag_name, site_name) =
   let ag_id = tr_agent env ag_name in
   let ag_kind_name =
     try SMap.find ag_name env.constrained_agents_types
-    with Not_found -> Log.failwith "Illegal agent usage."
+    with Not_found -> Error.failwith (Fmt.str "Unknown agent: %s." ag_name)
   in
   let agent_kind = tr_agent_kind env ag_kind_name in
   let site_id = tr_site_name env agent_kind site_name in
@@ -538,6 +538,8 @@ let compute_traversal_tree p =
          | None ->
              Queue.push ev_id roots
          | Some (_rel, pred_id) ->
+             if pred_id = ev_id then
+               Error.failwith "Dependency self-loop detected." ;
              Hashtbl.add succs pred_id ev_id ) ;
   (* The roots are the nodes without predecessor. We only accept queries
      with a single root. *)

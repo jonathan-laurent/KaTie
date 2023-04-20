@@ -1,8 +1,8 @@
-query 'errors__not_grounded.csv'
+query 'errors__not_rooted.csv'
 match e:{ S(x{u}) }
 return 1
 
-query "errors__not_grounded_2.csv"
+query "errors__not_rooted_2.csv"
 match e:{ }
 and first u:{ S(x[/.]) } after e
 and u:{ S(x[1]), K(x[1]) }
@@ -16,4 +16,32 @@ return 1
 
 query "ok_2__matches_8.csv"
 match e:{ }
+return 1
+
+query "errors__type_error.csv"
+match e:{ +s:S() }
+return int_state[e.]{s.x} + 1
+
+query "errors__bad_every.csv"
+match e:{ }
+every 0 seconds
+return 1
+
+query "errors__unknown_agent.csv"
+match e:{ }
+return int_state[e.]{s.x} + 1
+
+query "errors__no_root_event.csv"
+match first e:{ } after f
+and first f:{ } after e
+return 1
+
+query "errors__disconnected_graph.csv"
+match e:{ }
+and f:{ }
+return 1
+
+query "errors__self_loop.csv"
+match e:{ }
+and first f:{ } after f
 return 1

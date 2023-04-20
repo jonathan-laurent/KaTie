@@ -145,7 +145,7 @@ def check_static_errors(dir):
     for q in all_query_names(dir):
         should_error = bool(re.search("errors__", q))
         if should_error and q not in errors:
-            print(red(f"The following error did not error: '{q}'"))
+            print(red(f"The following query did not error: '{q}'"))
         if not should_error and q in errors:
             print(red(f"The following query errored: '{q}'"))
     return True
