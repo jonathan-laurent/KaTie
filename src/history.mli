@@ -1,6 +1,6 @@
-(* Sparse persistent dictionnaries indexed by integers.
-   This structure is optimized to answer requests of the kind
-   "what is the last element in t whose index is strictly greater than i" *)
+(* Sparse persistent dictionaries indexed by integers. This structure is
+   optimized to answer requests of the kind "what is the last element in
+   t whose index is strictly greater than i" *)
 
 type 'a t
 

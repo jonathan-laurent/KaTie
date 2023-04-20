@@ -14,20 +14,6 @@ let rec size = function
   | Empty ->
       0
 
-let rec to_alist = function
-  | Cat (_, _, _, l, r) ->
-      to_alist l @ to_alist r
-  | Leaf (x, v) ->
-      [(x, v)]
-  | Empty ->
-      []
-
-let pp pp_elt = Fmt.(using to_alist (list (pair int pp_elt)))
-
-let yojson_of_t yojson_of_elt h =
-  let open Ppx_yojson_conv_lib.Yojson_conv in
-  yojson_of_list (yojson_of_pair yojson_of_int yojson_of_elt) (to_alist h)
-
 let range = function Cat (a, _, c, _, _) -> c - a | Leaf _ -> 1 | Empty -> 0
 
 let init' (a, b) =
@@ -45,10 +31,11 @@ let view_interval (a, b) : interval =
 
 let in_interval i (a, b) = i >= a && i < b
 
-let widen_init = 1024
+(* Widening is cheap so we make the history very small initially *)
+let widen_init = 1
 
-(* Note to myself: beware of unit tests ! *)
-
+(* Ensures that the structure handles range at least [0, i].
+   Doubles the struture's capacity if necessary. *)
 let rec widen i = function
   | Empty ->
       widen i (init widen_init)
@@ -59,8 +46,6 @@ let rec widen i = function
       else widen i (Cat (0, c, 2 * c, node, Empty))
   | Leaf _ ->
       assert false (* The top node cannot be a leaf node *)
-
-exception Out_of_bounds (* Should not be sent in the current implementation*)
 
 let add i x t =
   let rec add_aux (a, b) i x = function
@@ -81,10 +66,7 @@ let add i x t =
           Cat (a', b', c', add_aux (a', b') i x lc, rc)
         else if in_interval i (b', c') then
           Cat (a', b', c', lc, add_aux (b', c') i x rc)
-        else
-          let open Printf in
-          printf "%d %d %d %d" a' b' c' i ;
-          raise Out_of_bounds
+        else assert false
   in
   let t = widen i t in
   add_aux (0, range t) i x t
@@ -109,12 +91,28 @@ let rec first_after i = function
       else
         match first_after i l with Some x -> Some x | None -> first_after i r )
 
+(* Utility functions *)
+
 let add_list l t = List.fold_right (fun (i, x) acc -> add i x acc) l t
 
 let from_list l =
   if List.exists (fun (i, _) -> i < 0) l then
     raise (Invalid_argument "should only contain nonnegative indices")
   else add_list l empty
+
+let rec to_alist = function
+  | Cat (_, _, _, l, r) ->
+      to_alist l @ to_alist r
+  | Leaf (x, v) ->
+      [(x, v)]
+  | Empty ->
+      []
+
+let pp pp_elt = Fmt.(using to_alist (list (pair int pp_elt)))
+
+let yojson_of_t yojson_of_elt h =
+  let open Ppx_yojson_conv_lib.Yojson_conv in
+  yojson_of_list (yojson_of_pair yojson_of_int yojson_of_elt) (to_alist h)
 
 (* Some tests *)
 
