@@ -50,6 +50,11 @@ let parse_queries file =
       Error.(fail ~loc:(Lexing.lexeme_start_p lexbuf) Parse_error)
   with Sys_error _ -> Error.(fail (File_not_found file))
 
+let compile_and_check model query =
+  Log.with_current_query query.Query_ast.query_name (fun () ->
+      let query = Query_compile.compile model query in
+      Sanity_checks.run query ; query )
+
 let formatter_of_file f = Format.formatter_of_out_channel (open_out f)
 
 let main () =
@@ -65,7 +70,7 @@ let main () =
     let asts = parse_queries !query_file in
     Output.debug_json "queries-ast.json" (fun () ->
         [%yojson_of: Query_ast.t list] asts ) ;
-    let queries = List.map (Query_compile.compile header.model) asts in
+    let queries = List.map (compile_and_check header.model) asts in
     Output.debug_json "compiled-queries.json" (fun () ->
         [%yojson_of: Query.t list] queries ) ;
     let queries_and_formatters =

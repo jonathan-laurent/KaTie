@@ -63,13 +63,6 @@ let pattern_created_links pat =
        | _ ->
            [] )
 
-let defining_pattern ev =
-  match ev.defining_rel with
-  | Some (First_after (_, pat)) | Some (Last_before (_, pat)) ->
-      Some pat
-  | _ ->
-      None
-
 let site_ag_id ((id, _), _) = id
 
 let psite_ag_id (id, _) = id
@@ -420,7 +413,7 @@ let transpose_constraints pat fam pat' =
        pat'.main_pattern.agent_constraints IntMap.empty )
 
 let match_event ev w : related_matchings list =
-  match (defining_pattern ev, ev.event_pattern) with
+  match (Query.defining_pattern ev, ev.event_pattern) with
   | None, None ->
       assert false
   | Some pat, None | None, Some pat ->

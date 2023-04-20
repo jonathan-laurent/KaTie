@@ -12,16 +12,16 @@ type lnk_state =
 [@@deriving show, yojson]
 
 type test =
-  | Agent_exists of local_agent_id
-  | Lnk_state_is of local_site * lnk_state
-  | Int_state_is of local_site * int_state
+  | Agent_exists of pat_agent_id
+  | Lnk_state_is of pat_site * lnk_state
+  | Int_state_is of pat_site * int_state
 [@@deriving show, yojson]
 
 type modification =
-  | Create of local_agent_id
-  | Destroy of local_agent_id
-  | Mod_int_state of local_site * int_state
-  | Mod_lnk_state of local_site * lnk_state
+  | Create of pat_agent_id
+  | Destroy of pat_agent_id
+  | Mod_int_state of pat_site * int_state
+  | Mod_lnk_state of pat_site * lnk_state
 [@@deriving show, yojson]
 
 type pat_agent_spec = {pat_agent_kind: agent_kind} [@@deriving show, yojson]
@@ -152,3 +152,10 @@ type t =
 [@@deriving show, yojson_of]
 
 let is_simple q = Array.length q.pattern.events = 1
+
+let defining_pattern ev =
+  match ev.defining_rel with
+  | Some (First_after (_, pat)) | Some (Last_before (_, pat)) ->
+      Some pat
+  | _ ->
+      None
