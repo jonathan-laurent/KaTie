@@ -3,6 +3,7 @@
 
 (generate_opam_files true)
 
+(name kappa-trace-queries)
 (authors "Jonathan Laurent")
 (maintainers "jonathan.laurent@cs.cmu.edu")
 
