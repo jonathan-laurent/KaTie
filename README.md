@@ -1,17 +1,15 @@
-# Kappa Trace Query Language
+# KaTie: The Kappa Trace Inquiry Engine
 
-Implementation of the _Trace Query Language_, as
-introduced in [this
-paper](https://www.cs.cmu.edu/~jlaurent/pdf/papers/cmsb18.pdf)
-and documented on [this
-page](https://www.cs.cmu.edu/~jlaurent/software/katql-documentation.html).
+This tool implements a unified language for querying simulation traces of rule-based models written in Kappa about the statistical behavior of individual agents and the relative frequency of different causal patterns. This language was first described in this [paper](https://www.cs.cmu.edu/~jlaurent/pdf/papers/cmsb18.pdf).
 
-## Build Instructions
+
+## Installation Instructions
+
+The simplest way to install KaTie is via opam:
 
 - Install [`opam`](https://opam.ocaml.org/doc/Install.html).
-- Install the [`Kappa Tools`](https://github.com/Kappa-Dev/KappaTools): `opam pin add https://github.com/Kappa-Dev/KappaTools.git`.
-- Install the other dependencies: `dune build @install; opam install --deps-only .`
-- Build and install the tool by running `dune build; dune install` at the root of this repo.
+- Install the [`Kappa Tools`](https://github.com/Kappa-Dev/KappaTools): `opam pin add -y https://github.com/Kappa-Dev/KappaTools.git`.
+- Install KaTie: `opam pin add -y kappa-trace-queries https://github.com/jonathan-laurent/KaTie.git`
 - The tool can then be used as `KaTie -t <trace_file> -q <query_file> [options]`.
 
 ## Testing Instructions
