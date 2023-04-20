@@ -44,9 +44,9 @@ let integer = "0" | (non_null_digit digit*)
 
 let float_exponent = ['E' 'e'] ['+' '-']? digit+
 
-let float_with_dot = digit* "." (digit*)? float_exponent?
+let float_with_dot = digit+ "." (digit*)? float_exponent?
 
-let float_without_dot = digit* float_exponent
+let float_without_dot = digit+ float_exponent
 
 let float_number = float_with_dot | float_without_dot
 

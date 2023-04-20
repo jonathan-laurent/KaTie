@@ -1,7 +1,21 @@
-// Ambiguous every _init_ event creates two S at once
-// query 'ambiguous_1.csv'
-// match e:{ +S }
-// return rule[e]
+// Matches _init_ twice and the two instances of 'r'
+query 'branching_1__matches_4.csv'
+match e:{ +S }
+return rule[e]
+
+// Matches _init_ twice and the two instances of 'r' also
+query 'branching_3__matches_4.csv'
+match e:{ +s:S(x[x.S])}
+return agent_id{s}
+
+// Matches _init_ in two different ways
+query 'branching_3__matches_2.csv'
+match e:{ +s1:S(), +s2:S()}
+return agent_id{s1}, agent_id{s2}
+
+query 'branching_3_bis__matches_0.csv'
+match e:{ +s1:S(x[.]), +s2:S()}
+return agent_id{s1}, agent_id{s2}
 
 query 'deletions_1__matches_2.csv'
 match e:{ -s:S(x[_]) }
@@ -24,19 +38,14 @@ match e:{ -s:S() }
 and first { } after e
 return agent_id{s} = 0, print_cc[.e]{s} = "x0:S(x{u}[1]), x1:S(x{u}[1])"
 
-// No ambiguity since e is never matched with _init_ due to
-// the rule constraint.
 query 'print_cc_2__matches_1__all_true.csv'
 match e:{ 'r' +s:S() }
 and first { } after e
 return agent_id{s} = 2, print_cc[e.]{s} = "x2:S(x{p}[1]), x1:S(x{u}[1])"
 
-
-// Hre, we
+// We match the the second triggering of 'r'
 query 'print_cc_3__matches_1__all_true.csv'
 match e:{ -s:S() }
 and last b:{ } before e
 and last c:{ } before b
 return agent_id{s} = 1, print_cc[.e]{s} = "x1:S(x{u}[1]), x2:S(x{p}[1])"
-
-

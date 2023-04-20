@@ -1,13 +1,16 @@
 // Creation and deletion tests
 
-query 'create_1__matches_2.csv'
+// matches r1 once, r2 once and r3 twice
+query 'create_1__matches_4.csv'
 match e:{ +b:Bob() }
 return int_state[e.]{b.s}
 
-query 'create_2__matches_1__all_true.csv'
+// matches r1 once and r3 twice
+query 'create_2__matches_3__all_true.csv'
 match e:{ +b:Bob(s{a}) }
-return int_state[e.]{b.s} = "a", rule[e] = "r1"
+return int_state[e.]{b.s} = "a", rule[e] = "r1" || rule[e] = "r3"
 
+// matches r2 once
 query 'create_3__matches_1__all_true.csv'
 match e:{ +b:Bob(s{b}) }
 return int_state[e.]{b.s} = "b", rule[e] = "r2"

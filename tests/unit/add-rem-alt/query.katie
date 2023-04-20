@@ -1,7 +1,25 @@
+// Because this is a simple query, the snapshot mesure is evaluated lazily and
+// not more snapshots are stored on disks than necessary.
 query 'snapshots.csv'
 match e:{ }
 when not (rule[e] = '_init_')
 return snapshot[e.]
+
+query 'full_chain__matches_1__all_true.csv'
+match e1:{ +s1:S, -s2:S }
+and last e2: { +s2:S, -s3:S } before e1
+and last e3: { +s3:S } before e2
+return rule[e3] = '_init_', rule[e2] = 'r', rule[e1] = 'r'
+
+// Same query but uses two clauses for e2
+query 'full_chain_alt__matches_1__all_true.csv'
+match e1:{ +s1:S, -s2:S }
+and last e2: { +s2:S } before e1
+and e2:{ -s3:S  }
+and last e3: { +s3:S } before e2
+return
+    rule[e3] = '_init_', rule[e2] = 'r', rule[e1] = 'r',
+    time[e1] > time[e2], time[e2] > time[e3]
 
 query 'created__matches_2__all_true.csv'
 match e:{ +s:S }
