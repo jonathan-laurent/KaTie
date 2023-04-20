@@ -5,6 +5,7 @@ Usage: python runtests.py [TEST_SUBDIRS] {run,clean,diff,promote}.
 """
 
 import csv
+import json
 import os
 import re
 import shutil
@@ -23,6 +24,7 @@ KATIE_OUT_DIR = "katie-output"
 RESULTS_DIR = "results"
 STDOUT_FILE = "stdout.txt"
 STDERR_FILE = "stderr.txt"
+ERRORS_FILE = "errors.json"
 TESTS_DIR = "tests"
 EXPECTED_DIR = "expected"
 
@@ -126,6 +128,29 @@ def run_cmd_saving_output(cmd, stdout_file, stderr_file):
     return status
 
 
+def all_query_names(dir):
+    with open(join(dir, QUERY_FILE), "r") as f:
+        for line in f:
+            if m := re.search(r"query\s+('|\")([^'\"]+)('|\")", line):
+                yield m.group(2)
+
+
+def check_static_errors(dir):
+    # Make sure that everything that should error has errored
+    # and everything that shouldn't did not.
+    file = join(dir, KATIE_OUT_DIR, ERRORS_FILE)
+    if not os.path.isfile(file):
+        return False
+    errors = json.load(open(file))
+    for q in all_query_names(dir):
+        should_error = bool(re.search("errors__", q))
+        if should_error and q not in errors:
+            print(red(f"The following error did not error: '{q}'"))
+        if not should_error and q in errors:
+            print(red(f"The following query errored: '{q}'"))
+    return True
+
+
 def run(dir):
     clean(dir)
     print(f"Running test in: {dir}...")
@@ -148,16 +173,17 @@ def run(dir):
         "--output-dir",
         katie_out,
         "--no-color",
+        "--export-errors",
     ]
     katie_ret = run_cmd_saving_output(
         KATIE_EXE + katie_args + katie_options,
         stdout_file=join(katie_out, STDOUT_FILE),
         stderr_file=join(katie_out, STDERR_FILE),
     )
-    if katie_ret != 0:
+    errors_checked = check_static_errors(dir)
+    if not (katie_ret == 0 or (katie_ret == 1 and errors_checked)):
         print(red(f"KaTie return code: {katie_ret}"))
         print(f"  See {join(katie_out, STDOUT_FILE)}")
-        print(f"  See {join(katie_out, STDERR_FILE)}")
     with open(join(katie_out, STDERR_FILE), "r") as f:
         if f.read().strip():
             print(f"  See {join(katie_out, STDERR_FILE)}")

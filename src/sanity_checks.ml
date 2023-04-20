@@ -101,7 +101,11 @@ let check_patterns_rooted_in_ev e =
       check_rooted ~ev_name p.pattern
   | Some def_p, Some main_p ->
       check_rooted ~ev_name def_p.pattern ;
-      check_rooted ~ev_name ~constrained:e.link_agents main_p.pattern
+      let constrained =
+        (* Compute [local_agent_id]s constrained by [def_p] *)
+        Utils.IntMap.bindings def_p.pattern.agent_constraints |> List.map fst
+      in
+      check_rooted ~ev_name ~constrained main_p.pattern
 
 let check_patterns_rooted q =
   Array.iter check_patterns_rooted_in_ev q.Query.trace_pattern.events

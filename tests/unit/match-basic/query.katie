@@ -216,3 +216,17 @@ query 'multi_8_bis__matches_1__all_true.csv'
 match f:{ '_init_' +U1 }
 and last e:{ } before f
 return rule[e] = "_init_"
+
+
+// u always matches the same event but e can match any previous event
+query "multi_9.csv__matches_7__all_true"
+match e:{ }
+and first u:{ s:S(x[/.]) } after e
+and u:{ s:S(x{p}) }
+return int_state[.u]{s.x} = "p", rule[u] = "-Sp"
+
+query "multi_9_bis.csv__matches_0__all_true"
+match e:{ }
+and first u:{ s:S(x[/.]) } after e
+and u:{ s:S(x{u}) }
+return 1

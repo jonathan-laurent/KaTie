@@ -21,7 +21,7 @@ The `tests` directory contains a collection of example models and queries. A sub
 There are two ways to specify the expected outcome of running a test:
 
 1. An `expected/results` folder can be placed in the test directory. The testing script checks that the content of `katie-output` matches the content of `expected/results`.
-2. The expected behavior of a query can be encoded in the name of the query itself. If a query's name contains the substring `__matches_N` with `N` a nonnegative integer, then it is expected to produce `N` matches exactly. In addition, if it contains the substring `__all_true`, then every element of the resulting CSV must be equal to `1`.
+2. The expected behavior of a query can be encoded in the name of the query itself. If a query's name contains the substring `__matches_N` with `N` a nonnegative integer, then it is expected to produce `N` matches exactly. In addition, if it contains the substring `__all_true`, then every element of the resulting CSV must be equal to `1`. Finally, if it contains the substring `errors__`, then the query must be detected as invalid **statically** (before execution starts).
 
 ### Using the testing script
 
