@@ -19,5 +19,7 @@
  )
  (depends
   (ANSITerminal (>= 0.8.5))
+  (fmt (>= 0.9.0))
+  (ppx_yojson_conv_lib (>= 0.15.0))
   (menhir (>= 20220210))
  ))
