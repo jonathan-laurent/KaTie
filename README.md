@@ -45,6 +45,8 @@ python runtests.py tests/large/catphos run  # run the 'catphos' test
 python runtests.py tests/large/catphos diff  # show a diff for 'catphos'
 ```
 
+**Remark:** some tests rely on the stability of OCaml's random number generator. The current test suite is optimized to run with OCaml 4.14 and some tests may fail when using OCaml 5. When using the test suite, you are therefore encouraged to use OCaml 4.14: `opam switch create ocaml4 4.14.1`.
+
 ### Contributing new tests
 
 Users are encouraged to contribute new tests via pull-requests. To add a new test, just add a sub-directory in the `tests` hierarchy and make sure that it works with `runtests.py`.
@@ -54,4 +56,4 @@ Here are some tips for debugging and inspectign tests:
 - The `runtests.py` script captures the standard output and uses specific KaTie options that must not be changed. To explore running the test with other options or just have the standard output printed on your terminal, you can use the `exec.sh` script instead.
 - The `runtests.py` script runs KaTie with a maximal debug level, meaning that a lot of useful files are generated in the `katie-output/debug` directory to help understanding how the trace was processed. In particular, `trace-summary.json` contains a summary of the trace that is friendlier than the original `trace.json` file and `matchings.json` enumerates all found matchings.
 
-In addition to ensuring valid queries are correctly executed, it is also important to ensure that as many invalid queries as possible are detected as such statically (i.e. before they are executed) to avoid having queries failing at runtime, possibly wasting weeks of computation. Thus, users are encouraged to add invalid queries to the tests while including the `errors__` substring in their name.
+In addition to ensuring valid queries are correctly executed, it is also important to ensure that as many invalid queries as possible are detected as such statically (i.e. before they are executed) to avoid having queries failing at runtime, possibly wasting weeks of computation. Thus, users are encouraged to add invalid queries to the tests while including the `errors__` substring in their name. Note that the return code of KaTie can be used to determine whether or not errors were detected statically (a return code of `0` means that all queries ran fine, `1` means that errors were detected statically, `2` means that at least one user error was detected dynamically and `3` indicates an internal error). You may want to file issues when encountering return codes `2` or `3`, even for invalid queries.
