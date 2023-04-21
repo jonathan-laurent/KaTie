@@ -3,6 +3,18 @@
 This tool implements a unified language for querying simulation traces of rule-based models written in Kappa about the statistical behavior of individual agents and the relative frequency of different causal patterns. This language was first described in this [paper](https://www.cs.cmu.edu/~jlaurent/pdf/papers/cmsb18.pdf).
 
 
+* [Installation Instructions](#installation-instructions)
+* [Tutorial](#tutorial)
+  + [A first query example](#a-first-query-example)
+  + [Other query examples](#other-query-examples)
+* [Reference](#reference)
+* [Implementation Details](#implementation-details)
+* [Frequently Asked Questions](#frequently-asked-questions)
+* [Testing Instructions](#testing-instructions)
+  + [Using the testing script](#using-the-testing-script)
+  + [Contributing new tests](#contributing-new-tests)
+
+
 ## Installation Instructions
 
 The simplest way to install KaTie is via opam:
