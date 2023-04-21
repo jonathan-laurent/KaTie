@@ -95,6 +95,7 @@ def check_diff(dir, verbose=True):
         actual_file = join(dir, KATIE_OUT_DIR, f)
         if not os.path.isfile(actual_file):
             print(red(f"Missing expected file: {actual_file}"))
+            continue
         with open(expected_file, "r") as ef, open(actual_file, "r") as af:
             if ef.read() != af.read():
                 if verbose:
