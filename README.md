@@ -5,8 +5,6 @@ This tool implements a unified language for querying simulation traces of rule-b
 
 * [Installation Instructions](#installation-instructions)
 * [Tutorial](#tutorial)
-  + [A first query example](#a-first-query-example)
-  + [Other query examples](#other-query-examples)
 * [Reference](#reference)
 * [Implementation Details](#implementation-details)
 * [Frequently Asked Questions](#frequently-asked-questions)
