@@ -12,6 +12,65 @@ The simplest way to install KaTie is via opam:
 - Install KaTie: `opam pin add -y kappa-trace-queries https://github.com/jonathan-laurent/KaTie.git`
 - The tool can then be used as `KaTie -t <trace_file> -q <query_file> [options]`.
 
+## Tutorial
+
+We introduce the _trace query language_ and its execution engine KaTie using a simple example involving a substrate-kinase system (`tests/large/catphos`). The example is discussed in more details in the [paper](https://www.cs.cmu.edu/~jlaurent/pdf/papers/cmsb18.pdf).
+
+```
+%agent: K(d, x{u,p})
+%agent: S(d, x{u,p})
+
+'b'  K(d[./1]), S(d[./1]) @ 'on_rate'
+'u'  K(d[1/.], x{u}), S(d[1/.]) @ 'off_rate_fast'
+'u*' K(d[1/.], x{p}), S(d[1/.]) @ 'off_rate_slow'
+'p'  K(d[1]), S(d[1], x{u/p}) @ 'phos_rate'
+
+%init: 'C0' K(x{u}), K(x{p}), S(x{u}),
+```
+
+In this example, a substrate of kind `S` can be phosphorylated by a kinase of kind `K`. This requires both agents to be bound together. Also, substrate-kinase complexes are more stable when the kinase is phosphorylated itself, which we model by having `off_rate_fast > off_rate_slow`.
+
+### A first query example
+
+The following query prints the current time every time a substrate binds to some kinase:
+
+```
+query 'binding-times.csv'
+match e:{ S(d[/d.K]) } return time[e]
+```
+
+Some remarks:
+
+- The `match` keyword introduces a pattern and the keyword `return` introduces a computation that is executed for every instance of the pattern in the trace.
+- Here, the pattern consists in a single event named `e` that obeys the constraint `{ S(d[/d.K]) }`, meaning that event `e` must bind a substrate to a kinase. Kappa's edit notation is used to specify transformations that a trace event must perform to match with `e`.
+- Given a specific instance of `e` in the trace, the `time[e]` computation returns the time at which thi instance happened in simulation.
+- Executing the query above produces a `binding-times.csv` output file with as many lines as there are matchings of `e` in the trace, each line consisting in a floating point number.
+
+In addition to querying the time for each matched event, we can also query the name of the corresponding rule as follows:
+
+```
+query 'bindings.csv' {'binding-time', 'binding-rule'}
+match e:{ S(/d[d.K]) } return time[e], rule[e]
+```
+
+This query outputs a CSV file with two columns. Note that column names for the CSV output can be specified in curly brackets but doing so is optional. In the rest of this document, we tend to also skip the full `query` header for conciseness.
+
+
+### Other query examples
+
+To estimate the probability that a substrate is bound to a phosphorylated kinase when it gets phosphorylated itself, one can use the following query:
+
+```
+match p:{ S(x{/p}, d[1]), k:K(d[1]) }
+return int_state[.p]{k.x}
+```
+
+## Reference
+
+## Implementation Details
+
+## Frequently Asked Questions
+
 ## Testing Instructions
 
 The `tests` directory contains a collection of example models and queries. A subdirectory is considered as defining a valid test if it features a `model.ka` and a `query.katie` file. The `exec.sh` script can be used to run KaSim and KaTie in sequence on a test.
