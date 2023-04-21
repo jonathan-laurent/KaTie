@@ -24,7 +24,7 @@ The simplest way to install KaTie is via opam:
 
 ## Tutorial
 
-We introduce the _trace query language_ and its execution engine KaTie using a simple example involving a substrate-kinase system (`tests/large/catphos`). The example is discussed in more details in the [paper](https://www.cs.cmu.edu/~jlaurent/pdf/papers/cmsb18.pdf).
+We introduce the _trace query language_ and its execution engine KaTie using a simple example involving a substrate-kinase system (`tests/large/catphos` and `tests/unit/catphos-mini`). The example is discussed in more details in the [paper](https://www.cs.cmu.edu/~jlaurent/pdf/papers/cmsb18.pdf).
 
 ```
 %agent: K(d, x{u,p})
@@ -60,7 +60,8 @@ In addition to querying the time for each matched event, we can also query the n
 
 ```
 query 'bindings.csv' {'binding-time', 'binding-rule'}
-match e:{ S(/d[d.K]) } return time[e], rule[e]
+match e:{ S(d[/d.K]) }
+return time[e], rule[e]
 ```
 
 This query outputs a CSV file with two columns. Note that column names for the CSV output can be specified in curly brackets but doing so is optional. In the rest of this document, we tend to skip the full `query` header for conciseness.
@@ -84,10 +85,58 @@ To estimate the average lifespan of a bond between a kinase and a substrate, we 
 ```
 match b:{ s:S(d[./1]), K(d[./1]) }
 and first u:{ s:S(d[/.]) } after b
-return (time[u] - time[b])
+return time[u] - time[b]
 ```
 
 The pattern in this query matches *two* events `b` and `u`. Event `b` must be a binding event between a substrate and a kinase and event `u` must match the *first* event in the trace after event `b` where the same substrate gets unbound. Note that the constraint according to which the same substrate must be involved in both events is captured by the use of a shared agent variable `s`.
+
+To compute the average lifespan of a bond between a kinase and a substrate conditionned on the fact that the kinase is phosphorylated before the bond breaks, one may be tempted to use the following query:
+
+```
+// WRONG
+match b:{ s:S(d[./1]), K(d[./1]) }
+and first u:{ s:S(d[1/.]), K(d[1/.], x{p}) } after b
+return time[u] - time[b]
+```
+
+This query is perfectly valid but it does not compute what we want. Indeed, suppose the following events happen in order during simulation:
+
+1. Substrate 1 binds to unphosphorylated Kinase 1
+2. Substrate 1 and Kinase 1 unbind
+3. Substrate 1 binds to phosphorylated Kinase 2
+4. Substrate 1 and Kinase 2 ubind
+
+The trace pattern above would match 1 and 4 together (along with 3 and 4), which is a unwanted. Rather, one can use one of the following queries for example:
+
+```
+match b:{ s:S(d[/d.K]) }
+and first u:{ s:S(d[/.]) } after b
+and u:{ s:S(d[1]), K(d[1], x{p}) }
+return time[u] - time[b]
+```
+
+```
+match b:{ s:S(d[/d.K]) }
+and first u:{ s:S(d[1/.]), k:K(d[1/.]) } after b
+when int_state[.u]{k.x} = 'p'
+return time[u] - time[b]
+```
+
+```
+match u:{ s:S(d[1/.]), K(d[1/.], x{p}) }
+and last b:{ s:S(d[./_]) } before u
+return (time[u] - time[b])
+```
+
+Some comments:
+
+- The first query adds another clause that additionally constrains `s` to be bound to a phosphorylated kinase in `u`. In general, whenever events are constrained by a `first ... after`  or `last ... before` clause, another clause can be specified for performing additional checks or capturing other agents.
+- The second query uses a **`when`-clause** to specify an additional condition for the computation to be performed as a boolean expression.
+- The third query uses a `last ... before` clause rather than a `first ... after` clause so as to avoid the trap.
+
+#### See more
+
+For details on how to run KaTie concretely, you can look at the `exec.sh` example script. All queries mentioned in this tutorial can be found in `tests/unit/catphos-mini/query.katie`. More generally, the test suite is a good resources when it comes to understanding the capabilities and subtelties of the trace query language.
 
 ## Reference
 
