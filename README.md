@@ -149,43 +149,46 @@ For details on how to run KaTie concretely, you can look at the `exec.sh` exampl
 A query is defined by a **trace pattern** along with a **computation**.
 
 ```
-<query>          ::=  "match" <trace-pattern>
-                      ("every" <float-const> "seconds")?
-                      ("when" <expr>)?
-                      "return" <expr>
+<query>          ::=  "match" <trace-pattern> "return" <expr>
 <trace-pattern>  ::=  <clause> | <clause> "and" <clause>
 <clause>         ::=  <evar> ":" <event-pattern>
                   |   "last" <evar> ":" <event-pattern> "before" <evar>
                   |   "first" <evar> ":" <event-pattern> "after" <evar>
 <event-pattern>  ::=  "{" <rule-constr>? <edit-pattern> "}"
-
-<edit-pattern>   ::=  <agent> | <agent> "," <edit-pattern>
-<agent>          ::=  ("+"|"-")? (<avar>":")? <ag-kind> "("<sites>?")"
-<sites>          ::=  <site> | <site> "," <sites>
-<site>           ::=  <site-name> ("["<link>"]")? ("{"<internal>"}")?
-<link>           ::=  <lnk-st> | <lnk-st> "/" <lnk-st> | "/" <lnk-st>
-<lnk-st>         ::=  "." | "_" | <link-id> | <site-name> "." <ag-kind>
-<internal>       ::=  <int-st> | <int-st> "/" <int-st> | "/" <int-st>
-
-<expr>           ::=  <int-const> | <float-const> | <string-const> | "null"
-                  |   <avar> | <site-expr>
-                  |   <expr> "," <expr>
-                  |   <expr> <binop> <expr> | <unop> <expr>
-                  |   <function> "{" <expr> "}"
-                  |   <event-measure> "["<evar>"]" ("{"<expr>"}")?
-                  |   <state-measure> "["<state-expr>"]" ("{"<expr>"}")?
-<state-expr>     ::=  "." <evar> | <evar> "."
-<site-expr>      ::=  <avar> "." <site-name>
-<unop>           ::=  "not"
-<binop>          ::=  "+" | "-" | "=" | "<" | ... | "&&" | "||"
-<function>       ::=  "agent_id" | "size" | "count" | "similarity"
-<state-measure>  ::=  "int_state" | "component" | "print_cc" | "snapshot"
-<event-measure>  ::=  "time" | "rule" | "debug_event"
 ```
+
+#### Examples
+
+#### Invalid queries
+
+### Measures reference
+
+### Expression language
+
+### Other features
+
+#### When-clauses
+
+#### Every-clauses
+
+### The KaTie CLI
+
 
 ## Implementation Details
 
+### Query evaluation steps
+
+### Event matching algorithm
+
+### Trace-pattern matching algorithm
+
+
 ## Frequently Asked Questions
+
+#### Why does it take so long to evaluate my query?
+
+#### Can I match causal dags instead of causal trees?
+
 
 ## Testing Instructions
 
