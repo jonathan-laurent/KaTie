@@ -142,7 +142,46 @@ Some comments:
 
 For details on how to run KaTie concretely, you can look at the `exec.sh` example script. All queries mentioned in this tutorial can be found in `tests/unit/catphos-mini/query.katie`. More generally, the test suite is a good resources when it comes to understanding the capabilities and subtelties of the trace query language.
 
-## Reference
+## User Guide
+
+### Syntax and semantics of queries
+
+A query is defined by a **trace pattern** along with a **computation**.
+
+```
+<query>          ::=  "match" <trace-pattern>
+                      ("every" <float-const> "seconds")?
+                      ("when" <expr>)?
+                      "return" <expr>
+<trace-pattern>  ::=  <clause> | <clause> "and" <clause>
+<clause>         ::=  <evar> ":" <event-pattern>
+                  |   "last" <evar> ":" <event-pattern> "before" <evar>
+                  |   "first" <evar> ":" <event-pattern> "after" <evar>
+<event-pattern>  ::=  "{" <rule-constr>? <edit-pattern> "}"
+
+<edit-pattern>   ::=  <agent> | <agent> "," <edit-pattern>
+<agent>          ::=  ("+"|"-")? (<avar>":")? <ag-kind> "("<sites>?")"
+<sites>          ::=  <site> | <site> "," <sites>
+<site>           ::=  <site-name> ("["<link>"]")? ("{"<internal>"}")?
+<link>           ::=  <lnk-st> | <lnk-st> "/" <lnk-st> | "/" <lnk-st>
+<lnk-st>         ::=  "." | "_" | <link-id> | <site-name> "." <ag-kind>
+<internal>       ::=  <int-st> | <int-st> "/" <int-st> | "/" <int-st>
+
+<expr>           ::=  <int-const> | <float-const> | <string-const> | "null"
+                  |   <avar> | <site-expr>
+                  |   <expr> "," <expr>
+                  |   <expr> <binop> <expr> | <unop> <expr>
+                  |   <function> "{" <expr> "}"
+                  |   <event-measure> "["<evar>"]" ("{"<expr>"}")?
+                  |   <state-measure> "["<state-expr>"]" ("{"<expr>"}")?
+<state-expr>     ::=  "." <evar> | <evar> "."
+<site-expr>      ::=  <avar> "." <site-name>
+<unop>           ::=  "not"
+<binop>          ::=  "+" | "-" | "=" | "<" | ... | "&&" | "||"
+<function>       ::=  "agent_id" | "size" | "count" | "similarity"
+<state-measure>  ::=  "int_state" | "component" | "print_cc" | "snapshot"
+<event-measure>  ::=  "time" | "rule" | "debug_event"
+```
 
 ## Implementation Details
 
