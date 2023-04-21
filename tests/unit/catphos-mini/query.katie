@@ -1,0 +1,20 @@
+// In this query, the engine is going to attempt matching u with _init_.
+// Since the _init_ event features "free" modifications for the agent it creates
+// (e.g. new(S.2) free(S.2.d)), the first clause of u will match (it would not
+// if one had written S(d[_/.] instead). Then, engine will attempt to match the second
+// clause of u. Doing so, it is going to try and follow a bond for an agent (s) that
+// does not yet exist. This illustrates why catching the [Inexisting_agent] exception
+// in [Event_matcher.propagate_link_constraints_with] is important.
+query 'attempt_following_bond_for_inexisting_agent__matches_2__all_true.csv'
+match b:{ s:S(d[/d.K]) }
+and first u:{ s:S(d[/.]) } after b
+and u:{ s:S(d[1/.]), K(d[1/.]) }
+return time[u] - time[b] > 0, rule[u] = 'u'
+
+query 'this_matches_init_too__matches_2.csv'
+match s:{ '_init_' S(d[/.]) }
+return 1
+
+query 'this_does_not__matches_0.csv'
+match s:{ '_init_' S(d[_/.]) }
+return 1

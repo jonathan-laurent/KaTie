@@ -226,7 +226,9 @@ let propagate_link_constraints_with (graph : Safe_replay.Graph.t)
              return amm
          | Some (src_ag, src_s) -> (
            match Safe_replay.Graph.link_destination src_ag src_s graph with
-           | None ->
+           | None | (exception Safe_replay.Inexisting_agent) ->
+               (* Agent [src_ag] may not be in the mixture. See
+                  tests/unit/catphos-mini/query.katie *)
                fail
            | Some dst ->
                append amm (psite_ag_id s', site_ag_id dst) ) )

@@ -1,0 +1,11 @@
+%agent: K(d, x{u,p})
+%agent: S(d, x{u,p})
+
+'b'  K(d[./1]), S(d[./1]) @ 1
+'u'  K(d[1/.], x{u}), S(d[1/.]) @ 100
+'u*' K(d[1/.], x{p}), S(d[1/.]) @ 1
+'p'  K(d[1]), S(d[1], x{u/p}) @ 1
+
+%init: 2 K(x{u}), K(x{p}), S(x{u})
+
+%mod: |S(x{p})| > |S(x{u})| do $STOP ;
