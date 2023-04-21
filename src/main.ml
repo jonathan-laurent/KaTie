@@ -99,6 +99,7 @@ let main () =
   if !trace_file = "" || !query_file = "" then Arg.usage options usage
   else
     let header = Trace_header.load ~trace_file:!trace_file in
+    Log.set_global_model header.model ;
     let asts = parse_queries !query_file in
     Output.debug_json "queries-ast.json" (fun () ->
         [%yojson_of: Query_ast.t list] asts ) ;

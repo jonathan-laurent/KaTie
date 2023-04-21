@@ -14,6 +14,14 @@ let with_current_query s f =
 
 let get_current_query () = !current_query
 
+(* For convenience when debugging, we allow storing the model underlying
+   the trace being analyzed in a global variable *)
+let global_model_ref : Model.t option ref = ref None
+
+let global_model () = Option.get !global_model_ref
+
+let set_global_model m = global_model_ref := Some m
+
 let indent_string ~n s =
   let indent = String.make n ' ' in
   String.concat "\n"
