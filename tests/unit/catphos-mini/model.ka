@@ -8,4 +8,4 @@
 
 %init: 2 K(x{u}), K(x{p}), S(x{u})
 
-%mod: |S(x{p})| > |S(x{u})| do $STOP ;
+%mod: [E] > 20 do $STOP ;

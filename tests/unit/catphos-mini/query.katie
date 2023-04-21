@@ -1,15 +1,43 @@
-// In this query, the engine is going to attempt matching u with _init_.
-// Since the _init_ event features "free" modifications for the agent it creates
-// (e.g. new(S.2) free(S.2.d)), the first clause of u will match (it would not
-// if one had written S(d[_/.] instead). Then, engine will attempt to match the second
-// clause of u. Doing so, it is going to try and follow a bond for an agent (s) that
-// does not yet exist. This illustrates why catching the [Inexisting_agent] exception
-// in [Event_matcher.propagate_link_constraints_with] is important.
-query 'attempt_following_bond_for_inexisting_agent__matches_2__all_true.csv'
+// Queries from the README
+
+query 'binding-times.csv'
+match e:{ S(d[/d.K]) } return time[e]
+
+query 'bindings.csv' {'binding-time', 'binding-rule'}
+match e:{ S(d[/d.K]) } return time[e], rule[e]
+
+query 'kinase-phos-state.csv'
+match p:{ S(x{/p}, d[1]), k:K(d[1]) }
+return int_state[.p]{k.x}
+
+query 'average-bond-lifespan.csv'
+match b:{ s:S(d[./1]), K(d[./1]) }
+and first u:{ s:S(d[/.]) } after b
+return time[u] - time[b]
+
+query 'wrong-phos-bond-lifespan.csv'
+match b:{ s:S(d[./1]), K(d[./1]) }
+and first u:{ s:S(d[1/.]), K(d[1/.], x{p}) } after b
+return time[u] - time[b]
+
+query 'phos-bond-lifespan-1.csv'
 match b:{ s:S(d[/d.K]) }
 and first u:{ s:S(d[/.]) } after b
-and u:{ s:S(d[1/.]), K(d[1/.]) }
-return time[u] - time[b] > 0, rule[u] = 'u'
+and u:{ s:S(d[1]), K(d[1], x{p}) }
+return time[u] - time[b]
+
+query 'phos-bond-lifespan-2.csv'
+match b:{ s:S(d[/d.K]) }
+and first u:{ s:S(d[1/.]), k:K(d[1/.]) } after b
+when int_state[.u]{k.x} = 'p'
+return time[u] - time[b]
+
+query 'phos-bond-lifespan-3.csv'
+match u:{ s:S(d[1/.]), K(d[1/.], x{p}) }
+and last b:{ s:S(d[./_]) } before u
+return (time[u] - time[b])
+
+// Other queries
 
 query 'this_matches_init_too__matches_2.csv'
 match s:{ '_init_' S(d[/.]) }
@@ -18,3 +46,18 @@ return 1
 query 'this_does_not__matches_0.csv'
 match s:{ '_init_' S(d[_/.]) }
 return 1
+
+// The following example is cited as an example in KaTie's source code.
+
+// In this query, the engine is going to attempt matching u with _init_.
+// Since the _init_ event features "free" modifications for the agent it creates
+// (e.g. new(S.2) free(S.2.d)), the first clause of u will match (it would not
+// if one had written S(d[_/.] instead). Then, engine will attempt to match the second
+// clause of u. Doing so, it is going to try and follow a bond for an agent (s) that
+// does not yet exist. This illustrates why catching the [Inexisting_agent] exception
+// in [Event_matcher.propagate_link_constraints_with] is important.
+query 'attempt_following_bond_for_inexisting_agent__all_true.csv'
+match b:{ s:S(d[/d.K]) }
+and first u:{ s:S(d[/.]) } after b
+and u:{ s:S(d[1/.]), K(d[1/.]) }
+return time[u] - time[b] > 0, rule[u] = 'u' || rule[u] = 'u*'
