@@ -40,7 +40,7 @@ We introduce the _trace query language_ and its execution engine KaTie using a s
 
 In this example, a substrate of kind `S` can be phosphorylated by a kinase of kind `K`. This requires both agents to be bound together. Also, substrate-kinase complexes are more stable when the kinase is phosphorylated itself, which we model by having `off_rate_fast > off_rate_slow`.
 
-### A first query example
+#### A first query example
 
 The following query prints the current time every time a substrate binds to some kinase:
 
@@ -63,10 +63,10 @@ query 'bindings.csv' {'binding-time', 'binding-rule'}
 match e:{ S(/d[d.K]) } return time[e], rule[e]
 ```
 
-This query outputs a CSV file with two columns. Note that column names for the CSV output can be specified in curly brackets but doing so is optional. In the rest of this document, we tend to also skip the full `query` header for conciseness.
+This query outputs a CSV file with two columns. Note that column names for the CSV output can be specified in curly brackets but doing so is optional. In the rest of this document, we tend to skip the full `query` header for conciseness.
 
 
-### Other query examples
+#### Another simple example
 
 To estimate the probability that a substrate is bound to a phosphorylated kinase when it gets phosphorylated itself, one can use the following query:
 
@@ -74,6 +74,20 @@ To estimate the probability that a substrate is bound to a phosphorylated kinase
 match p:{ S(x{/p}, d[1]), k:K(d[1]) }
 return int_state[.p]{k.x}
 ```
+
+As opposed to `time` and `rule` that are event measure (measures associated to a particular event), `int_state` is a _state measure_ (a measure associated to a particular mixture). As a first argument and between square brackets, it takes a _state expression_. For `e` an event identifier, the state expression `.e` refers to the state of the system **before** the triggering of event `e`. Similarly, `e.` refers to the state of the system **after** the triggering of e. As a second argument, `int_state` expects a _site expression_. Here, we build such an expression by introducing a name `k` for the kinase captured in event `p`.
+
+#### Average lifespan of a bond
+
+To estimate the average lifespan of a bond between a kinase and a substrate, we can run the following query:
+
+```
+match b:{ s:S(d[./1]), K(d[./1]) }
+and first u:{ s:S(d[/.]) } after b
+return (time[u] - time[b])
+```
+
+The pattern in this query matches *two* events `b` and `u`. Event `b` must be a binding event between a substrate and a kinase and event `u` must match the *first* event in the trace after event `b` where the same substrate gets unbound. Note that the constraint according to which the same substrate must be involved in both events is captured by the use of a shared agent variable `s`.
 
 ## Reference
 
