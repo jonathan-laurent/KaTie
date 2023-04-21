@@ -40,6 +40,8 @@ We introduce the _trace query language_ and its execution engine KaTie using a s
 
 In this example, a substrate of kind `S` can be phosphorylated by a kinase of kind `K`. This requires both agents to be bound together. Also, substrate-kinase complexes are more stable when the kinase is phosphorylated itself, which we model by having `off_rate_fast > off_rate_slow`.
 
+### Single-event queries
+
 #### A first query example
 
 The following query prints the current time every time a substrate binds to some kinase:
@@ -67,7 +69,7 @@ return time[e], rule[e]
 This query outputs a CSV file with two columns. Note that column names for the CSV output can be specified in curly brackets but doing so is optional. In the rest of this document, we tend to skip the full `query` header for conciseness.
 
 
-#### Another simple example
+#### State measures
 
 To estimate the probability that a substrate is bound to a phosphorylated kinase when it gets phosphorylated itself, one can use the following query:
 
@@ -77,6 +79,8 @@ return int_state[.p]{k.x}
 ```
 
 As opposed to `time` and `rule` that are event measure (measures associated to a particular event), `int_state` is a _state measure_ (a measure associated to a particular mixture). As a first argument and between square brackets, it takes a _state expression_. For `e` an event identifier, the state expression `.e` refers to the state of the system **before** the triggering of event `e`. Similarly, `e.` refers to the state of the system **after** the triggering of e. As a second argument, `int_state` expects a _site expression_. Here, we build such an expression by introducing a name `k` for the kinase captured in event `p`.
+
+### Multi-event queries
 
 #### Average lifespan of a bond
 
@@ -132,7 +136,7 @@ Some comments:
 
 - The first query adds another clause that additionally constrains `s` to be bound to a phosphorylated kinase in `u`. In general, whenever events are constrained by a `first ... after`  or `last ... before` clause, another clause can be specified for performing additional checks or capturing other agents.
 - The second query uses a **`when`-clause** to specify an additional condition for the computation to be performed as a boolean expression.
-- The third query uses a `last ... before` clause rather than a `first ... after` clause so as to avoid the trap.
+- The third query uses a `last ... before` clause rather than `first ... after` to avoid the trap altogether.
 
 #### See more
 
