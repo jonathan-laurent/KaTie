@@ -306,7 +306,7 @@ Measures are atomic expressions capturing matching-specific information. They ar
 
 **Event measures**:
   - `time[e]: float`: indicates the time of event `e`.
-  - `rule[e]: string`: indicates the name of the rule underlying event `e`. Special values `_init_`, `_pert_` and `_obs_` are returned for initial events, perturbation events and observation events respectively.
+  - `rule[e]: string`: indicates the name of the rule underlying event `e`. Special values `'_init_'`, `'_pert_'` and `'_obs_'` are returned for initial events, perturbation events and observation events respectively.
   - `debug_event[e]: string`: returns a list of all actions performed by the trace event (e.g. `new(S.0) free(S.0.x) mod(S.0.x, u)`). This is mostly intended for debugging.
 
 **State measures**:
@@ -315,13 +315,45 @@ Measures are atomic expressions capturing matching-specific information. They ar
   - `print_cc[s]{ag}: string`: returns the string representation of a Kappa graph representing the connected component of agent `ag` in state `s`. Unique identifiers are indicated for all involved agents (i.e. the same identifiers accessible via `agent_id`).
   - `snapshot[s]: string`: performs a snapshot of the full state `s`, stores it into a freshly generated file in JSON format and returns the path to this file. See [here](#when-clauses) for a caveat in the presence of when-clauses.
 
+Whenever measure is called on an agent that does not exist in the mixture, it returns value `null`.
+
 ### Other features
 
 #### Rule constraints
 
+In addition to _edit patterns_, event patterns can feature a rule constraint of the form `'r1'|...|'rn'`, meaning that any matching event must be an instance of one of the listed rules. The special name `'_init_'` can be used to denote an initial event. For example, the following query matches all events `e` that are either initialization events or instances of rule `p` that additionally phosphorylates a substrate that is free on site `d`.
+
+```
+match e:{'p'|'_init_' S(x{u/p}, d[.]) }
+return ...
+```
+
 #### When-clauses
 
+A **when-clause** can be used right before the `return` statement to specify a boolean expression that must be true for the matching to be reported:
+
+```
+match e:{ s:S(x[/p]) }
+and last b:{ s:S(d[./_]) } before e
+when size{component[b.]{s}} >= 3
+return snapshot[b.]
+```
+
+This query only reports results for which the condition `size{component[b.]{s}} >= 3` evaluates to `true`. Note that when using measures that perform side effects such as `snapshot` in the `return` statement, our implementation provides no guarantee that the measure won't be executed for matchings that fail the when-clause. It only guarantees that the results won't be reported. In the case of snapshots, this may result in more files being created on disk than are referenced in the CSV output. The only case in which we guarantee that only reported measures are computed are for queries with a single event pattern (see [here](#implementation-details) for details).
+
 #### Every-clauses
+
+For queries with only a single event pattern, we additionally allow an **every**-clause to specify a minimal delay between two consecutive matchings:
+
+```
+match e:{ S(x{u/p}) }
+every 0.2 seconds
+when time[e] >= 0 && time[e] <= 10
+return snapshot[.e]
+```
+
+The query above takes a snapshot before each phosphorylation event, from time $t=0$ to $t=10$, leaving at least 0.2 seconds between each snapshot. Because this query only has a single event pattern, it is additionally guaranteed that no snapshot will be taken and stored on disk that isn't referenced in the query's result.
+
 
 ### The KaTie CLI
 
