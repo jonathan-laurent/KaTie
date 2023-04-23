@@ -352,7 +352,7 @@ when time[e] >= 0 && time[e] <= 10
 return snapshot[.e]
 ```
 
-The query above takes a snapshot before each phosphorylation event, from time $t=0$ to $t=10$, leaving at least 0.2 seconds between each snapshot. Because this query only has a single event pattern, it is additionally guaranteed that no snapshot will be taken and stored on disk that isn't referenced in the query's result.
+The query above takes a snapshot before each phosphorylation event, from time 0 to 10, leaving at least 0.2 seconds between each snapshot. Because this query only has a single event pattern, it is additionally guaranteed that no snapshot will be taken and stored on disk that isn't referenced in the query's result.
 
 
 ### The KaTie CLI
