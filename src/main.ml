@@ -140,10 +140,10 @@ let () =
          cannot be created. *)
       Terminal.(println [red] ("System Error: " ^ msg)) ;
       exit 1
+  | ExceptionDefn.Malformed_Decl msg ->
+      Terminal.(println [red] ("KaSim error: " ^ fst msg)) ;
+      exit 1
   (* Internal errors *)
   | (Failure _ | Assert_failure _) as exn ->
       Log.error "A top-level exception was caught." ~exn ;
-      exit 3
-  | ExceptionDefn.Malformed_Decl _ as exn ->
-      Log.error "A KaSim internal exception was raised." ~exn ;
       exit 3
