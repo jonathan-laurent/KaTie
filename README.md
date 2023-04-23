@@ -286,10 +286,10 @@ Computations can be expressed in a small language with the following **types**:
 - `bool`: _boolean type_. Booleans are printed as `0` or `1` in the tool's CSV output but they are represented using a distinct type internally. Boolean values can be combined using the `&&` and `||` logical operators.
 - `string`: _string type_. String literals are delimited by either simple or double quotes.
 - `tuple`: _type for tuples of values_. Tuples allow queries to return several results. The comma operator `,` can be used to assemble values into tuples or concatenate tuples together.
-- `agent-set`: _type for sets of `(agent_kind, agent_id)` pairs_. Values of this type are returned by some measures such as `component` but cannot be included directly in the query's output. Functions processing agent sets include:
-  - `size{s: agent-set} -> int`: size of a set
-  - `similarity{s1: agent-set}{s2: agent-set} -> float`: [Jaccard similarity coefficient](https://en.wikipedia.org/wiki/Jaccard_index)
-  - `count{kinds: tuple[string]}{s: agent-set} -> tuple[int]`: if `kinds` is a comma-separated list of strings representing agent kinds, this returns a tuple indicating the number of times each agent kind appears in `s`. For example, if `s` contains 3 agents of type A, two agents of type B and four agents of type C, then `count{'B','A'}{s}` yields the tuple `1, 3`.
+- `agent_set`: _type for sets of `(agent_kind, agent_id)` pairs_. Values of this type are returned by some measures such as `component` but cannot be included directly in the query's output. Functions processing agent sets include:
+  - `size{s: agent_set} -> int`: size of a set
+  - `similarity{s1: agent_set}{s2: agent_set} -> float`: [Jaccard similarity coefficient](https://en.wikipedia.org/wiki/Jaccard_index)
+  - `count{kinds: tuple[string]}{s: agent_set} -> tuple[int]`: if `kinds` is a comma-separated list of strings representing agent kinds, this returns a tuple indicating the number of times each agent kind appears in `s`. For example, if `s` contains 3 agents of type A, two agents of type B and four agents of type C, then `count{'B','A'}{s}` yields the tuple `1, 3`.
 
 Some other remarks:
 
@@ -300,9 +300,20 @@ Some other remarks:
 
 The expression language is not set in stone and can be **easily extended**. For a summary of currently allowed expressions, one can look at the examples in `tests/unit/expr-basic/query.katie`.
 
-
 ### Measures reference
 
+Measures are atomic expressions capturing matching-specific information. They are declined in two kinds: **event measures** and **state measures**. Event measures take as a first argument an event variable between square brackets. In contrast, state measures take as a first argument a **state expression**: for `e` an event variable, `.e` denotes the state _before_ event `e` is triggered and `e.` denotes the state _after_ event `e` is triggered.
+
+**Event measures**:
+  - `time[e]: float`: indicates the time of event `e`.
+  - `rule[e]: string`: indicates the name of the rule underlying event `e`. Special values `_init_`, `_pert_` and `_obs_` are returned for initial events, perturbation events and observation events respectively.
+  - `debug_event[e]: string`: returns a list of all actions performed by the trace event (e.g. `new(S.0) free(S.0.x) mod(S.0.x, u)`). This is mostly intended for debugging.
+
+**State measures**:
+  - `int_state[s]{ag.x}: string`: returns the name of the internal state of site `x` of agent `ag` in state `s` (`ag` is an agent variable).
+  - `component[s]{ag}: agent_set`: returns the connected component of agent `ag` in state `s`.
+  - `print_cc[s]{ag}: string`: returns the string representation of a Kappa graph representing the connected component of agent `ag` in state `s`. The unique identifiers of all involved agents is also indicated (which are the same identifiers accessible via `agent_id`).
+  - `snapshot[s]: string`: performs a snapshot of the full state `s`, stores it into a freshly generated file in JSON format and returns the path to this file. See [here](#when-clauses) for a caveat in the presence of when-clauses.
 
 ### Other features
 
