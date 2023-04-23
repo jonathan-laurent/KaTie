@@ -293,12 +293,12 @@ Computations can be expressed in a small language with the following **types**:
 
 Some other remarks:
 
-- Equality `=` can be tested between any numerical values or between values of similar type, returning a boolean value.
-- An agent variable alone does not define a valid expression (although it can be passed to some [measures](#measures-reference)). To obtain a unique integer identifier from agent variable `a`, one can use the `agent_id{a}` construct. As opposed to IDs used by KaSim, such IDs can be used to compare the identity of different agents across time. The same agent ids are also used in the output of measures such as `snapshot` and `print_cc`.
-- A special `null` value is included in the language to be returned as a failure code by measures. Any operation taking `null` as an input must also return `null`, with the exception of equality (e.g. `null = null` is true and `null = 1` is false) and of the comma operator (e.g. `1, null` is a valid tuple).
+- **Equality** `=` can be tested between any numerical values or between values of similar type, returning a boolean value.
+- An agent variable alone does not define a valid expression (although it can be passed to some [measures](#measures-reference)). To obtain a **unique integer identifier** from agent variable `a`, one can use the `agent_id{a}` construct. As opposed to IDs used by KaSim, such IDs can be used to compare the identity of different agents across time. The same agent ids are also used in the output of measures such as `snapshot` and `print_cc`.
+- A special `null` value is included in the language to be returned as a **failure code** by measures. Any operation taking `null` as an input must also return `null`, with the exception of equality (e.g. `null = null` is true and `null = 1` is false) and of the comma operator (e.g. `1, null` is a valid tuple).
 - Although KaTie's expression language is dynamically typed and type errors can be thrown at runtime, most type errors should be caught statically before queries are executed.
 
-The expression language is not set in stone and can be easily extended. For a summary of currently allowed expressions, one can look at the examples in `tests/unit/expr-basic/query.katie`.
+The expression language is not set in stone and can be **easily extended**. For a summary of currently allowed expressions, one can look at the examples in `tests/unit/expr-basic/query.katie`.
 
 
 ### Measures reference
