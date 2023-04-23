@@ -168,13 +168,13 @@ This pattern evaluates to _true_ given a matching `m` if and only if:
 1. agent `m(s)` has kind `S`
 2. agent `m(s)` has site `x` _free_ before event `m(b)` and _bound_ afterwards
 3. agent `m(s)` has site `x` _bound_ before event `m(u)` and _free_ afterwards
-4. agent `m(u)` is the first event in the trace following `m(b)` for which (3.) is true.
+4. event `m(u)` is the first event in the trace following `m(b)` for which (3.) is true.
 
 The expression after the `return` keyword is also parametrized my a matching since it can involve both event and agent variables.
 
 **Evaluating a query on a trace consists in executing the provided computation for every choice of a matching `m` that makes the trace pattern true.**
 
-#### Example
+### An Example
 
 To better understand the semantics of queries as defined above, let us consider a toy Kappa model where an agent `A` can be turned into two agents `B` and an agent `B` into two agents `C` (see `tests/unit/cascade`):
 
@@ -183,7 +183,7 @@ To better understand the semantics of queries as defined above, let us consider 
 'r2' B()-, C()+, C()+  @ 1
 ```
 
-Simulating those rules on a mixture that starts with a single `A`, the following query admits four matchings in total:
+Simulating those rules on a mixture that starts with a single `A`, the following query admits four valid matchings in total:
 
 ```
 match e1:{ +a:A }
@@ -194,7 +194,7 @@ return
   agent_id{a}, agent_id{b}, agent_id{c}
 ```
 
-More precisely, for a given random seed, the query outputs the following:
+More precisely, on a specific trace corresponding to a specific random seed, the query outputs the following:
 
 ```
 "_init_", 0, "r1", 1.7935983629643002, "r2", 1.8114148430106074, 0, 2, 3
