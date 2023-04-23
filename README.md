@@ -310,9 +310,9 @@ Measures are atomic expressions capturing matching-specific information. They ar
   - `debug_event[e]: string`: returns a list of all actions performed by the trace event (e.g. `new(S.0) free(S.0.x) mod(S.0.x, u)`). This is mostly intended for debugging.
 
 **State measures**:
-  - `int_state[s]{ag.x}: string`: returns the name of the internal state of site `x` of agent `ag` in state `s` (`ag` is an agent variable).
+  - `int_state[s]{ag.x}: string`: returns the name of the internal state of site `x` of agent `ag` in state `s`.
   - `component[s]{ag}: agent_set`: returns the connected component of agent `ag` in state `s`.
-  - `print_cc[s]{ag}: string`: returns the string representation of a Kappa graph representing the connected component of agent `ag` in state `s`. The unique identifiers of all involved agents is also indicated (which are the same identifiers accessible via `agent_id`).
+  - `print_cc[s]{ag}: string`: returns the string representation of a Kappa graph representing the connected component of agent `ag` in state `s`. Unique identifiers are indicated for all involved agents (i.e. the same identifiers accessible via `agent_id`).
   - `snapshot[s]: string`: performs a snapshot of the full state `s`, stores it into a freshly generated file in JSON format and returns the path to this file. See [here](#when-clauses) for a caveat in the presence of when-clauses.
 
 ### Other features
