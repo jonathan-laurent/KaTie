@@ -215,13 +215,15 @@ In addition to the semantics discussed above, KaTie places a number of restricti
 
 **Note:** the original [paper](https://www.cs.cmu.edu/~jlaurent/pdf/papers/cmsb18.pdf) for the trace query language mentions a much more stringent _rigidity_ requirement that is no longer necessary.
 
-#### Examples
+#### Example 1
 
-The following query is invalid since it is not _connected_:
+The following query is invalid since it is not connected:
 
 ```
 match e1:{ s:S(x{u/p}) } and e2:{ s:S(x{p/u}) } return ...
 ```
+
+#### Example 2
 
 The following query is an attempt at matching all instances of a substrate getting phosphorylated for the first time on both sites `x` and `y` during the _same_ event:
 
@@ -251,12 +253,18 @@ when time[p1] = time[p2]
 return ...
 ```
 
-The following query is invalid because the defining pattern for event `e2` is not rooted. Indeed, agent `k` is not modified in this pattern and its identity cannot be determined by the identity of `s` **within this pattern** (although the identity of `k` _can_ be determined from the identity of `s` in `e1`):
+#### Example 3
+
+The following query is invalid because the defining pattern for event `e2` is not rooted:
 
 ```
 match e1:{ s:S(x{u/p}, d[1]), k:K(d[1]) }
 and last e2:{ s:S(y{u/p}), k:K(d[.]) } before e1
 ```
+
+Indeed, agent `k` is not modified in this pattern and its identity cannot be determined by the identity of `s` **within this pattern**, although the identity of `k` _can_ be determined from the identity of `s` in `e1`.
+
+#### Example 4
 
 Finally, coming back to a previous [example](#average-lifespan-of-a-bond), the following query is valid:
 
