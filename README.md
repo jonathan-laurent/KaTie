@@ -144,7 +144,7 @@ For details on how to run KaTie concretely, you can look at the `exec.sh` exampl
 
 ## User Guide
 
-### Syntax and semantics of queries
+### Semantics of queries
 
 A query is defined by a **trace pattern** along with a **computation**. The trace pattern is a sequence of clauses, each one of them featuring an **event pattern**:
 
@@ -205,7 +205,16 @@ More precisely, on a specific trace corresponding to a specific random seed, the
 
 As one can see, all four matchings map `e1` and `e2` to the same event in the trace while two mappings are possible for `e3`. Similarly, there are 1, 2 and 4 possible mappings for agents `a`, `b` and `c` respectively. Note that in this example, the `agent_id` function takes an agent variable as an input and returns a unique global identifier for this agent that identifies it across time. This is in contrast with simluation IDs used in KaSim, where agent IDs can be _recycled_ once agents are deleted.
 
-#### Invalid queries
+### Invalid queries
+
+In addition to the semantics discussed above, KaTie places a number of restrictions on the queries that it can evaluate. Queries failing to meet these conditions are rejected statically before they are run:
+
+- **Trace patterns must be _connected_**. One can define the _dependency graph_ of a query as a graph whose nodes are event variables and where there is an edge from `e1` to `e2` if and only if `e2` is constrained by a clause of the form `last e2: {...} before e1` or `first e2: {...} after e1`. A pattern is said to be connected if its dependency graph is. One reason this is a requirement is that non-connected patterns can admit a number of valid matchings that is superlinear in the size of the trace. For example, the pattern `e1:{} and e2:{}` admits $n^2$ valid matchings on a trace with $n$ events. Causal [stories](https://fontana.hms.harvard.edu/sites/fontana.hms.harvard.edu/files/documents/signaling.causality.pdf) are particular instances of connected patterns.
+- **The dependency graph of trace patterns must be a _tree_**. Given the previous point, this is equivalent to saying that nodes in the dependency graph have either 0 or 1 predecessors. By connectedness, there has to be exactly one node without predecessors, which we call the _root event_ of the query. All other events must be introduced using a single `first ... after ...` or `last ... before ...` clause. This is not as big a restriction as it may seem. Indeed, patterns such as `last e: {...} before f and last e:{...} before g` can be expressed with a [when-clause](#when-clauses) as `last e1: {...} before f and last e2:{...} before g when time[e1] = time[e2]`. Using this trick, KaTie can be used to match arbitrary causal DAGs that are not trees.
+- **All event patterns must be _rooted_**. For every event pattern, the identity of all involved agents must be fully determined by the identity of modified agents. For example, the query `match e:{ s:S(x{p}) } return ...` is invalid since the pattern for `e` is not rooted. Rejecting such a query is once again legitimate since it would produce a huge number of matchings, of the order of $N\times E$ where $N$ is the number of events in the trace and $E$ the total number of agents in the simulation. In contrast, the event pattern `{ s:S(x[u/p], d[1]), k:K(d[1]) }` is rooted since the first agent in the pattern is modified and the identity of the second agent inferrable from a bond.
+
+**Note:** the original [paper](https://www.cs.cmu.edu/~jlaurent/pdf/papers/cmsb18.pdf) for the trace query language mentions a much more stringent _rigidity_ requirement that is no longer necessary.
+
 
 ### Measures reference
 
@@ -230,12 +239,6 @@ As one can see, all four matchings map `e1` and `e2` to the same event in the tr
 
 ### Trace-pattern matching algorithm
 
-
-## Frequently Asked Questions
-
-#### Why does it take so long to evaluate my query?
-
-#### Can I match causal dags instead of causal trees?
 
 
 ## Testing Instructions
