@@ -174,7 +174,7 @@ The expression after the `return` keyword is also parametrized my a matching sin
 
 **Evaluating a query on a trace consists in executing the provided computation for every choice of a matching `m` that makes the trace pattern true.**
 
-### An Example
+#### An Example
 
 To better understand the semantics of queries as defined above, let us consider a toy Kappa model where an agent `A` can be turned into two agents `B` and an agent `B` into two agents `C` (see `tests/unit/cascade`):
 
@@ -210,11 +210,64 @@ As one can see, all four matchings map `e1` and `e2` to the same event in the tr
 In addition to the semantics discussed above, KaTie places a number of restrictions on the queries that it can evaluate. Queries failing to meet these conditions are rejected statically before they are run:
 
 - **Trace patterns must be _connected_**. One can define the _dependency graph_ of a query as a graph whose nodes are event variables and where there is an edge from `e1` to `e2` if and only if `e2` is constrained by a clause of the form `last e2: {...} before e1` or `first e2: {...} after e1`. A pattern is said to be connected if its dependency graph is. One reason this is a requirement is that non-connected patterns can admit a number of valid matchings that is superlinear in the size of the trace. For example, the pattern `e1:{} and e2:{}` admits $N^2$ valid matchings on a trace with $N$ events. Causal [stories](https://fontana.hms.harvard.edu/sites/fontana.hms.harvard.edu/files/documents/signaling.causality.pdf) are particular instances of connected patterns.
-- **The dependency graph of trace patterns must be a _tree_**. Given the previous point, this is equivalent to saying that nodes in the dependency graph have either 0 or 1 predecessors. By connectedness, there has to be exactly one node without predecessors, which we call the **_root event_** of the query. A non-root event `e` must be introduced using a single `first e:... after ...` or `last e:... before ...` clause, which we call the **_defining clause_** for this event while other clauses of the form `e:...` are called **_auxilliary clauses_**. This is not as big a restriction as it may seem. Indeed, patterns such as `last e:... before f and last e:... before g` can be expressed as `last e1:... before f and last e2:... before g when time[e1] = time[e2]` using a [when-clause](#when-clauses). With this trick, KaTie can be used to match arbitrary causal DAGs.
-- **All event patterns must be _rooted_**. For every event pattern, the identity of all involved agents must be fully determined by the identity of modified agents. For example, the query `match e:{ s:S(x{p}) } return ...` is invalid since the pattern for `e` is not rooted. Rejecting such a query is once again legitimate since it would produce a huge number of matchings, of the order of $N\times E$ where $N$ is the number of events in the trace and $E$ the total number of agents in the simulation. In contrast, the event pattern `{ s:S(x[u/p], d[1]), k:K(d[1]) }` is rooted since the first agent in the pattern is modified and the identity of the second agent inferrable from a bond. Importantly, this rule is relaxed for event patterns in **auxilliary clauses**. In this case, the identity of all agents in the pattern must be determined by _both_ the identity of its modified agents _and_ the identity of all agents mentioned in the defining clause for the same event. Examples are provided below.
+- **The dependency graph of trace patterns must be a _tree_**. Given the previous point, this is equivalent to saying that nodes in the dependency graph have either 0 or 1 predecessors. By connectedness, there has to be exactly one node without predecessors, which we call the **_root event_** of the query. A non-root event `e` must be introduced using a single `first e:... after ...` or `last e:... before ...` clause, which we call the **_defining clause_** for this event while other clauses of the form `e:...` are called **_auxiliary clauses_**. This is not as big a restriction as it may seem. Indeed, patterns such as `last e:... before f and last e:... before g` can be expressed as `last e1:... before f and last e2:... before g when time[e1] = time[e2]` using a [when-clause](#when-clauses). With this trick, KaTie can be used to match arbitrary causal DAGs.
+- **All event patterns must be _rooted_**. For every event pattern, the identity of all involved agents must be fully determined by the identity of modified agents. For example, the query `match e:{ s:S(x{p}) } return ...` is invalid since the pattern for `e` is not rooted. Rejecting such a query is once again legitimate since it would produce a huge number of matchings, of the order of $N\times E$ where $N$ is the number of events in the trace and $E$ the total number of agents in the simulation. In contrast, the event pattern `{ s:S(x[u/p], d[1]), k:K(d[1]) }` is rooted since the first agent in the pattern is modified and the identity of the second agent inferrable from a bond. Importantly, this rule is relaxed for event patterns in **auxiliary clauses**. In this case, the identity of all agents in the pattern must be determined by _both_ the identity of its modified agents _and_ the identity of all agents mentioned in the defining clause for the same event. Examples are provided below.
 
 **Note:** the original [paper](https://www.cs.cmu.edu/~jlaurent/pdf/papers/cmsb18.pdf) for the trace query language mentions a much more stringent _rigidity_ requirement that is no longer necessary.
 
+#### Examples
+
+The following query is invalid since it is not _connected_:
+
+```
+match e1:{ s:S(x{u/p}) } and e2:{ s:S(x{p/u}) } return ...
+```
+
+The following query is an attempt at matching all instances of a substrate getting phosphorylated for the first time on both sites `x` and `y` during the _same_ event:
+
+```
+match c:{ +s:S }
+and first p:{ s:S(x{u/p}) } after c
+and first p:{ s:S(y{u/p}) } after c
+return ...
+```
+
+However, it is invalid since the non-root event `p` has two defining clauses. The following variation that uses an auxiliary clause is valid but it has a different semantics since it also allows `s` to be phosphorylated and unphosphorylated on site `y` before `p` happens:
+
+```
+match c:{ +s:S }
+and first p:{ s:S(x{u/p}) } after c
+and p:{ s:S(y{u/p}) }
+return ...
+```
+
+A solution involving a [when-clause](#when-clauses) is:
+
+```
+match c:{ +s:S }
+and first p1:{ s:S(x{u/p}) } after c
+and first p2:{ s:S(y{u/p}) } after c
+when time[p1] = time[p2]
+return ...
+```
+
+The following query is invalid because the defining pattern for event `e2` is not rooted. Indeed, agent `k` is not modified in this pattern and its identity cannot be determined by the identity of `s` **within this pattern** (although the identity of `k` _can_ be determined from the identity of `s` in `e1`):
+
+```
+match e1:{ s:S(x{u/p}, d[1]), k:K(d[1]) }
+and last e2:{ s:S(y{u/p}), k:K(d[.]) } before e1
+```
+
+Finally, coming back to a previous [example](#average-lifespan-of-a-bond), the following query is valid:
+
+```
+match b:{ s:S(d[/d.K]) }
+and first u:{ s:S(d[/.]) } after b
+and u:{ s:S(d[1]), K(d[1], x{p}) }
+return time[u] - time[b]
+```
+
+This is because despite the auxiliary clause for `u` specifying no agent modification, agent `s` is constrained in the defining clause of `u` and the identity of the kinase in the auxiliary clause is determined by the identity of `s` via a bond.
 
 ### Measures reference
 
