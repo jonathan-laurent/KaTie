@@ -1,0 +1,8 @@
+%agent: A()
+%agent: B()
+%agent: C()
+
+'r1' A()-, B()+, B()+  @ 1
+'r2' B()-, C()+, C()+  @ 1
+
+%init: 1 A()

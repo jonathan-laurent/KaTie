@@ -1,0 +1,7 @@
+query 'cascade__matches_4.csv'
+match e1:{ +a:A }
+and first e2: { -a:A, +b:B } after e1
+and first e3: { -b:B, +c:C } after e2
+return
+    rule[e1], time[e1], rule[e2], time[e2], rule[e3], time[e3],
+    agent_id{a}, agent_id{b}, agent_id{c}

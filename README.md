@@ -146,7 +146,7 @@ For details on how to run KaTie concretely, you can look at the `exec.sh` exampl
 
 ### Syntax and semantics of queries
 
-A query is defined by a **trace pattern** along with a **computation**.
+A query is defined by a **trace pattern** along with a **computation**. The trace pattern is a sequence of clauses, each one of them featuring an **event pattern**:
 
 ```
 <query>          ::=  "match" <trace-pattern> "return" <expr>
@@ -157,7 +157,53 @@ A query is defined by a **trace pattern** along with a **computation**.
 <event-pattern>  ::=  "{" <rule-constr>? <edit-pattern> "}"
 ```
 
-#### Examples
+A trace pattern contains both **agent** and **event** variables. We call **matching** a function that maps every event variable to an event in the trace and every agent variable to an agent in the trace. A trace pattern can be thought as a _predicate_ (i.e. a boolean function) over matchings. For example, consider the following pattern:
+
+```
+b:{ s:S(x[./_]) } and first u:{ s:S(x[_/.]) } after b
+```
+
+This pattern evaluates to _true_ given a matching `m` if and only if:
+
+1. agent `m(s)` has kind `S`
+2. agent `m(s)` has site `x` _free_ before event `m(b)` and _bound_ afterwards
+3. agent `m(s)` has site `x` _bound_ before event `m(u)` and _free_ afterwards
+4. agent `m(u)` is the first event in the trace following `m(b)` for which (3.) is true.
+
+The expression after the `return` keyword is also parametrized my a matching since it can involve both event and agent variables.
+
+**Evaluating a query on a trace consists in executing the provided computation for every choice of a matching `m` that makes the trace pattern true.**
+
+#### Example
+
+To better understand the semantics of queries as defined above, let us consider a toy Kappa model where an agent `A` can be turned into two agents `B` and an agent `B` into two agents `C` (see `tests/unit/cascade`):
+
+```
+'r1' A()-, B()+, B()+  @ 1
+'r2' B()-, C()+, C()+  @ 1
+```
+
+Simulating those rules on a mixture that starts with a single `A`, the following query admits four matchings in total:
+
+```
+match e1:{ +a:A }
+and first e2: { -a:A, +b:B } after e1
+and first e3: { -b:B, +c:C } after e2
+return
+  rule[e1], time[e1], rule[e2], time[e2], rule[e3], time[e3],
+  agent_id{a}, agent_id{b}, agent_id{c}
+```
+
+More precisely, for a given random seed, the query outputs the following:
+
+```
+"_init_", 0, "r1", 1.7935983629643002, "r2", 1.8114148430106074, 0, 2, 3
+"_init_", 0, "r1", 1.7935983629643002, "r2", 1.8114148430106074, 0, 2, 4
+"_init_", 0, "r1", 1.7935983629643002, "r2", 3.9704521435924418, 0, 1, 5
+"_init_", 0, "r1", 1.7935983629643002, "r2", 3.9704521435924418, 0, 1, 6
+```
+
+As one can see, all four matchings map `e1` and `e2` to the same event in the trace while two mappings are possible for `e3`. Similarly, there are 1, 2 and 4 possible mappings for agents `a`, `b` and `c` respectively. Note that in this example, the `agent_id` function takes an agent variable as an input and returns a unique global identifier for this agent that identifies it across time. This is in contrast with simluation IDs used in KaSim, where agent IDs can be _recycled_ once agents are deleted.
 
 #### Invalid queries
 
@@ -166,6 +212,8 @@ A query is defined by a **trace pattern** along with a **computation**.
 ### Expression language
 
 ### Other features
+
+#### Rule constraints
 
 #### When-clauses
 
