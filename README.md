@@ -277,9 +277,32 @@ return time[u] - time[b]
 
 This is because despite the auxiliary clause for `u` specifying no agent modification, agent `s` is constrained in the defining clause of `u` and the identity of the kinase in the auxiliary clause is determined by the identity of `s` via a bond.
 
-### Measures reference
 
 ### Expression language
+
+Computations can be expressed in a small language with the following types:
+
+- `int`, `float`: numerical types. The standard arithmetic operations (e.g. `+`, `-`) and comparison operators (e.g. `<`, `>=`) are available, along with numerical constants (`0`, `3.14`, `1.3e-7`). Integer are automatically promoted to floating point numbers when doing arithmetic with both types.
+- `bool`: boolean type. Booleans are printed as `0` or `1` in the tool's CSV output but they are represented using a distinct type internally. Boolean values can be combined using the `&&` and `||` logical operators.
+- `string`: string type. String literals are delimited by either simple or double quotes.
+- `tuple`: type for tuples of values. Tuples allow queries to return several results. The comma operator `,` can be used to assemble values into tuples or concatenate tuples together.
+- `agent-set`: type for sets of `(agent_kind, agent_id)` pairs. Values of this type are returned by some measures such as `component` but cannot be included directly in the query's output. Functions processing agent sets include:
+  - `size{s: agent-set} -> int`: size of a set
+  - `similarity{s1: agent-set}{s2: agent-set} -> float`: [Jaccard similarity coefficient](https://en.wikipedia.org/wiki/Jaccard_index) between two sets
+  - `count{kinds: tuple[string]}{s: agent-set} -> tuple[int]`: if `kinds` is a comma-separated list of strings representing agent kinds, this returns a tuple giving the number of times each agent kind appears in `s`. For example, if `s` contains 3 agents of type A, two agents of type B and four agents of type C, then `count{'B','A'}{s}` yields the tuple `1, 3`.
+
+Some other remarks:
+
+- Equality `=` can be tested between any numerical values or values of similar type, returning a boolean value.
+- An agent variable alone does not define a valid expression (although it can be passed to some [measures](#measures-reference)). To obtain a unique integer identifier from agent variable `a`, one can use the `agent_id{a}` construct. As opposed to IDs used by KaSim, such IDs can be used to compare the identity of different agents across time. The same agent ids are also used in the output of measures such as `snapshot` and `print_cc`.
+- A special `null` value is included in the language to be returned as a failure code by measures. Any operation taking `null` as an input must also return `null`, with the exception of the equality (e.g. `null = null` is _true_ and `null = 1` is _false_) and comma operators (e.g. `1, null` is a valid tuple).
+- Although KaTie's expression language is dynamically typed and type errors can be technically thrown at runtime, most type errors should be caught statically before executing the query.
+
+The expression language is not set in stone and can be easily extended. For a summary of currently allowed expressions, one can look at the examples in `tests/unit/expr-basic/query.katie`.
+
+
+### Measures reference
+
 
 ### Other features
 
