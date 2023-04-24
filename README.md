@@ -526,6 +526,8 @@ The event cache can be filled by performing the following actions for every even
 
 <details><summary><b>Example</b></summary><p>
 
+The event cache generated for our event query is printed as follows in `debug/event-cache.json`:
+
 ```json
 {
   "example.csv": {
@@ -550,6 +552,11 @@ The event cache can be filled by performing the following actions for every even
   }
 }
 ```
+
+Some remarks:
+- Since `p` is the root event, it has no link agents. Events `13` and `15` in the trace match the defining pattern of `p`, with two possible agent matchings each time (the defining pattern of `p` is symmetric).
+- Potential matchings of event `b1` in the trace are classified according to the resulting mapping of link agent `s1`. The only matching in which `s1` is mapped to agent `0` is with trace event `11` and it maps `k1` to agent `7`.
+- The defining pattern of `b1` matches trace events `9` and `10` but the auxiliary pattern fails to match in both cases. This is the reason why the cache features empty lists of matchings, which can only occur in the presence of auxiliary patterns.
 
 </p></details>
 
