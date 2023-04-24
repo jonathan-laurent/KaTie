@@ -478,7 +478,7 @@ return
 
 </p></details>
 
-We now proceed to describe each of the five evaluation steps. Note that only steps 2 and 5 require replaying the trace. When queries are evaluated by batch, the underlying resimulation cost is shared across all queries:
+We now proceed to describe each of the five evaluation steps. Note that only steps 2 and 5 require replaying the trace. When queries are evaluated by batch, the underlying resimulation cost is shared across all queries.
 
 - [1. Compiling the query](#1-compiling-the-query)
 - [2. Filling in the event cache](#2-filling-in-the-event-cache)
@@ -490,17 +490,21 @@ We now proceed to describe each of the five evaluation steps. Note that only ste
 
 During the compilation step, some checks are performed to ensure that the provided query is [valid](#invalid-queries). Also, an _execution path_ is computed, which defines the order in which events in the query are tentatively matched to events in the trace. This order is _topological_, meaning that the root event comes first and any event comes after its predecessors in the query's [dependency graph](#invalid-queries).
 
-For each non-root event, we call **link agent** an agent constrained by both the defining clause of this event and at least one prior event in the execution path. Given these definitions, all matchings of the trace pattern can be enumerated as follows:
+For each non-root event, we call **link agent** an agent constrained by both the defining clause of this event and at least one prior event in the execution path. Given these definitions, all matchings of the trace pattern can be enumerated using the following algorithm:
 
-> For every matching of the root event in the trace, determine the identity of all non-root events in the order they appear in the execution path. Given a partial matching `m` of previously constrained events and agents, the only possible matching for an event `e` with defining clause `first e:P after e'` is the first event in the trace after `m(e')` that matches event pattern `P` after constraining the identity of `e`'s link agents with `m`.
+> For every matching of the root event in the trace, determine the identity of all non-root events in the order they appear in the execution path. Given a partial matching `m` of previously constrained events and agents, the only possible matching for an event `e` with defining clause `first e:P after e'` is the first event in the trace after `m(e')` that matches event pattern `P` after constraining the identity of `e`'s link agents with `m` (and similarly for defining clauses of the form `last e:P before e'`).
 
-Hopefully, this idea should become clearer as we describe the next evaluation steps.
+This idea should become clearer as we describe the next evaluation steps.
 
 <details><summary><b>Example</b></summary><p>
+
+The execution path for our example query is summarized as follows in `debug/execution-paths.json`:
 
 ```json
 { "example.csv": "p(->s1,s2) b1(s1->k1) b2(s2->k2)" }
 ```
+
+This means that events `p`, `b1` and `b2` are to be matched in this order. Matching event `p` determines possible identities for agents `s1` and `s2`. Then, the identity of event `b1` is determined by the identity of its unique linked agent `s1`. In turn, matching event `b1` determines possible identities for agent `k1`. Similarly, the identity of event `b2` is determined by the identity of its unique linked agent `s2` and matching event `b2` determines possible identities for agent `s2`.
 
 </p></details>
 
