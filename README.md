@@ -405,6 +405,57 @@ More precisely, KaTie evaluates a query by replaying the trace twice: once for c
 
 ### Evaluating a query in five steps
 
+We explain all steps of evaluating a query using a running example. This example can be run using the following command, which runs KaSim and t
+
+<details><summary><h4>Kappa model</h4></summary><p>
+```
+%agent: K(d, x{u,p})
+%agent: S(d, x{u,p})
+
+'S.K'  K(d[./1]), S(d[./1])  @ 10
+'S.S'  S(x[./1]), S(x[./1])  @ 1
+'SSp'  S(x[1]{u/p}), S(x[1]{u/p}, d[2]), K(d[2])  @ 1
+
+%init: 2 K(x{u})
+%init: 2 K(x{p})
+%init: 4 S(x{u})
+
+%mod: |S(x{u})| = 0 do $STOP ;
+```
+</p></details>
+
+<details><summary><h4>Trace file</h4></summary><p>
+```json
+{
+  "0": [ "_init_", "new(K.0) free(K.0.x) mod(K.0.x, u) free(K.0.d)" ],
+  "1": [ "_init_", "new(K.1) free(K.1.x) mod(K.1.x, u) free(K.1.d)" ],
+  "2": [ "_init_", "new(K.2) free(K.2.x) mod(K.2.x, p) free(K.2.d)" ],
+  "3": [ "_init_", "new(K.3) free(K.3.x) mod(K.3.x, p) free(K.3.d)" ],
+  "4": [ "_init_", "new(S.4) free(S.4.x) mod(S.4.x, u) free(S.4.d)" ],
+  "5": [ "_init_", "new(S.5) free(S.5.x) mod(S.5.x, u) free(S.5.d)" ],
+  "6": [ "_init_", "new(S.6) free(S.6.x) mod(S.6.x, u) free(S.6.d)" ],
+  "7": [ "_init_", "new(S.7) free(S.7.x) mod(S.7.x, u) free(S.7.d)" ],
+  "8": [ "S.K", "bind(S.7.d, K.2.d)" ],
+  "9": [ "S.K", "bind(S.5.d, K.1.d)" ],
+  "10": [ "S.K", "bind(S.6.d, K.0.d)" ],
+  "11": [ "S.K", "bind(S.4.d, K.3.d)" ],
+  "12": [ "S.S", "bind(S.6.x, S.5.x)" ],
+  "13": [ "SSp", "mod(S.6.x, p) mod(S.5.x, p)" ],
+  "14": [ "S.S", "bind(S.4.x, S.7.x)" ],
+  "15": [ "SSp", "mod(S.4.x, p) mod(S.7.x, p)" ]
+}
+```
+</p></details>
+
+
+```txt
+query 'example.csv'
+match p:{ s1:S(x{u/p}), s2:S(x{u/p}) }
+and last b1:{ s1:S(d[./1]), k1:K(d[./1]) } before p
+and b1:{ k1:K(x{p}) }
+and last b2:{ s2:S(d[./1]), k2:K(d[./1]) } before p
+return time[b1] - time[p], time[b2] - time[p]
+```
 
 ### The special case of single-event queries
 
