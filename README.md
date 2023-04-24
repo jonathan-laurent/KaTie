@@ -222,7 +222,7 @@ In addition to the semantics discussed above, KaTie places a number of restricti
 
 **Note:** the original [paper](https://www.cs.cmu.edu/~jlaurent/pdf/papers/cmsb18.pdf) for the trace query language mentions a much more stringent _rigidity_ requirement that is no longer necessary.
 
-<details><summary><b>Example 1: non-connected query</b></summary>
+<details><summary><b>Example 1: connectedness requirement</b></summary>
 The following query is invalid since it is not connected:
 
 ```
@@ -230,7 +230,7 @@ match e1:{ s:S(x{u/p}) } and e2:{ s:S(x{p/u}) } return ...
 ```
 </details>
 
-#### Example 2
+<details><summary><b>Example 2: dependency tree requirement</b></summary>
 
 The following query is an attempt at matching all instances of a substrate getting phosphorylated for the first time on both sites `x` and `y` during the _same_ event:
 
@@ -260,7 +260,10 @@ when time[p1] = time[p2]
 return ...
 ```
 
-#### Example 3
+</details>
+
+
+<details><summary><b>Example 3: rooted patterns requirement</b></summary>
 
 The following query is invalid because the defining pattern for event `e2` is not rooted:
 
@@ -271,7 +274,10 @@ and last e2:{ s:S(y{u/p}), k:K(d[.]) } before e1
 
 Indeed, agent `k` is not modified in this pattern and its identity cannot be determined by the identity of `s` **within this pattern**, although the identity of `k` _can_ be determined from the identity of `s` in `e1`.
 
-#### Example 4
+</details>
+
+
+<details><summary><b>Example 4: exception for auxiliary clauses</b></summary>
 
 Finally, coming back to a previous [example](#average-lifespan-of-a-bond), the following query is valid:
 
@@ -283,6 +289,8 @@ return time[u] - time[b]
 ```
 
 This is because despite the auxiliary clause for `u` specifying no agent modification, agent `s` is constrained in the defining clause of `u` and the identity of the kinase in the auxiliary clause is determined by the identity of `s` via a bond.
+
+</details>
 
 
 ### Expression language
