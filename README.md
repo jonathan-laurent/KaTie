@@ -409,11 +409,11 @@ An example of using KaTie in combination with KaSim can be found in `exec.sh`.
 
 One technical challenge of evaluating queries is that queries can refer to intermediate simulation states that are not explicitly represented in the trace file and often impossible to store all at once, even on disk. Queries are thus evaluated by streaming through the trace file, reconstructing intermediate states on the fly via KaSim's `Replay` module while caching a minimal amount of information.
 
-More precisely, KaTie evaluates a query by replaying the trace twice: once for computing all matchings and once for evaluating measures and performing all computations. We detail this multi-step process below.
+More precisely, KaTie evaluates a query by replaying the trace twice: once for computing all matchings and once for evaluating measures and performing all computations. This is done to avoid the need for performing unnecessary measurements and storing measurement results in RAM, which can be prohibitively expensive. We detail this multi-step process below.
 
 ### Evaluating a query in five steps
 
-We explain all steps of evaluating a query using a running example. This example can be run using the following command: `python runtests.py tests/unit/double-phos/ run`. This command runs KaTie with maximal debug level and so many debug files are produced, which we use to support our explanation.
+We explain all steps of evaluating a query using a running example. This example can be run using the following command: `python runtests.py tests/unit/double-phos/ run`. We illustrate each step using the debug files produced by KaTie with the `--debug-level 2` option.
 
 <details><summary><b>Kappa model</b></summary><p>
 
@@ -480,7 +480,7 @@ return
 
 #### 1. Compiling the query
 
-<details><summary><b>Example</b></summary><p>
+<details><summary><b>Example: </b> debug/execution-paths.json </summary><p>
 
 ```json
 { "example.csv": "p(->s1,s2) b1(s1->k1) b2(s2->k2)" }
