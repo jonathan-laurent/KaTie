@@ -480,7 +480,7 @@ return
 
 #### 1. Compiling the query
 
-<details><summary><b>Example: </b> debug/execution-paths.json </summary><p>
+<details><summary><b>Example</b></summary><p>
 
 ```json
 { "example.csv": "p(->s1,s2) b1(s1->k1) b2(s2->k2)" }
