@@ -15,9 +15,6 @@ This tool implements a unified language for querying simulation traces of rule-b
   + [Other features](#other-features)
   + [The KaTie CLI](#the-katie-cli)
 * [Implementation Details](#implementation-details)
-  + [Query evaluation steps](#query-evaluation-steps)
-  + [Event matching algorithm](#event-matching-algorithm)
-  + [Trace-pattern matching algorithm](#trace-pattern-matching-algorithm)
 * [Testing Instructions](#testing-instructions)
   + [Using the testing script](#using-the-testing-script)
   + [Contributing new tests](#contributing-new-tests)
@@ -391,7 +388,7 @@ Here are some of KaTie's options:
     - `matchings.json`
     - `measurement-schedule.json`
 - `--no-backtraces`: disable exception backtraces (for better performances)
-- `--native-snapshots`: dump snapshot using KaSim's native format (*.ka instead of *.json)
+- `--native-snapshots`: dump snapshot using KaSim's native format (`*.ka` instead of `*.json`)
 - `--no-color`: disable colors in the output
 
 An example of using KaTie in combination with KaSim can be found in `exec.sh`.
@@ -399,12 +396,14 @@ An example of using KaTie in combination with KaSim can be found in `exec.sh`.
 
 ## Implementation Details
 
-### Query evaluation steps
+One technical challenge of evaluating queries is that queries can refer to intermediate simulation states that are not explicitly represented in the trace file and often impossible to store all at once, even on disk. Queries are thus evaluated by streaming through the trace file, reconstructing intermediate states on the fly via KaSim's `Replay` module while caching a minimal amount of information.
 
-### Event matching algorithm
+More precisely, KaTie evaluates a query by replaying the trace twice: once for computing all matchings and once for evaluating measures and performing all computations. We detail this multi-step process below.
 
-### Trace-pattern matching algorithm
+### Evaluating a query in five steps
 
+
+### The special case of single-event queries
 
 
 ## Testing Instructions
