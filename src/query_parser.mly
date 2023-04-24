@@ -47,7 +47,6 @@ let parse_rule_constraint_disjunct l =
   if String.equal l Trace_util.init_label then Init else Rule l
 %}
 
-
 %token EOF QUERY
 %token COLON DOT COMMA UNDERSCORE
 %token EQ PLUS MINUS MULT GT GE LT LE
@@ -56,7 +55,7 @@ let parse_rule_constraint_disjunct l =
 %token SLASH SHARP
 %token MATCH RETURN AND LAST FIRST BEFORE AFTER WHEN
 %token TIME NPHOS RULE COUNT COMPONENT DIST SIZE PRINT_CC DEBUG_EVENT
-%token INT_STATE SIMILARITY AGENT_ID
+%token INT_STATE SIMILARITY AGENT_ID EVENT_ID
 %token EVERY SECONDS
 %token SNAPSHOT
 
@@ -144,7 +143,6 @@ int_state_attr:
       site_int_test = Some pre ;
       site_int_mod = Some post } }
 
-
 %inline unop: NOT { Not }
 
 %inline binop:
@@ -201,10 +199,9 @@ expr:
   | SNAPSHOT st_expr=st_measure_annot
     { State_measure (st_expr, Snapshot) }
   | AGENT_ID OP_CURL id=ID CL_CURL { Agent_id id }
+  | EVENT_ID OP_CURL id=ID CL_CURL { Event_id id }
   | DEBUG_EVENT ev_expr=ev_measure_annot
     {Event_measure (ev_expr, Debug_event)}
-
-
 
 pattern: MATCH clauses=separated_list(AND, clause) { clauses }
 

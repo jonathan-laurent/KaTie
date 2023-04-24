@@ -167,9 +167,11 @@ let create_env (model : Model.t) (q : Ast.t) =
 (* Compile measures                                                          *)
 (*****************************************************************************)
 
+let tr_event env name = Dict.id_of_name env.query_events name
+
 let eval_ev_expr env cur_ev_id = function
   | Ast.Ev name ->
-      Dict.id_of_name env.query_events name
+      tr_event env name
   | Ast.This -> (
     match cur_ev_id with
     | None ->
@@ -278,6 +280,8 @@ let rec compile_expr env in_action cur_ev_id e =
       Expr.Count_agents (ags, arg)
   | Ast.Agent_id ag_name ->
       Expr.Agent_id (tr_agent env ag_name)
+  | Ast.Event_id ev_name ->
+      Expr.Event_id (tr_event env ev_name)
 
 (*****************************************************************************)
 (* Compile mixture patterns                                                  *)

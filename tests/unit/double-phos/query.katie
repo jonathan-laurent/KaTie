@@ -3,4 +3,4 @@ match p:{ s1:S(x{u/p}), s2:S(x{u/p}) }
 and last b1:{ s1:S(d[./1]), k1:K(d[./1]) } before p
 and b1:{ k1:K(x{p}) }
 and last b2:{ s2:S(d[./1]), k2:K(d[./1]) } before p
-return time[b1] - time[p], time[b2] - time[p]
+return time[p], agent_id{s1}, agent_id{s2}, agent_id{k1}, agent_id{k2}

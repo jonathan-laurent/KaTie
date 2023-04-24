@@ -251,13 +251,9 @@ let update_constrained_agents ev m pm =
 
 (* Complete matchings *)
 
-(* local_id -> global_id from complete matching. *)
-let cm_get_agent_id cm qid =
-  try cm.cm_agents.(qid)
-  with e ->
-    Log.error ~exn:e
-      "TODO: catch a more specialized exception in cm_get_agent_id." ;
-    assert false
+let cm_get_agent_id cm lid = cm.cm_agents.(lid)
+
+let cm_get_event_id cm lid = cm.cm_events.(lid).common.ev_id_in_trace
 
 (* Returns [None] if not cached and [Some None] if cached but errored. *)
 (* TODO: the measures should never return None anyway. *)
@@ -527,16 +523,19 @@ let read_or_take_measure ~header query ag_matchings window cm ev_id measure_id =
       Measure.take_measure ~header (fun id -> ag_matchings.(id)) window measure
 
 let execute_action q fmt read_measure cm =
-  let read_id = cm_get_agent_id cm in
+  let read_agent_id = cm_get_agent_id cm in
+  let read_event_id = cm_get_event_id cm in
   let rec aux = function
     | Print e ->
         let _ =
-          Expr.eval_expr read_measure read_id e
+          Expr.eval_expr ~read_measure ~read_agent_id ~read_event_id e
           |> fun v -> Format.fprintf fmt "%s@;" (Value.to_string v)
         in
         ()
     | If (cond, action) -> (
-        let b = Expr.eval_expr read_measure read_id cond in
+        let b =
+          Expr.eval_expr ~read_measure ~read_agent_id ~read_event_id cond
+        in
         match Value.(cast TBool b) with
         | None ->
             Error.failwith "The 'when' clause was passed a non-boolean value"

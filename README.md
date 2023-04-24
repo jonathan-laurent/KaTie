@@ -197,17 +197,17 @@ match e1:{ +a:A }
 and first e2: { -a:A, +b:B } after e1
 and first e3: { -b:B, +c:C } after e2
 return
-  rule[e1], time[e1], rule[e2], time[e2], rule[e3], time[e3],
-  agent_id{a}, agent_id{b}, agent_id{c}
+    rule[e1], event_id{e1}, rule[e2], event_id{e2}, rule[e3], event_id{e3},
+    agent_id{a}, agent_id{b}, agent_id{c}
 ```
 
 More precisely, on a specific trace corresponding to a specific random seed, the query outputs the following:
 
 ```
-"_init_", 0, "r1", 1.7935983629643002, "r2", 1.8114148430106074, 0, 2, 3
-"_init_", 0, "r1", 1.7935983629643002, "r2", 1.8114148430106074, 0, 2, 4
-"_init_", 0, "r1", 1.7935983629643002, "r2", 3.9704521435924418, 0, 1, 5
-"_init_", 0, "r1", 1.7935983629643002, "r2", 3.9704521435924418, 0, 1, 6
+"_init_", 0, "r1", 1, "r2", 2, 0, 2, 3
+"_init_", 0, "r1", 1, "r2", 2, 0, 2, 4
+"_init_", 0, "r1", 1, "r2", 3, 0, 1, 5
+"_init_", 0, "r1", 1, "r2", 3, 0, 1, 6
 ```
 
 As one can see, all four matchings map `e1` and `e2` to the same event in the trace while two mappings are possible for `e3`. Similarly, there are 1, 2 and 4 possible mappings for agents `a`, `b` and `c` respectively. Note that in this example, the `agent_id` function takes an agent variable as an input and returns a unique global identifier for this agent that identifies it across time. This is in contrast with simluation IDs used in KaSim, where agent IDs can be _recycled_ once agents are deleted.
@@ -217,7 +217,7 @@ As one can see, all four matchings map `e1` and `e2` to the same event in the tr
 In addition to the semantics discussed above, KaTie places a number of restrictions on the queries that it can evaluate. Queries failing to meet these conditions are rejected statically before they are run:
 
 - **Trace patterns must be _connected_**. One can define the _dependency graph_ of a query as a graph whose nodes are event variables and where there is an edge from `e1` to `e2` if and only if `e2` is constrained by a clause of the form `last e2: {...} before e1` or `first e2: {...} after e1`. A pattern is said to be connected if its dependency graph is. One reason this is a requirement is that non-connected patterns can admit a number of valid matchings that is superlinear in the size of the trace. For example, the pattern `e1:{} and e2:{}` admits $N^2$ valid matchings on a trace with $N$ events. Causal [stories](https://fontana.hms.harvard.edu/sites/fontana.hms.harvard.edu/files/documents/signaling.causality.pdf) are particular instances of connected patterns.
-- **The dependency graph of trace patterns must be a _tree_**. Given the previous point, this is equivalent to saying that nodes in the dependency graph have either 0 or 1 predecessors. By connectedness, there has to be exactly one node without predecessors, which we call the **_root event_** of the query. A non-root event `e` must be introduced using a single `first e:... after ...` or `last e:... before ...` clause, which we call the **_defining clause_** for this event while other clauses of the form `e:...` are called **_auxiliary clauses_**. This is not as big a restriction as it may seem. Indeed, patterns such as `last e:... before f and last e:... before g` can be expressed as `last e1:... before f and last e2:... before g when time[e1] = time[e2]` using a [when-clause](#when-clauses). With this trick, KaTie can be used to match arbitrary causal DAGs.
+- **The dependency graph of trace patterns must be a _tree_**. Given the previous point, this is equivalent to saying that nodes in the dependency graph have either 0 or 1 predecessors. By connectedness, there has to be exactly one node without predecessors, which we call the **_root event_** of the query. A non-root event `e` must be introduced using a single `first e:... after ...` or `last e:... before ...` clause, which we call the **_defining clause_** for this event while other clauses of the form `e:...` are called **_auxiliary clauses_**. This is not as big a restriction as it may seem. Indeed, patterns such as `last e:... before f and last e:... before g` can be expressed as `last e1:... before f and last e2:... before g when event_id{e1} = event_id{e2}` using a [when-clause](#when-clauses). With this trick, KaTie can be used to match arbitrary causal DAGs.
 - **All event patterns must be _rooted_**. For every event pattern, the identity of all involved agents must be fully determined by the identity of modified agents. For example, the query `match e:{ s:S(x{p}) } return ...` is invalid since the pattern for `e` is not rooted. Rejecting such a query is once again legitimate since it would produce a huge number of matchings, of the order of $N\times E$ where $N$ is the number of events in the trace and $E$ the total number of agents in the simulation. In contrast, the event pattern `{ s:S(x[u/p], d[1]), k:K(d[1]) }` is rooted since the first agent in the pattern is modified and the identity of the second agent inferrable from a bond. Importantly, this rule is relaxed for event patterns in **auxiliary clauses**. In this case, the identity of all agents in the pattern must be determined by _both_ the identity of its modified agents _and_ the identity of all agents mentioned in the defining clause for the same event. Examples are provided below.
 
 **Note:** the original [paper](https://www.cs.cmu.edu/~jlaurent/pdf/papers/cmsb18.pdf) for the trace query language mentions a much more stringent _rigidity_ requirement that is no longer necessary.
@@ -258,7 +258,7 @@ A solution involving a [when-clause](#when-clauses) is:
 match c:{ +s:S }
 and first p1:{ s:S(x{u/p}) } after c
 and first p2:{ s:S(y{u/p}) } after c
-when time[p1] = time[p2]
+when event_id{p1} = event_id{p2}
 return ...
 ```
 
@@ -312,6 +312,7 @@ Some other remarks:
 
 - **Equality** `=` can be tested between any numerical values or between values of similar type, returning a boolean value.
 - An agent variable alone does not define a valid expression (although it can be passed to some [measures](#measures-reference)). To obtain a **unique integer identifier** from agent variable `a`, one can use the `agent_id{a}` construct. As opposed to IDs used by KaSim, such IDs can be used to compare the identity of different agents across time. The same agent ids are also used in the output of measures such as `snapshot` and `print_cc`.
+- Similarly, a **unique event identifier** can be obtained from an event variable `e` using the `event_id{e}` construct. The identifier of an event corresponds to its index in the trace (a trace is defined as a sequence of events). Note that this does not necessarily corresponds to KaSim's `[E]` variable, which does not count initialization events.
 - A special `null` value is included in the language to be returned as a **failure code** by measures. Any operation taking `null` as an input must also return `null`, with the exception of equality (e.g. `null = null` is true and `null = 1` is false) and of the comma operator (e.g. `1, null` is a valid tuple).
 - Although KaTie's expression language is dynamically typed and type errors can be thrown at runtime, most type errors should be caught statically before queries are executed.
 
@@ -416,6 +417,8 @@ We explain all steps of evaluating a query using a running example. This example
 
 <details><summary><b>Kappa model</b></summary>
 
+Kappa model used in the example.
+
 ```
 %agent: K(d, x{u,p})
 %agent: S(d, x{u,p})
@@ -461,6 +464,8 @@ Readable summary of the simulation trace generated by KaSim with random seed 0, 
 </p></details>
 
 <details><summary><b>Example query</b></summary>
+
+
 
 ```txt
 query 'example.csv'

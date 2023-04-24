@@ -31,8 +31,9 @@ let dummy_eval_expr q e =
     q.Query.trace_pattern.events.(ev_lid).measures.(m_id).measure
     |> dummy_eval_measure
   in
-  let matching _ag_lid = 0 in
-  Expr.eval_expr read_measure matching e
+  let read_agent_id _ = 0 in
+  let read_event_id _ = 0 in
+  Expr.eval_expr ~read_measure ~read_agent_id ~read_event_id e
 
 let check_types q e = ignore (dummy_eval_expr q e)
 

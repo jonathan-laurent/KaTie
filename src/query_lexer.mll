@@ -15,7 +15,7 @@ let keywords_list =
      ("component", COMPONENT); ("dist", DIST); ("size", SIZE);
      ("query", QUERY); ("int_state", INT_STATE); ("similarity", SIMILARITY);
      ("every", EVERY); ("seconds", SECONDS); ("agent_id", AGENT_ID);
-     ("snapshot", SNAPSHOT); ("not", NOT);
+     ("event_id", EVENT_ID); ("snapshot", SNAPSHOT); ("not", NOT);
      ("print_cc", PRINT_CC); ("debug_event", DEBUG_EVENT); ("null", NULL)]
 
 let ktab =

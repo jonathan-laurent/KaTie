@@ -18,6 +18,7 @@ type t =
   | String_const of string
   | Measure of local_event_id * measure_id
   | Agent_id of local_agent_id
+  | Event_id of local_event_id
 [@@deriving show, yojson_of]
 
 (* Typing utilities *)
@@ -107,16 +108,16 @@ let set_similarity s s' =
 
 (* Expression interpreter *)
 
-type measurer = local_event_id -> measure_id -> Value.t
-
-type agent_matching = local_agent_id -> global_agent_id
-
 let is_null = function VNull -> true | _ -> false
 
-let eval_expr (read_measure : measurer) (matching : agent_matching) =
+let eval_expr ~(read_measure : local_event_id -> measure_id -> Value.t)
+    ~(read_agent_id : local_agent_id -> global_agent_id)
+    ~(read_event_id : local_event_id -> global_event_id) =
   let rec eval = function
     | Agent_id local_id ->
-        VInt (matching local_id)
+        VInt (read_agent_id local_id)
+    | Event_id local_id ->
+        VInt (read_event_id local_id)
     | Measure (local_event_id, measure_id) ->
         read_measure local_event_id measure_id
     | Concat (e, e') ->

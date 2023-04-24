@@ -62,6 +62,7 @@ type expr =
   | State_measure of state_expr * state_measure
   | Event_measure of event_expr * event_measure
   | Agent_id of identifier
+  | Event_id of identifier
 [@@deriving show, yojson]
 
 type rule_constraint_disjunct = Rule of string | Init

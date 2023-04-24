@@ -11,6 +11,7 @@ return
     int_state[e.]{s.x} = 'u',
     int_state[.e]{s.x} = null, // the agent does not exist yet
     agent_id{s} = 0, // first created agent
+    event_id{e} = 0, // first event in the trace
     size{component[e.]{s}} = 1,
     size{component[.e]{s}} = null,
     count{'S','S'}{component[e.]{s}}, // returns the (1, 1) tuple

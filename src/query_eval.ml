@@ -304,17 +304,20 @@ let create_measurement_env matchings =
   ; schedule= measurement_schedule matchings
   ; cur= 0 }
 
-let rec execute_action ~fmt ~read_measure ~read_id = function
+let rec execute_action ~fmt ~read_measure ~read_agent_id ~read_event_id =
+  function
   | Query.Print e ->
-      Expr.eval_expr read_measure read_id e
+      Expr.eval_expr ~read_measure ~read_agent_id ~read_event_id e
       |> fun v -> Format.fprintf fmt "%s@;" (Value.to_string v)
   | If (cond, action) -> (
-      let b = Expr.eval_expr read_measure read_id cond in
+      let b = Expr.eval_expr ~read_measure ~read_agent_id ~read_event_id cond in
       match Value.(cast TBool b) with
       | None ->
           Error.failwith "The 'when' clause was passed a non-boolean value"
       | Some b ->
-          if b then execute_action ~fmt ~read_measure ~read_id action )
+          if b then
+            execute_action ~fmt ~read_measure ~read_agent_id ~read_event_id
+              action )
 
 let perform_measurement_step ~header ~fmt query env matchings window =
   while
@@ -343,7 +346,8 @@ let perform_measurement_step ~header ~fmt query env matchings window =
     if cache.rem <= 0 then (
       (* Perform the action *)
       execute_action ~fmt
-        ~read_id:(fun lid -> matching.ags.(lid))
+        ~read_agent_id:(fun lid -> matching.ags.(lid))
+        ~read_event_id:(fun lid -> matching.evs.(lid))
         ~read_measure:(fun ev_lid m_id -> cache.measures.(ev_lid).(m_id))
         query.Query.action ;
       (* Free the measurements' memory *)
@@ -379,10 +383,11 @@ let perform_measurement_step_for_simple_query ~header ~fmt query state window =
                     Utils.list_zip event.other_constrained_agents
                       other_constrained
                   in
-                  let read_id lid = List.assoc lid ag_matching in
-                  execute_action ~fmt ~read_id
+                  let read_agent_id lid = List.assoc lid ag_matching in
+                  let read_event_id _ = window.step_id in
+                  execute_action ~fmt ~read_agent_id ~read_event_id
                     ~read_measure:(fun _ m_id ->
-                      Measure.take_measure ~header read_id window
+                      Measure.take_measure ~header read_agent_id window
                         event.measures.(m_id).measure )
                     query.Query.action ;
                   state.last_action_time <- t ) )
