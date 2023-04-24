@@ -388,7 +388,7 @@ Here are some of KaTie's options:
 - `--debug-level`: set the debug level. Depending on the level, different files are outputted in the `debug` output sub-directory:
   - 0: output no debug information
   - 1: only output debug information that can be produced at small runtime cost (default). This includes`compiled-queries.json`, `queries-ast.json` and `execution-paths.json`
-  - 2: output all debug information:
+  - 2: output all debug information (see [implementation section](#implementation-details) for details):
     - `queries-ast.json`
     - `compiled-queries.json`
     - `execution-paths.json`
