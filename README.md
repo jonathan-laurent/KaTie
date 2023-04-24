@@ -412,7 +412,7 @@ More precisely, KaTie evaluates a query by replaying the trace twice: once for c
 
 ### Evaluating a query in five steps
 
-We explain all steps of evaluating a query using a running example. This example can be run using the following command, which runs KaSim and t
+We explain all steps of evaluating a query using a running example. This example can be run using the following command: `python runtests.py tests/unit/double-phos/ run`. This command runs KaTie with maximal debug level and so many debug files are produced, which we use to support our explanation.
 
 <details><summary><b>Kappa model</b></summary>
 
@@ -433,7 +433,7 @@ We explain all steps of evaluating a query using a running example. This example
 
 </details>
 
-<details><summary><b>Trace file</b></summary>
+<details><summary><b>Trace file</b> (`katie-output/debug/trace-summary.json`)</summary>
 
 ```json
 {
