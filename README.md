@@ -480,13 +480,89 @@ return
 
 #### 1. Compiling the query
 
+<details><summary><b>Example</b></summary><p>
+
+```json
+{ "example.csv": "p(->s1,s2) b1(s1->k1) b2(s2->k2)" }
+```
+
+</p></details>
+
 #### 2. Filling in the event cache
+
+<details><summary><b>Example</b></summary><p>
+
+```json
+{
+  "example.csv": {
+    "p": {
+      "": {
+        "13": [ "s1:3 s2:2", "s1:2 s2:3" ],
+        "15": [ "s1:0 s2:1", "s1:1 s2:0" ]
+      }
+    },
+    "b1": {
+      "s1:0": { "11": [ "k1:7" ] },
+      "s1:1": { "9": [] },
+      "s1:2": { "10": [] },
+      "s1:3": { "8": [ "k1:6" ] }
+    },
+    "b2": {
+      "s2:0": { "11": [ "k2:7" ] },
+      "s2:1": { "9": [ "k2:5" ] },
+      "s2:2": { "10": [ "k2:4" ] },
+      "s2:3": { "8": [ "k2:6" ] }
+    }
+  }
+}
+```
+
+</p></details>
 
 #### 3. Computing matchings
 
+<details><summary><b>Example</b></summary><p>
+
+```json
+{
+  "example.csv": [
+    "p:13 b1:8 b2:10 | s1:3 s2:2 k1:6 k2:4",
+    "p:15 b1:11 b2:9 | s1:0 s2:1 k1:7 k2:5"
+  ]
+}
+```
+
+</p></details>
+
 #### 4. Computing a measurement schedule
 
+<details><summary><b>Example</b></summary><p>
+
+```json
+{
+  "example.csv": [
+    { "ev_gid": 8, "matching_id": 0, "ev_lid": 1 },
+    { "ev_gid": 9, "matching_id": 1, "ev_lid": 2 },
+    { "ev_gid": 10, "matching_id": 0, "ev_lid": 2 },
+    { "ev_gid": 11, "matching_id": 1, "ev_lid": 1 },
+    { "ev_gid": 13, "matching_id": 0, "ev_lid": 0 },
+    { "ev_gid": 15, "matching_id": 1, "ev_lid": 0 }
+  ]
+}
+```
+
+</p></details>
+
 #### 5. Executing the measurement schedule
+
+<details><summary><b>Example: final output</b></summary><p>
+
+```txt
+13, 8, 10, 3, 2, 6, 4
+15, 11, 9, 0, 1, 7, 5
+```
+
+</p></details>
 
 
 ### The special case of single-event queries
