@@ -222,7 +222,7 @@ In addition to the semantics discussed above, KaTie places a number of restricti
 
 **Note:** the original [paper](https://www.cs.cmu.edu/~jlaurent/pdf/papers/cmsb18.pdf) for the trace query language mentions a much more stringent _rigidity_ requirement that is no longer necessary.
 
-<details><summary>**See examples**</summary><p>
+<details><summary><h4>See examples</h4></summary><p>
 
 #### Example 1
 
