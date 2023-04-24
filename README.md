@@ -562,7 +562,11 @@ Some remarks:
 
 #### 3. Computing matchings
 
+Once the event cache is filled, all **matchings** of the query's trace pattern can be enumerated without further access to the trace. For every matching of the root event, non-root events are instantiated in the order specified by the execution path, using the identity of root agents to index the event cache.
+
 <details><summary><b>Example</b></summary><p>
+
+Our example query admits two matchings, which are summarized in `debug/matchings.json`. Mechanically reconstructing these matchings from the event cache printed in the previous section is left as an exercise for the reader.
 
 ```json
 {
@@ -577,7 +581,11 @@ Some remarks:
 
 #### 4. Computing a measurement schedule
 
+Once all matchings are determined, one can compute a **measurement schedule** that specifies the exact order in which measures must be taken and computation results must be printed during a second and final replaying of the trace. The measurement schedule consists in a sequence of $(i, j, k)$ integer triples sorted by increasing value of $i$. Such a triple can be interpreted as: while replaying event $i$ from the trace, compute all measures related to event variable number $k$ in matching number $j$.
+
 <details><summary><b>Example</b></summary><p>
+
+The following measurement schedule is printed in `debug/measurement-schedule.json` for our example query:
 
 ```json
 {
@@ -592,13 +600,20 @@ Some remarks:
 }
 ```
 
+Local event ids (`ev_lid`) 0, 1 and 2 correspond to event variables `p`, `b1` and `b2` respectively. Matchings are indexed in the order they are presented in `debug/matchings.json`.
+
 </p></details>
 
 #### 5. Executing the measurement schedule
 
+Once a measurement schedule is computed, it can be executed in order while replaying the trace a second and final time. For each matching, the query's computation is executed and printed for this matching as soon as its last associated triple in the measurement schedule is processed, thereby allowing  all cached measure values associated with this matching to be released from memory.
+
 <details><summary><b>Example: final output</b></summary><p>
 
+Our example query outputs the following the CSV file:
+
 ```txt
+'p', 'b1', 'b2', 's1', 's2', 'k1', 'k2'
 13, 8, 10, 3, 2, 6, 4
 15, 11, 9, 0, 1, 7, 5
 ```
