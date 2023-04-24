@@ -407,7 +407,7 @@ More precisely, KaTie evaluates a query by replaying the trace twice: once for c
 
 We explain all steps of evaluating a query using a running example. This example can be run using the following command, which runs KaSim and t
 
-<details><summary><h4>Kappa model</h4></summary><p>
+<details><summary><h4>Kappa model</h4></summary>
 
 ```
 %agent: K(d, x{u,p})
@@ -424,9 +424,9 @@ We explain all steps of evaluating a query using a running example. This example
 %mod: |S(x{u})| = 0 do $STOP ;
 ```
 
-</p></details>
+</details>
 
-<details><summary><h4>Trace file</h4></summary><p>
+<details><summary><h4>Trace file</h4></summary>
 
 ```json
 {
@@ -449,7 +449,7 @@ We explain all steps of evaluating a query using a running example. This example
 }
 ```
 
-</p></details>
+</details>
 
 
 ```txt
