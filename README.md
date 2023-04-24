@@ -222,15 +222,13 @@ In addition to the semantics discussed above, KaTie places a number of restricti
 
 **Note:** the original [paper](https://www.cs.cmu.edu/~jlaurent/pdf/papers/cmsb18.pdf) for the trace query language mentions a much more stringent _rigidity_ requirement that is no longer necessary.
 
-<details><summary><h4>See examples</h4></summary><p>
-
-#### Example 1
-
+<details><summary><b>Example 1: non-connected query</b></summary>
 The following query is invalid since it is not connected:
 
 ```
 match e1:{ s:S(x{u/p}) } and e2:{ s:S(x{p/u}) } return ...
 ```
+</details>
 
 #### Example 2
 
@@ -286,7 +284,6 @@ return time[u] - time[b]
 
 This is because despite the auxiliary clause for `u` specifying no agent modification, agent `s` is constrained in the defining clause of `u` and the identity of the kinase in the auxiliary clause is determined by the identity of `s` via a bond.
 
-</p></details>
 
 ### Expression language
 
