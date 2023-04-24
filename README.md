@@ -510,7 +510,7 @@ This means that events `p`, `b1` and `b2` are to be matched in this order. Match
 
 #### 2. Filling in the event cache
 
-As previously mentioned, enumerating matchings requires answering questions of the kind: _"what is the first event in the trace with index more than `k` that matches the defining pattern of event `e` provided fixed values for the link agents of `e`?"_ The second step of evaluating a query consists in replaying the trace while building a data structure capable of efficiently answering such queries. We call this data structure _event cache_.
+As previously mentioned, enumerating matchings requires answering questions of the kind: _"what is the first event in the trace with index more than $k$ that matches the defining pattern of event $e$ provided fixed values for the link agents of $e$?"_ The second step of evaluating a query consists in replaying the trace while building a data structure capable of efficiently answering such queries. We call this data structure _event cache_.
 
 The event cache maps any pair $(e, m)$ of an event variable $e$ and a matching $m$ of the link agents of $e$ to the sequence of all $(i, M')$ pairs where $i$ is the index of a trace event $\tau_i$ that matches the defining pattern of $e$ given $m$ and where $M'$ is the set of all matchings $m'$ of the other agents constrained by $e$ such that $\tau_i$ matches the defining pattern and all auxiliary patterns of $e$ given $m$ and $m'$.
 
