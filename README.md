@@ -478,7 +478,13 @@ return
 
 </p></details>
 
-We now proceed to describe each of the five evaluation steps. Note that only steps 2 and 5 require replaying the trace. When queries are evaluated by batch, the underlying resimulation cost is shared across all queries.
+We now proceed to describe each of the five evaluation steps. Note that only steps 2 and 5 require replaying the trace. When queries are evaluated by batch, the underlying resimulation cost is shared across all queries:
+
+- [1. Compiling the query](#1-compiling-the-query)
+- [2. Filling in the event cache](#2-filling-in-the-event-cache)
+- [3. Computing matchings](#3-computing-matchings)
+- [4. Computing a measurement schedule](#4-computing-a-measurement-schedule)
+- [5. Executing the measurement schedule](#5-executing-the-measurement-schedule)
 
 #### 1. Compiling the query
 
