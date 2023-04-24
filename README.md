@@ -333,7 +333,7 @@ Measures are atomic expressions capturing matching-specific information. They ar
   - `print_cc[s]{ag}: string`: returns the string representation of a Kappa graph representing the connected component of agent `ag` in state `s`. Unique identifiers are indicated for all involved agents (i.e. the same identifiers accessible via `agent_id`).
   - `snapshot[s]: string`: performs a snapshot of the full state `s`, stores it into a freshly generated file in JSON format and returns the path to this file. Similarly to `print_cc`, snapshots are annotated with unique agent identifiers. See [here](#when-clauses) for a caveat in the presence of when-clauses.
 
-Whenever measure is called on an agent that does not exist in the mixture, it returns value `null`.
+Whenever a measure is called on an agent that does not exist in the specified state, it returns the value `null`.
 
 ### Other features
 
@@ -478,7 +478,17 @@ return
 
 </p></details>
 
+We now proceed to describe each of the five evaluation steps. Note that only steps 2 and 5 require replaying the trace. When queries are evaluated by batch, the underlying resimulation cost is shared across all queries.
+
 #### 1. Compiling the query
+
+During the compilation step, some checks are performed to ensure that the provided query is [valid](#invalid-queries). Also, an _execution path_ is computed, which defines the order in which events in the query are tentatively matched to events in the trace. This order is _topological_, meaning that the root event comes first and any event comes after its predecessors in the query's [dependency graph](#invalid-queries).
+
+For each non-root event, we call **link agent** an agent constrained by both the defining clause of this event and at least one prior event in the execution path. Given these definitions, all matchings of the trace pattern can be enumerated as follows:
+
+> For every matching of the root event in the trace, determine the identity of all non-root events in the order they appear in the execution path. Given a partial matching `m` of previously constrained events and agents, the only possible matching for an event `e` with defining clause `first e:P after e'` is the first event in the trace after `m(e')` that matches event pattern `P` after constraining the identity of `e`'s link agents with `m`.
+
+Hopefully, this idea should become clearer as we describe the next evaluation steps.
 
 <details><summary><b>Example</b></summary><p>
 
@@ -489,6 +499,8 @@ return
 </p></details>
 
 #### 2. Filling in the event cache
+
+
 
 <details><summary><b>Example</b></summary><p>
 
