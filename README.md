@@ -223,11 +223,13 @@ In addition to the semantics discussed above, KaTie places a number of restricti
 **Note:** the original [paper](https://www.cs.cmu.edu/~jlaurent/pdf/papers/cmsb18.pdf) for the trace query language mentions a much more stringent _rigidity_ requirement that is no longer necessary.
 
 <details><summary><b>Example 1: connectedness requirement</b></summary><p>
+
 The following query is invalid since it is not connected:
 
 ```
 match e1:{ s:S(x{u/p}) } and e2:{ s:S(x{p/u}) } return ...
 ```
+
 </p></details>
 
 <details><summary><b>Example 2: dependency tree requirement</b></summary><p>
