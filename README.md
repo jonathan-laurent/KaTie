@@ -458,6 +458,7 @@ We explain all steps of evaluating a query using a running example. This example
 
 </details>
 
+<details><summary><b>Example query</b></summary>
 
 ```txt
 query 'example.csv'
@@ -467,6 +468,9 @@ and b1:{ k1:K(x{p}) }
 and last b2:{ s2:S(d[./1]), k2:K(d[./1]) } before p
 return time[b1] - time[p], time[b2] - time[p]
 ```
+
+</details>
+
 
 ### The special case of single-event queries
 
