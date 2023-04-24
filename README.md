@@ -395,7 +395,7 @@ Here are some of KaTie's options:
     - `execution-paths.json`
     - `trace-summary.json`
     - `trace-summary-long.json`
-    - `link-cache.json`
+    - `event-cache.json`
     - `matchings.json`
     - `measurement-schedule.json`
 - `--no-backtraces`: disable exception backtraces (for better performances)
@@ -417,7 +417,7 @@ We explain all steps of evaluating a query using a running example. This example
 
 <details><summary><b>Kappa model</b></summary><p>
 
-Kappa model used in the example.
+Kappa model used in the example. The model's details are not as important as the trace being produced.
 
 ```
 %agent: K(d, x{u,p})
@@ -478,9 +478,20 @@ return
 
 </p></details>
 
+#### 1. Compiling the query
+
+#### 2. Filling in the event cache
+
+#### 3. Computing matchings
+
+#### 4. Computing a measurement schedule
+
+#### 5. Executing the measurement schedule
+
 
 ### The special case of single-event queries
 
+In comparison to multi-event queries, single-event queries are straightforward  to evaluate and only require steps 1 and 5 above to be processed. In particular, they only require streaming through the trace once.
 
 ## Testing Instructions
 

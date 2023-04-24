@@ -476,13 +476,13 @@ let eval_batch ~trace_file queries_and_formatters =
     else
       let caches = Array.map (fun (q, _) -> LinkCache.create q) complex in
       let bar = make_progress_bar () in
-      Terminal.with_progress_bar "Filling in the history cache" bar
+      Terminal.with_progress_bar "Filling in the event cache" bar
         (fun ~progress ->
           iter_trace ~trace_file (fun w ->
               with_queries complex (fun i q _ ->
                   compute_link_cache_step q w caches.(i) ) ;
               progress 1 ) ) ;
-      batch_dump ~level:2 "link-cache.json" complex (fun i q ->
+      batch_dump ~level:2 "event-cache.json" complex (fun i q ->
           LinkCache.dump q caches.(i) ) ;
       let matchings =
         Terminal.task "Computing matchings" (fun () ->
