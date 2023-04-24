@@ -488,11 +488,11 @@ We now proceed to describe each of the five evaluation steps. Note that only ste
 
 #### 1. Compiling the query
 
-During the compilation step, some checks are performed to ensure that the provided query is [valid](#invalid-queries). Also, an _execution path_ is computed, which defines the order in which events in the query are tentatively matched to events in the trace. This order is _topological_, meaning that the root event comes first and any event comes after its predecessors in the query's [dependency graph](#invalid-queries).
+During the compilation step, some checks are performed to ensure that the provided query is [valid](#invalid-queries). Also, an **execution path** is computed, which defines the order in which events in the query are tentatively matched to events in the trace. This order is _topological_, meaning that the root event comes first and any event comes after its predecessors in the query's [dependency graph](#invalid-queries).
 
 For each non-root event, we call **link agent** an agent constrained by both the defining clause of this event and at least one prior event in the execution path. Given these definitions, all matchings of the trace pattern can be enumerated using the following algorithm:
 
-> For every matching of the root event in the trace, determine the identity of all non-root events in the order they appear in the execution path. Given a partial matching `m` of previously constrained events and agents, the only possible matching for an event `e` with defining clause `first e:P after e'` is the first event in the trace after `m(e')` that matches event pattern `P` after constraining the identity of `e`'s link agents with `m` (and similarly for defining clauses of the form `last e:P before e'`).
+> For every matching of the root event in the trace, determine the identity of all non-root events in the order they appear in the execution path. Given a partial matching `m` of previously constrained events and agents, the only possible matching for an event `e` with defining clause `first e:P after e'` is the first event in the trace after `m(e')` that matches event pattern `P` after constraining the identity of the link agents of `e` with `m` (and similarly for defining clauses of the form `last e:P before e'`).
 
 This idea should become clearer as we describe the next evaluation steps.
 
@@ -510,9 +510,16 @@ This means that events `p`, `b1` and `b2` are to be matched in this order. Match
 
 #### 2. Filling in the event cache
 
-As previously mentioned, enumerating matchings of the query's trace pattern requires answering questions of the kind: "what is the first event in the trace with index more than $k$ that matches the defining pattern of event $e$ provided fixed values for the link agents of $e$?" The second step of evaluating a query consists in replaying the trace while building a data structure capable of efficiently answering such queries. We call this data structure _event cache_.
+As previously mentioned, enumerating all matchings of the query's trace pattern requires answering questions of the kind: "what is the first event in the trace with index more than $k$ that matches the defining pattern of event $e$ provided fixed values for the link agents of $e$?" The second step of evaluating a query consists in replaying the trace while building a data structure capable of efficiently answering such queries. We call this data structure **event cache**.
 
 The event cache maps any pair $(e, m)$ of an event variable $e$ and a matching $m$ of the link agents of $e$ to the sequence of all $(i, M')$ pairs where $i$ is the index of a trace event $\tau_i$ that matches the defining pattern of $e$ given $m$ and where $M'$ is the set of all matchings $m'$ of the other agents constrained by $e$ such that $\tau_i$ matches the defining pattern and all auxiliary patterns of $e$ given $m$ and $m'$.
+
+The event cache can be filled by performing the following action for every event $\tau_i$ in the trace and every event variable $e$ in the query:
+
+- Let $P$ the defining pattern of $e$. One computes the (possibly empty) set of all matchings of agents in $P$ for which $P$ matches $\tau_i$ as follows:
+  - Since $\tau_i$ performs a finite (and typically small) number of actions, those can be used to identify all possible matchings for all agents modified in $P$.
+  - Since $P$ is assumed to be [rooted](#invalid-queries), these matchings can be extended to cover all agents in $P$.
+- All those matchings are grouped according to their mapping of the linked agents of $e$ and one entry is added to the event cache for each resulting group.
 
 <details><summary><b>Example</b></summary><p>
 
