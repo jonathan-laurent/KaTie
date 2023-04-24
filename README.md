@@ -510,7 +510,7 @@ This means that events `p`, `b1` and `b2` are to be matched in this order. Match
 
 #### 2. Filling in the event cache
 
-
+As previously mentioned, enumerating matchings requires answering questions of the kind: _"what is the first event in the trace with index more than `k` that matches the defining pattern of event `e` provided fixed values for the link agents of `e`?"_ This step streams through the trace to build a datastructure capable of efficiently answering such queries, which we call the _event cache_.
 
 <details><summary><b>Example</b></summary><p>
 
