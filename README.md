@@ -510,16 +510,19 @@ This means that events `p`, `b1` and `b2` are to be matched in this order. Match
 
 #### 2. Filling in the event cache
 
-As previously mentioned, enumerating all matchings of the query's trace pattern requires answering questions of the kind: "what is the first event in the trace with index more than $k$ that matches the defining pattern of event $e$ provided fixed values for the link agents of $e$?" The second step of evaluating a query consists in replaying the trace while building a data structure capable of efficiently answering such queries. We call this data structure **event cache**.
+As previously mentioned, enumerating all matchings of the query's trace pattern requires answering questions of the kind: "what is the first event in the trace with index more than $k$ that matches the defining pattern of event $e$ provided fixed values for the link agents of $e$?" The second step of evaluating a query consists in replaying the trace to build a data structure capable of efficiently answering such queries. We call this data structure the **event cache**.
 
-The event cache maps any pair $(e, m)$ of an event variable $e$ and a matching $m$ of the link agents of $e$ to the sequence of all $(i, M')$ pairs where $i$ is the index of a trace event $\tau_i$ that matches the defining pattern of $e$ given $m$ and where $M'$ is the set of all matchings $m'$ of the other agents constrained by $e$ such that $\tau_i$ matches the defining pattern and all auxiliary patterns of $e$ given $m$ and $m'$.
+The event cache maps any pair $(e, m)$ of an event variable $e$ and a matching $m$ of the link agents of $e$ to the sequence of _all_ $(i, M')$ pairs such that:
 
-The event cache can be filled by performing the following action for every event $\tau_i$ in the trace and every event variable $e$ in the query:
+- $i$ is the index of a trace event $\tau_i$ that matches the defining pattern of $e$ given $m$
+- $M'$ is the set of all matchings $m'$ of the other agents constrained by $e$ such that $\tau_i$ matches _both_ the defining pattern of $e$ and all auxiliary patterns of $e$ given $m$ and $m'$.
 
-- Let $P$ the defining pattern of $e$. One computes the (possibly empty) set of all matchings of agents in $P$ for which $P$ matches $\tau_i$ as follows:
-  - Since $\tau_i$ performs a finite (and typically small) number of actions, those can be used to identify all possible matchings for all agents modified in $P$.
-  - Since $P$ is assumed to be [rooted](#invalid-queries), these matchings can be extended to cover all agents in $P$.
-- All those matchings are grouped according to their mapping of the linked agents of $e$ and one entry is added to the event cache for each resulting group.
+The event cache can be filled by performing the following actions for every event $\tau_i$ in the trace and every event variable $e$ with defining pattern $p$ in the query:
+
+- Compute the (possibly empty) set of all matchings of agents in $p$ for which $p$ matches $\tau_i$:
+  - Since $\tau_i$ performs a finite (and typically small) number of actions, use those to enumerate possible matchings for the agents modified in $p$.
+  - Since $p$ is assumed to be [rooted](#invalid-queries), extend those matchings to cover all agents in $p$.
+- Group those matchings according to their mapping of the linked agents of $e$. Add one entry to the event cache for each resulting group, taking auxiliary patterns into account.
 
 <details><summary><b>Example</b></summary><p>
 
