@@ -1,0 +1,6 @@
+%agent: foo(a, b)      %init: 1 foo(a[.], b[1]), foo(a[1], b[.])
+
+'c' foo(a[./1]), foo(b[./1]) @ 1.0 {1.0}
+'q' foo(a[1/.]), foo(b[1/.]) @ 1.0
+
+%mod: [E] = 3 do $STOP;

@@ -354,7 +354,7 @@ Measures are atomic expressions capturing matching-specific information. They ar
 
 **Event measures**:
   - `time[e]: float`: indicates the time of event `e`.
-  - `rule[e]: string`: indicates the name of the rule underlying event `e`. Special values `'_init_'`, `'_pert_'` and `'_obs_'` are returned for initial events, perturbation events and observation events respectively.
+  - `rule[e]: string`: indicates the name of the rule underlying event `e`. Special values `'_init_'`, `'_pert_'` and `'_obs_'` are returned for initial events, perturbation events and observation events respectively.  If the rule is un-named, a representation of the transformation is returned. For more details, see the [testing examples](./tests/unit/measure_rule)
   - `sim_event_id[e]: int`: returns the simulator event id for event `e`, which corresponds to the content of variable `[E]` in KaSim. This should not be confused with `event_id{e}`, which returns the index of event `e` in the trace. One particular way in which these differ is that KaSim typically assigns a single event id for all initialization steps.
   - `debug_event[e]: string`: returns a list of all actions performed by the trace event (e.g. `new(S.0) free(S.0.x) mod(S.0.x, u)`). This is mostly intended for debugging.
 

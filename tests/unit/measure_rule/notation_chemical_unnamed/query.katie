@@ -1,0 +1,3 @@
+query 'outputs.csv'
+match e:{ }
+return rule[e]
