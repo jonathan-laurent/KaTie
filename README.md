@@ -325,7 +325,7 @@ Measures are atomic expressions capturing matching-specific information. They ar
 
 **Event measures**:
   - `time[e]: float`: indicates the time of event `e`.
-  - `rule[e]: string`: indicates the name of the rule underlying event `e`. Special values `'_init_'`, `'_pert_'` and `'_obs_'` are returned for initial events, perturbation events and observation events respectively.
+  - `rule[e]: string`: indicates the name of the rule underlying event `e`. Special values `'_init_'`, `'_pert_'` and `'_obs_'` are returned for initial events, perturbation events and observation events respectively. If the rule is un-named, a representation of the transformation is returned. For more details, see the [testing examples](./tests/unit/measure_rule)
   - `debug_event[e]: string`: returns a list of all actions performed by the trace event (e.g. `new(S.0) free(S.0.x) mod(S.0.x, u)`). This is mostly intended for debugging.
 
 **State measures**:
