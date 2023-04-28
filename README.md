@@ -339,13 +339,13 @@ return
 	count{'Axn'}{component[.p2]{k2}}, count{'APC'}{component[.p2]{k2}},
 ```
 
-Here, the measures `component[.p1]{k1}` and `component[.p2]{k1}` are only evaluated once. Moreover, when evaluating this query, large intermediate objects such as component[.p2]{k2} are never cached in RAM: maximal local sub-expressions such as `count{'Axn'}{component[.p1]{k1}}` are cached instead. In contrast, consider changing the `return` statement into the following:
+Here, the measures `component[.p1]{k1}` and `component[.p2]{k1}` are only evaluated once. Moreover, when evaluating this query, large intermediate objects such as `component[.p2]{k2}` are never cached in RAM: maximal local sub-expressions such as `count{'Axn'}{component[.p1]{k1}}` are cached instead. In contrast, consider changing the `return` statement into the following:
 
 ```
 return similarity{component[.p1]{k1}}{component[.p2]{k2}}
 ```
 
-In this case, there is no choice but to cache the full result of `component[.p1]{k1}` and `component[.p2]{k2}` in RAM. See the [implementation](#implementation-details) section for more details.
+In this case, there is no choice but to cache the full result of `component[.p1]{k1}` and `component[.p2]{k2}` in RAM. See the [implementation section](#implementation-details) for more details.
 
 
 ### Measures reference
