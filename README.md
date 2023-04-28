@@ -345,7 +345,7 @@ Here, the measures `component[.p1]{k1}` and `component[.p2]{k1}` are only evalua
 return similarity{component[.p1]{k1}}{component[.p2]{k2}}
 ```
 
-In this case, there is no choice but to cache the full result of `component[.p1]{k1}` and `component[.p2]{k2}` in RAM.
+In this case, there is no choice but to cache the full result of `component[.p1]{k1}` and `component[.p2]{k2}` in RAM. See the [implementation](#implementation-details) section for more details.
 
 
 ### Measures reference
