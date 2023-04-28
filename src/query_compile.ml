@@ -197,7 +197,7 @@ let eval_st_expr env cur_ev_id = function
   | Ast.After ev_expr ->
       (eval_ev_expr env cur_ev_id ev_expr, Measure.After)
 
-let register_measure _cur_ev_id ev_id ev measure =
+let register_measure ev_id ev measure =
   let m_id = PreArray.find_or_add ~equal:( = ) ev.tmp_ev_measures {measure} in
   Expr.Measure (ev_id, m_id)
 
@@ -213,7 +213,7 @@ let compile_event_measure env cur_ev_id ev_expr m =
     | Ast.Debug_event ->
         Measure.(Event_measure Debug_event)
   in
-  register_measure cur_ev_id ev_id ev measure
+  register_measure ev_id ev measure
 
 let tr_agent env ag_name = Dict.id_of_name env.query_agents ag_name
 
@@ -253,7 +253,7 @@ let compile_state_measure env cur_ev_id st_expr m =
     | Ast.Print_cc ag_name ->
         Measure.(State_measure (m_time, Print_cc (tr_agent env ag_name)))
   in
-  register_measure cur_ev_id ev_id ev measure
+  register_measure ev_id ev measure
 
 (*****************************************************************************)
 (* Compile expressions                                                       *)
