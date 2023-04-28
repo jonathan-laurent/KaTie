@@ -35,6 +35,18 @@ module PreArray = struct
     let id = fresh_id t in
     Queue.push e t.elems ; id
 
+  (* Find the id of an element or add it to the collection *)
+  let find_or_add ~equal t e =
+    match
+      Queue.to_seq t.elems
+      |> Seq.mapi (fun i x -> (i, x))
+      |> Seq.find (fun (_, e') -> equal e e')
+    with
+    | None ->
+        add t e
+    | Some (i, _) ->
+        i
+
   let to_array t = Utils.array_of_queue t.elems
 end
 
@@ -186,7 +198,7 @@ let eval_st_expr env cur_ev_id = function
       (eval_ev_expr env cur_ev_id ev_expr, Measure.After)
 
 let register_measure _cur_ev_id ev_id ev measure =
-  let m_id = PreArray.add ev.tmp_ev_measures {measure} in
+  let m_id = PreArray.find_or_add ~equal:( = ) ev.tmp_ev_measures {measure} in
   Expr.Measure (ev_id, m_id)
 
 let compile_event_measure env cur_ev_id ev_expr m =
