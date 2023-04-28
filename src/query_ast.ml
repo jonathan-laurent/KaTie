@@ -44,7 +44,6 @@ type state_measure =
   | Int_state of (identifier * identifier)
   | Component of identifier
   | Print_cc of identifier
-  | Nphos of identifier
   | Snapshot
 [@@deriving show, yojson]
 

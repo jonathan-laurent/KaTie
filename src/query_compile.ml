@@ -233,8 +233,6 @@ let compile_state_measure env in_action cur_ev_id st_expr m =
   let ev = Dict.get env.query_events ev_id in
   let measure =
     match m with
-    | Ast.Nphos _ ->
-        Error.failwith "The 'nphos' measure is unimplemented."
     | Ast.Component ag_name ->
         Measure.(State_measure (m_time, Component (tr_agent env ag_name)))
     | Ast.Int_state quark ->

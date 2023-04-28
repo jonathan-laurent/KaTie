@@ -54,7 +54,7 @@ let parse_rule_constraint_disjunct l =
 %token OP_PAR CL_PAR OP_SQPAR CL_SQPAR OP_CURL CL_CURL BAR
 %token SLASH SHARP
 %token MATCH RETURN AND LAST FIRST BEFORE AFTER WHEN
-%token TIME NPHOS RULE COUNT COMPONENT DIST SIZE PRINT_CC DEBUG_EVENT
+%token TIME RULE COUNT COMPONENT DIST SIZE PRINT_CC DEBUG_EVENT
 %token INT_STATE SIMILARITY AGENT_ID EVENT_ID
 %token EVERY SECONDS
 %token SNAPSHOT
@@ -188,8 +188,6 @@ expr:
     { Event_measure (ev_expr, Time) }
   | RULE ev_expr=ev_measure_annot
     { Event_measure (ev_expr, Rule) }
-  | NPHOS st_expr=st_measure_annot OP_CURL id=ID CL_CURL
-    { State_measure (st_expr, Nphos id) }
   | COMPONENT st_expr=st_measure_annot OP_CURL id=ID CL_CURL
     { State_measure (st_expr, Component id) }
   | PRINT_CC st_expr=st_measure_annot OP_CURL id=ID CL_CURL
