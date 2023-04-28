@@ -372,7 +372,7 @@ Whenever a measure is called on an agent that does not exist in the specified st
 In addition to _edit patterns_, event patterns can feature a rule constraint of the form `'r1'|...|'rn'`, meaning that any matching event must be an instance of one of the listed rules. The special name `'_init_'` can be used to denote an initial event. For example, the following query matches all events `e` that are either initialization events or instances of rule `p` that additionally phosphorylate a substrate that is free on site `d`.
 
 ```
-match e:{'p'|'_init_' S(x{u/p}, d[.]) }
+match e:{ 'p'|'_init_' S(x{u/p}, d[.]) }
 return ...
 ```
 
