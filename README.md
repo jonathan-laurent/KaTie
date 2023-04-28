@@ -336,7 +336,7 @@ and last p1:{ c:Cat(S45{un/ph}[1]), k1:CK1(c[1])} before d
 and last p2:{ c:Cat(T41{un/ph}[1]), k2:GSK(c[1])} before d
 return
 	count{'Axn'}{component[.p1]{k1}}, count{'APC'}{component[.p1]{k1}},
-	count{'Axn'}{component[.p2]{k2}}, count{'APC'}{component[.p2]{k2}},
+	count{'Axn'}{component[.p2]{k2}}, count{'APC'}{component[.p2]{k2}}
 ```
 
 Here, the measures `component[.p1]{k1}` and `component[.p2]{k1}` are only evaluated once. Moreover, when evaluating this query, large intermediate objects such as `component[.p2]{k2}` are never cached in RAM: maximal local sub-expressions such as `count{'Axn'}{component[.p1]{k1}}` are cached instead. In contrast, consider changing the `return` statement into the following:
