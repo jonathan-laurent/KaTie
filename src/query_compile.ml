@@ -185,12 +185,11 @@ let eval_st_expr env cur_ev_id = function
   | Ast.After ev_expr ->
       (eval_ev_expr env cur_ev_id ev_expr, Measure.After)
 
-let register_measure in_action _cur_ev_id ev_id ev measure =
-  let used_in_pattern = not in_action in
-  let m_id = PreArray.add ev.tmp_ev_measures {used_in_pattern; measure} in
+let register_measure _cur_ev_id ev_id ev measure =
+  let m_id = PreArray.add ev.tmp_ev_measures {measure} in
   Expr.Measure (ev_id, m_id)
 
-let compile_event_measure env in_action cur_ev_id ev_expr m =
+let compile_event_measure env cur_ev_id ev_expr m =
   let ev_id = eval_ev_expr env cur_ev_id ev_expr in
   let ev = Dict.get env.query_events ev_id in
   let measure =
@@ -202,7 +201,7 @@ let compile_event_measure env in_action cur_ev_id ev_expr m =
     | Ast.Debug_event ->
         Measure.(Event_measure Debug_event)
   in
-  register_measure in_action cur_ev_id ev_id ev measure
+  register_measure cur_ev_id ev_id ev measure
 
 let tr_agent env ag_name = Dict.id_of_name env.query_agents ag_name
 
@@ -228,7 +227,7 @@ let tr_quark env (ag_name, site_name) =
   let site_id = tr_site_name env agent_kind site_name in
   (ag_id, site_id)
 
-let compile_state_measure env in_action cur_ev_id st_expr m =
+let compile_state_measure env cur_ev_id st_expr m =
   let ev_id, m_time = eval_st_expr env cur_ev_id st_expr in
   let ev = Dict.get env.query_events ev_id in
   let measure =
@@ -242,13 +241,13 @@ let compile_state_measure env in_action cur_ev_id st_expr m =
     | Ast.Print_cc ag_name ->
         Measure.(State_measure (m_time, Print_cc (tr_agent env ag_name)))
   in
-  register_measure in_action cur_ev_id ev_id ev measure
+  register_measure cur_ev_id ev_id ev measure
 
 (*****************************************************************************)
 (* Compile expressions                                                       *)
 (*****************************************************************************)
 
-let rec compile_expr env in_action cur_ev_id e =
+let rec compile_expr env cur_ev_id e =
   match e with
   | Ast.Null_const ->
       Expr.Null_const
@@ -259,21 +258,21 @@ let rec compile_expr env in_action cur_ev_id e =
   | Ast.String_const s ->
       Expr.String_const s
   | Ast.Unop (op, arg) ->
-      Expr.Unop (op, compile_expr env in_action cur_ev_id arg)
+      Expr.Unop (op, compile_expr env cur_ev_id arg)
   | Ast.Binop (lhs, op, rhs) ->
-      let lhs = compile_expr env in_action cur_ev_id lhs in
-      let rhs = compile_expr env in_action cur_ev_id rhs in
+      let lhs = compile_expr env cur_ev_id lhs in
+      let rhs = compile_expr env cur_ev_id rhs in
       Expr.Binop (lhs, op, rhs)
   | Ast.State_measure (st, m) ->
-      compile_state_measure env in_action cur_ev_id st m
+      compile_state_measure env cur_ev_id st m
   | Ast.Event_measure (ev, m) ->
-      compile_event_measure env in_action cur_ev_id ev m
+      compile_event_measure env cur_ev_id ev m
   | Ast.Concat (lhs, rhs) ->
-      let lhs = compile_expr env in_action cur_ev_id lhs in
-      let rhs = compile_expr env in_action cur_ev_id rhs in
+      let lhs = compile_expr env cur_ev_id lhs in
+      let rhs = compile_expr env cur_ev_id rhs in
       Expr.Concat (lhs, rhs)
   | Ast.Count_agents (ag_kinds, arg) ->
-      let arg = compile_expr env in_action cur_ev_id arg in
+      let arg = compile_expr env cur_ev_id arg in
       let ags = List.map (tr_agent_kind env) ag_kinds in
       Expr.Count_agents (ags, arg)
   | Ast.Agent_id ag_name ->
@@ -506,7 +505,7 @@ let build_trace_pattern env =
 
 let compile_action env when_clause = function
   | Ast.Print e -> (
-      let e = compile_expr env true None e in
+      let e = compile_expr env None e in
       match when_clause with None -> Print e | Some b -> If (b, Print e) )
 
 (*****************************************************************************)
@@ -620,9 +619,7 @@ let compile (model : Model.t) (q : Ast.t) =
   Log.with_current_query title (fun () ->
       let env = create_env model q in
       process_clauses env q.Ast.pattern ;
-      let when_clause =
-        Option.map (compile_expr env true None) q.Ast.when_clause
-      in
+      let when_clause = Option.map (compile_expr env None) q.Ast.when_clause in
       let action = compile_action env when_clause q.Ast.action in
       (* It is important to build the pattern object after processing
          the action so that all measures are already registered in

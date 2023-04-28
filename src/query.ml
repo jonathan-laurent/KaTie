@@ -55,8 +55,7 @@ type defining_relation =
   | Last_before of local_event_id * event_pattern
 [@@deriving show, yojson_of]
 
-type measure_descr = {measure: Measure.t; used_in_pattern: bool}
-[@@deriving show, yojson_of]
+type measure_descr = {measure: Measure.t} [@@deriving show, yojson_of]
 
 (* Each event is associated to either one or two patterns. The pattern
    in [event.defining_rel] is mandatory for all events except the root.
