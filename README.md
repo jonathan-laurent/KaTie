@@ -303,18 +303,17 @@ Computations can be expressed in a small language with the following **types**:
 - `int`, `float`: _numerical types_. The standard arithmetic operations (e.g. `+`, `-`) and comparison operators (e.g. `<`, `>=`) are available, along with numerical constants (`0`, `3.14`, `1.3e-7`). Integers are automatically promoted to floating point numbers when doing arithmetic with both types.
 - `bool`: _boolean type_. Booleans are printed as `0` or `1` in the tool's CSV output but they are represented using a distinct type internally. Boolean values can be combined using the `&&` and `||` logical operators.
 - `string`: _string type_. String literals are delimited by either simple or double quotes.
-- `tuple`: _type for tuples of values_. Tuples allow queries to return several results. The comma operator `,` can be used to assemble values into tuples or concatenate tuples together.
 - `agent_set`: _type for sets of `(agent_kind, agent_id)` pairs_. Values of this type are returned by some measures such as `component` but cannot be included directly in the query's output. Functions processing agent sets include:
   - `size{s: agent_set} -> int`: size of a set
   - `similarity{s1: agent_set}{s2: agent_set} -> float`: [Jaccard similarity coefficient](https://en.wikipedia.org/wiki/Jaccard_index)
-  - `count{kinds: tuple[string]}{s: agent_set} -> tuple[int]`: if `kinds` is a comma-separated list of strings representing agent kinds, this returns a tuple indicating the number of times each agent kind appears in `s`. For example, if `s` contains 3 agents of type A, two agents of type B and four agents of type C, then `count{'B','A'}{s}` yields the tuple `1, 3`.
+  - `count{k: string}{s: agent_set} -> int`: returns the number of agents with kind `k` in `s`. For example, if `s` contains 3 agents of type `A` and 2 agents of type `B`, then `count{'A'}{s} = 3`.
 
 Other remarks:
 
 - **Equality** `=` can be tested between any numerical values or between values of the same type, returning a boolean value.
 - An agent variable alone does not define a valid expression (although it can be passed to some [measures](#measures-reference)). To obtain a **unique integer identifier** from agent variable `a`, one can use the `agent_id{a}` construct. As opposed to IDs used by KaSim, such IDs can be used to compare the identity of different agents across time. The same agent IDs are also used in the output of measures such as `snapshot` and `print_cc`.
 - Similarly, a **unique event identifier** can be obtained from an event variable `e` using the `event_id{e}` construct. The identifier of an event corresponds to its index in the trace (a trace is defined as a sequence of events). Note that this does not necessarily corresponds to KaSim's `[E]` variable, which does not count initialization events.
-- A special `null` value is included in the language to be returned as a **failure code** by measures. Any operation taking `null` as an input must also return `null`, with the exception of equality (e.g. `null = null` is true and `null = 1` is false) and of the comma operator (e.g. `1, null` is a valid tuple).
+- A special `null` value is included in the language to be returned as a **failure code** by measures. Any operation taking `null` as an input must also return `null`, with the exception of equality (e.g. `null = null` is true and `null = 1` is false).
 - Although KaTie's expression language is dynamically typed and type errors can be thrown at runtime, most type errors should be caught statically before queries are executed.
 
 The expression language is not set in stone and can be **easily extended**. For a summary of currently allowed expressions, one can look at the examples in `tests/unit/expr-basic/query.katie`.

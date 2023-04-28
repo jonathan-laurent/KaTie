@@ -176,9 +176,8 @@ expr:
   | unop=unop e=expr { Unop (unop, e) }
   | SIZE OP_CURL e=expr CL_CURL { Unop (Size, e) }
   | lhs=expr op=binop rhs=expr { Binop (lhs, op, rhs) }
-  | lhs=expr COMMA rhs=expr { Concat (lhs, rhs) }
-  | COUNT OP_CURL agents=separated_list(COMMA, STRING) CL_CURL OP_CURL e=expr CL_CURL
-    { Count_agents (agents, e) }
+  | COUNT OP_CURL kind=STRING CL_CURL OP_CURL e=expr CL_CURL
+    { Count_agents (kind, e) }
   | SIMILARITY OP_CURL e1=expr CL_CURL OP_CURL e2=expr CL_CURL
     { Binop (e1, Similarity, e2) }
   | DIST { Error.(fail (Unimplemented "'dist'"))}
@@ -221,7 +220,7 @@ ev_pattern:
   | id=ID
     { {event_id = Some id; main_pattern = []; rule_constraint = None} }
 
-action: e=expr { Print e }
+action: es=separated_list(COMMA, expr) { Print es }
 
 query_legend: OP_CURL arg=separated_list(COMMA, STRING) CL_CURL { arg }
 

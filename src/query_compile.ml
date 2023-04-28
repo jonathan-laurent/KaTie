@@ -186,7 +186,7 @@ let rec expr_events_list =
   function
   | Unop (_, e) | Count_agents (_, e) ->
       expr_events_list e
-  | Binop (e, _, e') | Concat (e, e') ->
+  | Binop (e, _, e') ->
       expr_events_list e @ expr_events_list e'
   | Event_measure (Ev e, _) ->
       [e]
@@ -299,14 +299,9 @@ let rec compile_expr ~local env e =
         compile_state_measure env st m
     | Ast.Event_measure (ev, m) ->
         compile_event_measure env ev m
-    | Ast.Concat (lhs, rhs) ->
-        let lhs = compile_expr ~local env lhs in
-        let rhs = compile_expr ~local env rhs in
-        Expr.Concat (lhs, rhs)
-    | Ast.Count_agents (ag_kinds, arg) ->
+    | Ast.Count_agents (k, arg) ->
         let arg = compile_expr ~local env arg in
-        let ags = List.map (tr_agent_kind env) ag_kinds in
-        Expr.Count_agents (ags, arg)
+        Expr.Count_agents (tr_agent_kind env k, arg)
     | Ast.Agent_id ag_name ->
         Expr.Agent_id (tr_agent env ag_name)
     | Ast.Event_id ev_name ->
@@ -551,9 +546,9 @@ let build_trace_pattern env =
 (*****************************************************************************)
 
 let compile_action env when_clause = function
-  | Ast.Print e -> (
-      let e = compile_expr ~local:false env e in
-      match when_clause with None -> Print e | Some b -> If (b, Print e) )
+  | Ast.Print es -> (
+      let es = List.map (compile_expr ~local:false env) es in
+      match when_clause with None -> Print es | Some b -> If (b, Print es) )
 
 (*****************************************************************************)
 (* Compile queries                                                           *)

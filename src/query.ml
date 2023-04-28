@@ -139,7 +139,7 @@ type trace_pattern =
   ; execution_path: execution_path }
 [@@deriving show, yojson_of]
 
-type action = Print of Expr.t | If of Expr.t * action
+type action = Print of Expr.t list | If of Expr.t * action
 [@@deriving show, yojson_of]
 
 type t =

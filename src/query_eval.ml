@@ -305,9 +305,13 @@ let create_measurement_env matchings =
   ; cur= 0 }
 
 let rec execute_action ~fmt ~read_local ~read_agent_id ~read_event_id = function
-  | Query.Print e ->
-      Expr.eval_expr ~read_local ~read_agent_id ~read_event_id e
-      |> fun v -> Format.fprintf fmt "%s@;" (Value.to_string v)
+  | Query.Print es ->
+      let ss =
+        es
+        |> List.map (Expr.eval_expr ~read_local ~read_agent_id ~read_event_id)
+        |> List.map Value.to_string |> String.concat ", "
+      in
+      Format.fprintf fmt "%s@;" ss
   | If (cond, action) -> (
       let b = Expr.eval_expr ~read_local ~read_agent_id ~read_event_id cond in
       match Value.(cast TBool b) with

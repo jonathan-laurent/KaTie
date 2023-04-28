@@ -18,7 +18,7 @@ match deg_u:{ prot_deg_u: Prt(active_site[1/.]), -cat: Cat(S5{ub}[1]) } and
     last S45_a:{ ck1a_S45_a: CK1(active_site[1/.]), cat: Cat(S1{un/ph}[1/.]) } before T41_a and
     last S45_b:{ ck1a_S45_b: CK1(active_site[1/.]), cat: Cat(S1{un/ph}[1/.]) } before T41_b and
 last cre_u:{ +cat: Cat() } before deg_u
-return (
+return
 	time[deg_u], count{'Axn'}{component[.deg_u]{cat}}, count{'APC'}{component[.deg_u]{cat}}, size{component[.deg_u]{cat}}, agent_id{prot_deg_u},
 	time[ubi_u], count{'Axn'}{component[.ubi_u]{cat}}, count{'APC'}{component[.ubi_u]{cat}}, size{component[.ubi_u]{cat}}, agent_id{trcp_ubi_u},
 	time[S33_u], count{'Axn'}{component[.S33_u]{cat}}, count{'APC'}{component[.S33_u]{cat}}, size{component[.S33_u]{cat}}, agent_id{gsk3_S33_u},
@@ -28,4 +28,3 @@ return (
 	time[S45_a], count{'Axn'}{component[.S45_a]{cat}}, count{'APC'}{component[.S45_a]{cat}}, size{component[.S45_a]{cat}}, agent_id{ck1a_S45_a},
 	time[S45_b], count{'Axn'}{component[.S45_b]{cat}}, count{'APC'}{component[.S45_b]{cat}}, size{component[.S45_b]{cat}}, agent_id{ck1a_S45_b},
 	time[cre_u]
-    )

@@ -21,7 +21,6 @@ type t =
   | VFloat of float
   | VString of string
   | VAgentSet of AgentSet.t
-  | VTuple of t list
 [@@deriving show, yojson_of]
 
 type _ value_type =
@@ -31,7 +30,6 @@ type _ value_type =
   | TFloat : float value_type
   | TString : string value_type
   | TAgentSet : AgentSet.t value_type
-  | TTuple : t list value_type
 
 type any_value_type = T : 'a value_type -> any_value_type
 
@@ -48,8 +46,6 @@ let typeof = function
       T TString
   | VAgentSet _ ->
       T TAgentSet
-  | VTuple _ ->
-      T TTuple
 
 let value_type_to_string = function
   | T TNull ->
@@ -64,10 +60,8 @@ let value_type_to_string = function
       "string"
   | T TAgentSet ->
       "agents"
-  | T TTuple ->
-      "tuple"
 
-let rec to_string = function
+let to_string = function
   | VNull ->
       "null"
   | VBool b ->
@@ -80,8 +74,6 @@ let rec to_string = function
       Fmt.str "\"%s\"" s
   | VAgentSet _ ->
       "<agents>"
-  | VTuple xs ->
-      String.concat ", " (List.map to_string xs)
 
 let int_of_bool = function true -> 1 | false -> 0
 
@@ -104,12 +96,10 @@ let cast : type a. a value_type -> t -> a option =
       Some s
   | TAgentSet, VAgentSet ags ->
       Some ags
-  | TTuple, VTuple t ->
-      Some t
   | _, _ ->
       None
 
-let rec equal v v' =
+let equal v v' =
   match (v, v') with
   | VNull, VNull ->
       Some true
@@ -127,17 +117,5 @@ let rec equal v v' =
       Some (String.equal s s')
   | VAgentSet s, VAgentSet s' ->
       Some (AgentSet.equal s s')
-  | VTuple t, VTuple t' ->
-      equal_tuples t t'
-  | _, _ ->
-      None
-
-and equal_tuples ts ts' =
-  match (ts, ts') with
-  | [], [] ->
-      Some true
-  | t :: ts, t' :: ts' ->
-      Option.bind (equal t t') (fun b ->
-          Option.bind (equal_tuples ts ts') (fun bs -> Some (b && bs)) )
   | _, _ ->
       None

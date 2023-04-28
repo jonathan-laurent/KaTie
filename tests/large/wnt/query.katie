@@ -2,26 +2,26 @@ query 'wait_times.csv' {'agent_id', 'time_p', 'time_d'}
 match i:{+c:Cat}
 and first p:{c:Cat(S45{un/ph})} after i
 and first d:{-c:Cat} after p
-return (agent_id{c}, time[p], time[d])
+return agent_id{c}, time[p], time[d]
 
 query 'rules.csv'
 match e return rule[e]
 
 query 'undo_S45.csv' {'agent_id', 'time'}
 match e:{c:Cat(S45{ph/un})}
-return (agent_id{c}, time[e])
+return agent_id{c}, time[e]
 
 query 'undo_T41.csv' {'agent_id', 'time'}
 match e:{c:Cat(T41{ph/un})}
-return (agent_id{c}, time[e])
+return agent_id{c}, time[e]
 
 query 'undo_S37.csv' {'agent_id', 'time'}
 match e:{c:Cat(S37{ph/un})}
-return (agent_id{c}, time[e])
+return agent_id{c}, time[e]
 
 query 'undo_S33.csv'{'agent_id', 'time'}
 match e:{c:Cat(S33{ph/un})}
-return (agent_id{c}, time[e])
+return agent_id{c}, time[e]
 
 query 'component_size.csv' {'agent_id_CK1_p1', 'count_Axn_p1', 'count_APC_p1', 'agent_id_GSK_p2', 'count_Axn_p2', 'count_APC_p2', 'agent_id_GSK_p3', 'count_Axn_p3', 'count_APC_p3', 'agent_id_GSK_p4', 'count_Axn_p4', 'count_APC_p4'}
 match d:{-c:Cat}
@@ -29,9 +29,8 @@ and last p1:{ c:Cat(S45{un/ph}[1]), k1:CK1(c[1])} before d
 and last p2:{ c:Cat(T41{un/ph}[1]), k2:GSK(c[1])} before d
 and last p3:{ c:Cat(S37{un/ph}[1]), k3:GSK(c[1])} before d
 and last p4:{ c:Cat(S33{un/ph}[1]), k4:GSK(c[1])} before d
-return (
-	agent_id{k1}, count{'Axn', 'APC'}{component[.p1]{k1}},
-	agent_id{k2}, count{'Axn', 'APC'}{component[.p2]{k2}},
-	agent_id{k3}, count{'Axn', 'APC'}{component[.p3]{k3}},
-	agent_id{k4}, count{'Axn', 'APC'}{component[.p4]{k4}}
-)
+return
+	agent_id{k1}, count{'Axn'}{component[.p1]{k1}}, count{'APC'}{component[.p1]{k1}},
+	agent_id{k2}, count{'Axn'}{component[.p2]{k2}}, count{'APC'}{component[.p2]{k2}},
+	agent_id{k3}, count{'Axn'}{component[.p3]{k3}}, count{'APC'}{component[.p3]{k3}},
+	agent_id{k4}, count{'Axn'}{component[.p4]{k4}}, count{'APC'}{component[.p4]{k4}}

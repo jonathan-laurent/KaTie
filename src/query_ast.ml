@@ -52,8 +52,7 @@ type event_measure = Time | Rule | Debug_event [@@deriving show, yojson]
 type expr =
   | Unop of unop * expr
   | Binop of expr * binop * expr
-  | Concat of expr * expr
-  | Count_agents of string list * expr
+  | Count_agents of string * expr
   | Null_const
   | Int_const of int
   | Float_const of float
@@ -83,7 +82,7 @@ and clause =
   | Last_before of event_pattern * identifier
 [@@deriving show, yojson]
 
-type action = Print of expr [@@deriving show, yojson]
+type action = Print of expr list [@@deriving show, yojson]
 
 type t =
   { query_name: string

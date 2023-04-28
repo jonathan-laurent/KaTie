@@ -42,8 +42,8 @@ let dummy_eval_expr q e =
 let check_types q e = ignore (dummy_eval_expr q e)
 
 let rec check_action_types q = function
-  | Query.Print e ->
-      check_types q e
+  | Query.Print es ->
+      List.iter (check_types q) es
   | If (c, a) ->
       check_types q c ; check_action_types q a
 

@@ -19,7 +19,7 @@ query 'analyze_cycles.csv' {'substrate_id', 'binding_time', 'unbinding_time'}
 match b:{ s:S(d[/1]), k:K(d[/1], x{u}) }
 and first u:{ s:S(d[/.]) } after b
 when time[b] >= 5
-return (agent_id{s}, time[b], time[u])
+return agent_id{s}, time[b], time[u]
 
 
 // Below, we consider variants of the bond lifespan analysis
@@ -32,18 +32,18 @@ query 'lifespan_variant_1.csv'
 match b:{ S(d[/1]), k:K(d[/1]) }
 and first u:{ k:K(d[/.]) } after b
 when int_state[.u]{k.x} = 'p'
-return (time[u] - time[b])
+return time[u] - time[b]
 
 query 'lifespan_variant_2.csv'
 match u:{ k:K(x{p}, d[/.]) }
 and last b:{ k:K(d[/d.S]) } before u
-return (time[u] - time[b])
+return time[u] - time[b]
 
 query 'lifespan_variant_3.csv'
 match b:{ S(d[/1]), k:K(d[/1]) }
 and first u:{ k:K(d[/.]) } after b
 and u:{ k:K(x{p}) }
-return (time[u] - time[b])
+return time[u] - time[b]
 
 query 'lifespan_variant_4.csv'
 match b:{ s:S(d[/d.K]) }
