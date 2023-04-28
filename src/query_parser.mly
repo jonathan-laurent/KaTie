@@ -158,13 +158,11 @@ int_state_attr:
   | LOGIC_OR { Or }
 
 st_measure_annot:
-  | { After This }
   | OP_SQPAR id=ID CL_SQPAR { After (Ev id) }
   | OP_SQPAR id=ID DOT CL_SQPAR { After (Ev id) }
   | OP_SQPAR DOT id=ID CL_SQPAR { Before (Ev id) }
 
 ev_measure_annot:
-  | { This }
   | OP_SQPAR id=ID CL_SQPAR { Ev id }
 
 quark: ag_id=ID DOT site_name=ID { (ag_id, site_name) }

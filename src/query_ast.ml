@@ -35,7 +35,7 @@ type unop = Not | Size [@@deriving show, yojson]
 type binop = Eq | Add | Mul | Sub | Gt | Ge | Lt | Le | Similarity | And | Or
 [@@deriving show, yojson]
 
-type event_expr = This | Ev of identifier [@@deriving show, yojson]
+type event_expr = Ev of identifier [@@deriving show, yojson]
 
 type state_expr = Before of event_expr | After of event_expr
 [@@deriving show, yojson]

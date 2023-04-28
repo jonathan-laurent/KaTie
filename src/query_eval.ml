@@ -274,20 +274,20 @@ let measurement_schedule matchings =
 (* Executing measurement schedule                                            *)
 (*****************************************************************************)
 
-type measure_cache_item =
-  { mutable measures: Value.t array array
-        (* Maps [(event_id, measure_id)] to a value. To save memory,
-           this is initialinzed to the empty array. The first time a value
-           is cached, an array with proper dimension is created. It is
-           reset to the empty array after the matching's action is executed
-           to save memory. *)
+type comp_cache_item =
+  { mutable comps: Value.t array array
+        (* Maps [(event_id, local_comp_id)] to a value. To save memory,
+           this is initialized to the empty array. The first time a
+           local computation is cached, an array with proper dimension
+           is created. It is reset to the empty array after the
+           matching's action is executed to save memory. *)
   ; mutable rem: int
         (* Number of events in the matchings that remain to be
            processed. When this number drops to zero, the action can be
            executed *) }
 
 type measurement_env =
-  { cache: measure_cache_item array (* indexed by matching id *)
+  { cache: comp_cache_item array (* indexed by matching id *)
   ; schedule: measurement_schedule
   ; mutable cur: int (* index of the current plan step in [schedule] *) }
 
@@ -295,8 +295,8 @@ let create_measures_cache matchings =
   Array.map
     (fun (M {evs; _}) ->
       let rem = Array.length evs in
-      let measures = [||] in
-      {measures; rem} )
+      let comps = [||] in
+      {comps; rem} )
     matchings
 
 let create_measurement_env matchings =
@@ -304,20 +304,19 @@ let create_measurement_env matchings =
   ; schedule= measurement_schedule matchings
   ; cur= 0 }
 
-let rec execute_action ~fmt ~read_measure ~read_agent_id ~read_event_id =
-  function
+let rec execute_action ~fmt ~read_local ~read_agent_id ~read_event_id = function
   | Query.Print e ->
-      Expr.eval_expr ~read_measure ~read_agent_id ~read_event_id e
+      Expr.eval_expr ~read_local ~read_agent_id ~read_event_id e
       |> fun v -> Format.fprintf fmt "%s@;" (Value.to_string v)
   | If (cond, action) -> (
-      let b = Expr.eval_expr ~read_measure ~read_agent_id ~read_event_id cond in
+      let b = Expr.eval_expr ~read_local ~read_agent_id ~read_event_id cond in
       match Value.(cast TBool b) with
       | None ->
           Error.failwith "The 'when' clause was passed a non-boolean value"
       | Some b ->
           if b then
-            execute_action ~fmt ~read_measure ~read_agent_id ~read_event_id
-              action )
+            execute_action ~fmt ~read_local ~read_agent_id ~read_event_id action
+      )
 
 let perform_measurement_step ~header ~fmt query env matchings window =
   while
@@ -327,31 +326,36 @@ let perform_measurement_step ~header ~fmt query env matchings window =
     let {matching_id; ev_lid; _} = env.schedule.(env.cur) in
     let (M matching) = matchings.(matching_id) in
     let cache = env.cache.(matching_id) in
-    (* Initialize the measure cache if needed *)
-    if Array.length cache.measures = 0 then
-      cache.measures <-
+    (* Initialize the computation cache if needed *)
+    if Array.length cache.comps = 0 then
+      cache.comps <-
         Array.map
-          (fun ev -> Array.make (Array.length ev.Query.measures) Value.VNull)
+          (fun ev -> Array.make (Array.length ev.Query.computations) Value.VNull)
           query.Query.trace_pattern.events ;
-    (* We perform all measurements *)
+    (* We execute all measurements *)
+    let read_agent_id lid = matching.ags.(lid) in
+    let read_event_id lid = matching.evs.(lid) in
+    let measures =
+      Array.map
+        (Measure.take_measure ~header ~read_agent_id window)
+        query.Query.trace_pattern.events.(ev_lid).measures
+    in
     Array.iteri
-      (fun measure_id mdescr ->
-        cache.measures.(ev_lid).(measure_id) <-
-          Measure.take_measure ~header
-            (fun lid -> matching.ags.(lid))
-            window mdescr.Query.measure )
-      query.Query.trace_pattern.events.(ev_lid).measures ;
+      (fun comp_id comp ->
+        cache.comps.(ev_lid).(comp_id) <-
+          Expr.eval_expr
+            ~read_measure:(fun i -> measures.(i))
+            ~read_agent_id ~read_event_id comp )
+      query.Query.trace_pattern.events.(ev_lid).computations ;
     (* Possibly execute the action *)
     cache.rem <- cache.rem - 1 ;
     if cache.rem <= 0 then (
       (* Perform the action *)
-      execute_action ~fmt
-        ~read_agent_id:(fun lid -> matching.ags.(lid))
-        ~read_event_id:(fun lid -> matching.evs.(lid))
-        ~read_measure:(fun ev_lid m_id -> cache.measures.(ev_lid).(m_id))
+      execute_action ~fmt ~read_agent_id ~read_event_id
+        ~read_local:(fun ~ev_lid ~comp_id -> cache.comps.(ev_lid).(comp_id))
         query.Query.action ;
       (* Free the measurements' memory *)
-      cache.measures <- [||] ) ;
+      cache.comps <- [||] ) ;
     (* Execute the next step of the measurement plan *)
     env.cur <- env.cur + 1
   done
@@ -385,10 +389,20 @@ let perform_measurement_step_for_simple_query ~header ~fmt query state window =
                   in
                   let read_agent_id lid = List.assoc lid ag_matching in
                   let read_event_id _ = window.step_id in
+                  let measures =
+                    Array.map
+                      (Measure.take_measure ~header ~read_agent_id window)
+                      event.measures
+                  in
+                  let comps =
+                    Array.map
+                      (Expr.eval_expr
+                         ~read_measure:(fun i -> measures.(i))
+                         ~read_agent_id ~read_event_id )
+                      event.computations
+                  in
                   execute_action ~fmt ~read_agent_id ~read_event_id
-                    ~read_measure:(fun _ m_id ->
-                      Measure.take_measure ~header read_agent_id window
-                        event.measures.(m_id).measure )
+                    ~read_local:(fun ~ev_lid:_ ~comp_id -> comps.(comp_id))
                     query.Query.action ;
                   state.last_action_time <- t ) )
 

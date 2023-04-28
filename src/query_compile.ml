@@ -151,7 +151,8 @@ let constrained_agents_types q =
 open Aliases
 
 type tmp_event =
-  { tmp_ev_measures: measure_descr PreArray.t
+  { tmp_ev_measures: Measure.t PreArray.t
+  ; tmp_ev_comps: Expr.t PreArray.t
   ; tmp_main_pats: event_pattern Queue.t
   ; tmp_def_rels: defining_relation Queue.t }
 
@@ -161,12 +162,13 @@ type env =
   { model: Model.t
   ; query_agents: tmp_agent Dict.t
   ; query_events: tmp_event Dict.t
-  ; constrained_agents_types: string SMap.t (* TODO: remove*) }
+  ; constrained_agents_types: string SMap.t (* TODO: remove *) }
 
 let create_env (model : Model.t) (q : Ast.t) =
   let create_agent () = {tmp_ag_kind= None} in
   let create_event () =
     { tmp_ev_measures= PreArray.create ()
+    ; tmp_ev_comps= PreArray.create ()
     ; tmp_main_pats= Queue.create ()
     ; tmp_def_rels= Queue.create () }
   in
@@ -176,33 +178,50 @@ let create_env (model : Model.t) (q : Ast.t) =
   ; constrained_agents_types= constrained_agents_types q }
 
 (*****************************************************************************)
+(* Find local computations                                                   *)
+(*****************************************************************************)
+
+let rec expr_events_list =
+  let open Ast in
+  function
+  | Unop (_, e) | Count_agents (_, e) ->
+      expr_events_list e
+  | Binop (e, _, e') | Concat (e, e') ->
+      expr_events_list e @ expr_events_list e'
+  | Event_measure (Ev e, _) ->
+      [e]
+  | State_measure ((After (Ev e) | Before (Ev e)), _) ->
+      [e]
+  | Null_const
+  | Int_const _
+  | Float_const _
+  | String_const _
+  | Agent_id _
+  | Event_id _ ->
+      []
+
+let expr_events e = expr_events_list e |> List.sort_uniq String.compare
+
+(*****************************************************************************)
 (* Compile measures                                                          *)
 (*****************************************************************************)
 
 let tr_event env name = Dict.id_of_name env.query_events name
 
-let eval_ev_expr env cur_ev_id = function
-  | Ast.Ev name ->
-      tr_event env name
-  | Ast.This -> (
-    match cur_ev_id with
-    | None ->
-        Log.failwith "Unexpected usage of Ast.This."
-    | Some id ->
-        id )
+let eval_ev_expr env (Ast.Ev name) = tr_event env name
 
-let eval_st_expr env cur_ev_id = function
+let eval_st_expr env = function
   | Ast.Before ev_expr ->
-      (eval_ev_expr env cur_ev_id ev_expr, Measure.Before)
+      (eval_ev_expr env ev_expr, Measure.Before)
   | Ast.After ev_expr ->
-      (eval_ev_expr env cur_ev_id ev_expr, Measure.After)
+      (eval_ev_expr env ev_expr, Measure.After)
 
-let register_measure ev_id ev measure =
-  let m_id = PreArray.find_or_add ~equal:( = ) ev.tmp_ev_measures {measure} in
-  Expr.Measure (ev_id, m_id)
+let register_measure ev measure =
+  let m_id = PreArray.find_or_add ~equal:( = ) ev.tmp_ev_measures measure in
+  Expr.Measure m_id
 
-let compile_event_measure env cur_ev_id ev_expr m =
-  let ev_id = eval_ev_expr env cur_ev_id ev_expr in
+let compile_event_measure env ev_expr m =
+  let ev_id = eval_ev_expr env ev_expr in
   let ev = Dict.get env.query_events ev_id in
   let measure =
     match m with
@@ -213,7 +232,7 @@ let compile_event_measure env cur_ev_id ev_expr m =
     | Ast.Debug_event ->
         Measure.(Event_measure Debug_event)
   in
-  register_measure ev_id ev measure
+  register_measure ev measure
 
 let tr_agent env ag_name = Dict.id_of_name env.query_agents ag_name
 
@@ -228,7 +247,7 @@ let tr_int_state env ag_id s_id st =
   Signature.num_of_internal_state s_id (Locality.dummy_annot st)
     (Signature.get (Model.signatures env.model) ag_id)
 
-(* A quark is something like k.x int int_state[]{k.x} *)
+(* A quark is something like 'k.x' int 'int_state[]{k.x}' *)
 let tr_quark env (ag_name, site_name) =
   let ag_id = tr_agent env ag_name in
   let ag_kind_name =
@@ -239,8 +258,8 @@ let tr_quark env (ag_name, site_name) =
   let site_id = tr_site_name env agent_kind site_name in
   (ag_id, site_id)
 
-let compile_state_measure env cur_ev_id st_expr m =
-  let ev_id, m_time = eval_st_expr env cur_ev_id st_expr in
+let compile_state_measure env st_expr m =
+  let ev_id, m_time = eval_st_expr env st_expr in
   let ev = Dict.get env.query_events ev_id in
   let measure =
     match m with
@@ -253,44 +272,59 @@ let compile_state_measure env cur_ev_id st_expr m =
     | Ast.Print_cc ag_name ->
         Measure.(State_measure (m_time, Print_cc (tr_agent env ag_name)))
   in
-  register_measure ev_id ev measure
+  register_measure ev measure
 
 (*****************************************************************************)
 (* Compile expressions                                                       *)
 (*****************************************************************************)
 
-let rec compile_expr env cur_ev_id e =
-  match e with
-  | Ast.Null_const ->
-      Expr.Null_const
-  | Ast.Int_const i ->
-      Expr.Int_const i
-  | Ast.Float_const f ->
-      Expr.Float_const f
-  | Ast.String_const s ->
-      Expr.String_const s
-  | Ast.Unop (op, arg) ->
-      Expr.Unop (op, compile_expr env cur_ev_id arg)
-  | Ast.Binop (lhs, op, rhs) ->
-      let lhs = compile_expr env cur_ev_id lhs in
-      let rhs = compile_expr env cur_ev_id rhs in
-      Expr.Binop (lhs, op, rhs)
-  | Ast.State_measure (st, m) ->
-      compile_state_measure env cur_ev_id st m
-  | Ast.Event_measure (ev, m) ->
-      compile_event_measure env cur_ev_id ev m
-  | Ast.Concat (lhs, rhs) ->
-      let lhs = compile_expr env cur_ev_id lhs in
-      let rhs = compile_expr env cur_ev_id rhs in
-      Expr.Concat (lhs, rhs)
-  | Ast.Count_agents (ag_kinds, arg) ->
-      let arg = compile_expr env cur_ev_id arg in
-      let ags = List.map (tr_agent_kind env) ag_kinds in
-      Expr.Count_agents (ags, arg)
-  | Ast.Agent_id ag_name ->
-      Expr.Agent_id (tr_agent env ag_name)
-  | Ast.Event_id ev_name ->
-      Expr.Event_id (tr_event env ev_name)
+let rec compile_expr ~local env e =
+  let compile ~local =
+    match e with
+    | Ast.Null_const ->
+        Expr.Null_const
+    | Ast.Int_const i ->
+        Expr.Int_const i
+    | Ast.Float_const f ->
+        Expr.Float_const f
+    | Ast.String_const s ->
+        Expr.String_const s
+    | Ast.Unop (op, arg) ->
+        Expr.Unop (op, compile_expr ~local env arg)
+    | Ast.Binop (lhs, op, rhs) ->
+        let lhs = compile_expr ~local env lhs in
+        let rhs = compile_expr ~local env rhs in
+        Expr.Binop (lhs, op, rhs)
+    | Ast.State_measure (st, m) ->
+        compile_state_measure env st m
+    | Ast.Event_measure (ev, m) ->
+        compile_event_measure env ev m
+    | Ast.Concat (lhs, rhs) ->
+        let lhs = compile_expr ~local env lhs in
+        let rhs = compile_expr ~local env rhs in
+        Expr.Concat (lhs, rhs)
+    | Ast.Count_agents (ag_kinds, arg) ->
+        let arg = compile_expr ~local env arg in
+        let ags = List.map (tr_agent_kind env) ag_kinds in
+        Expr.Count_agents (ags, arg)
+    | Ast.Agent_id ag_name ->
+        Expr.Agent_id (tr_agent env ag_name)
+    | Ast.Event_id ev_name ->
+        Expr.Event_id (tr_event env ev_name)
+  in
+  if local then compile ~local
+  else
+    match expr_events e with
+    | [] ->
+        compile ~local:true
+    | _ :: _ :: _ ->
+        compile ~local:false
+    | [ev_str] ->
+        let ev_id = tr_event env ev_str in
+        let compiled = compile ~local:true in
+        let ev = Dict.get env.query_events ev_id in
+        let cid = PreArray.find_or_add ~equal:( = ) ev.tmp_ev_comps compiled in
+        Local {ev_lid= ev_id; comp_id= cid}
 
 (*****************************************************************************)
 (* Compile mixture patterns                                                  *)
@@ -493,6 +527,7 @@ let make_event i (tmp_ev, event_name) =
               (Compilation_error
                  "There can be at most one defining relation for an event." ) )
       )
+  ; computations= PreArray.to_array tmp_ev.tmp_ev_comps
   ; measures= PreArray.to_array tmp_ev.tmp_ev_measures
   ; link_agents= []
   ; other_constrained_agents= [] }
@@ -517,7 +552,7 @@ let build_trace_pattern env =
 
 let compile_action env when_clause = function
   | Ast.Print e -> (
-      let e = compile_expr env None e in
+      let e = compile_expr ~local:false env e in
       match when_clause with None -> Print e | Some b -> If (b, Print e) )
 
 (*****************************************************************************)
@@ -631,7 +666,9 @@ let compile (model : Model.t) (q : Ast.t) =
   Log.with_current_query title (fun () ->
       let env = create_env model q in
       process_clauses env q.Ast.pattern ;
-      let when_clause = Option.map (compile_expr env None) q.Ast.when_clause in
+      let when_clause =
+        Option.map (compile_expr ~local:false env) q.Ast.when_clause
+      in
       let action = compile_action env when_clause q.Ast.action in
       (* It is important to build the pattern object after processing
          the action so that all measures are already registered in

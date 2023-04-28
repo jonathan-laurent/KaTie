@@ -55,8 +55,6 @@ type defining_relation =
   | Last_before of local_event_id * event_pattern
 [@@deriving show, yojson_of]
 
-type measure_descr = {measure: Measure.t} [@@deriving show, yojson_of]
-
 (* Each event is associated to either one or two patterns. The pattern
    in [event.defining_rel] is mandatory for all events except the root.
    It is used to uniquely map events in the trace from the mapping of
@@ -83,10 +81,13 @@ type event =
   ; event_name: string option (* For debugging purposes *)
   ; event_pattern: event_pattern option
   ; defining_rel: defining_relation option
-  ; measures: measure_descr array
+  ; measures: Measure.t array
         (* During compilation, measures are extracted from expressions
            and given an ID ([measure_id]) corresponding to their index
            in this array. *)
+  ; computations: Expr.t array
+        (* Local computations whose results may be cached, corresponding
+           to the [Local {ev_lid; comp_id}] construct. *)
   ; link_agents: local_agent_id list
   ; other_constrained_agents: local_agent_id list
         (* The two fields above are computed with the [execution_path].

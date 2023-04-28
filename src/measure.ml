@@ -58,7 +58,7 @@ let print_cc model state ag_id =
 
 (* Measure interpreter *)
 
-let take_measure ~header ag_matching w measure =
+let take_measure ~header ~read_agent_id w measure =
   try
     let {Trace_header.uuid; model} = header in
     match measure with
@@ -73,15 +73,15 @@ let take_measure ~header ag_matching w measure =
         match measure with
         | Component ag_id ->
             VAgentSet
-              (Safe_replay.connected_component (ag_matching ag_id) state)
+              (Safe_replay.connected_component (read_agent_id ag_id) state)
         | Int_state (ag_id, ag_site) ->
-            int_state model (ag_matching ag_id, ag_site) state
+            int_state model (read_agent_id ag_id, ag_site) state
         | Snapshot ->
             let filename = Output.new_snapshot_file () in
             take_snapshot ?uuid model state filename ;
             VString filename
         | Print_cc ag_id ->
-            print_cc model state (ag_matching ag_id) )
+            print_cc model state (read_agent_id ag_id) )
     | Event_measure measure -> (
       match measure with
       | Time ->

@@ -16,9 +16,10 @@ type t =
   | Int_const of int
   | Float_const of float
   | String_const of string
-  | Measure of local_event_id * measure_id
   | Agent_id of local_agent_id
   | Event_id of local_event_id
+  | Measure of measure_id
+  | Local of {ev_lid: int; comp_id: int}
 [@@deriving show, yojson_of]
 
 (* Typing utilities *)
@@ -110,7 +111,8 @@ let set_similarity s s' =
 
 let is_null = function VNull -> true | _ -> false
 
-let eval_expr ~(read_measure : local_event_id -> measure_id -> Value.t)
+let eval_expr ?(read_measure : (measure_id -> Value.t) option)
+    ?(read_local : (ev_lid:int -> comp_id:int -> Value.t) option)
     ~(read_agent_id : local_agent_id -> global_agent_id)
     ~(read_event_id : local_event_id -> global_event_id) =
   let rec eval = function
@@ -118,8 +120,10 @@ let eval_expr ~(read_measure : local_event_id -> measure_id -> Value.t)
         VInt (read_agent_id local_id)
     | Event_id local_id ->
         VInt (read_event_id local_id)
-    | Measure (local_event_id, measure_id) ->
-        read_measure local_event_id measure_id
+    | Measure measure_id ->
+        (Option.get read_measure) measure_id
+    | Local {ev_lid; comp_id} ->
+        (Option.get read_local) ~ev_lid ~comp_id
     | Concat (e, e') ->
         let e = eval e in
         let e' = eval e' in

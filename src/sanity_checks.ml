@@ -27,13 +27,17 @@ let dummy_eval_measure =
       VAgentSet AgentSet.empty
 
 let dummy_eval_expr q e =
-  let read_measure ev_lid m_id =
-    q.Query.trace_pattern.events.(ev_lid).measures.(m_id).measure
-    |> dummy_eval_measure
-  in
   let read_agent_id _ = 0 in
   let read_event_id _ = 0 in
-  Expr.eval_expr ~read_measure ~read_agent_id ~read_event_id e
+  let read_local ~ev_lid ~comp_id =
+    let read_measure m_id =
+      let m = q.Query.trace_pattern.events.(ev_lid).measures.(m_id) in
+      dummy_eval_measure m
+    in
+    let e = q.Query.trace_pattern.events.(ev_lid).computations.(comp_id) in
+    Expr.eval_expr ~read_agent_id ~read_event_id ~read_measure e
+  in
+  Expr.eval_expr ~read_local ~read_agent_id ~read_event_id e
 
 let check_types q e = ignore (dummy_eval_expr q e)
 
