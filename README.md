@@ -326,6 +326,28 @@ Other remarks:
 
 The expression language is not set in stone and can be **easily extended**. For a summary of currently allowed expressions, one can look at the examples in `tests/unit/expr-basic/query.katie`.
 
+#### Sub-expression sharing and caching
+
+If an identical measure expression appears multiple times in a query, it is only evaluated once. In addition, sub-computations that are local to an event are evaluated as early as possible by the query engine so as to minimize the amount of data to cache in RAM while streaming through the trace. For example, consider the following query (simplified from `tests/large/wnt`):
+
+```
+match d:{-c:Cat}
+and last p1:{ c:Cat(S45{un/ph}[1]), k1:CK1(c[1])} before d
+and last p2:{ c:Cat(T41{un/ph}[1]), k2:GSK(c[1])} before d
+return
+	count{'Axn'}{component[.p1]{k1}}, count{'APC'}{component[.p1]{k1}},
+	count{'Axn'}{component[.p2]{k2}}, count{'APC'}{component[.p2]{k2}},
+```
+
+Here, the measures `component[.p1]{k1}` and `component[.p2]{k1}` are only evaluated once. Moreover, when evaluating this query, large intermediate objects such as component[.p2]{k2} are never cached in RAM: maximal local sub-expressions such as `count{'Axn'}{component[.p1]{k1}}` are cached instead. In contrast, consider changing the `return` statement into the following:
+
+```
+return similarity{component[.p1]{k1}}{component[.p2]{k2}}
+```
+
+In this case, there is no choice but to cache the full result of `component[.p1]{k1}` and `component[.p2]{k2}` in RAM.
+
+
 ### Measures reference
 
 Measures are atomic expressions capturing matching-specific information. They are declined in two kinds: **event measures** and **state measures**. Event measures take as a first argument an event variable between square brackets. In contrast, state measures take as a first argument a **state expression**: for `e` an event variable, `.e` denotes the state _before_ event `e` is triggered and `e.` denotes the state _after_ event `e` is triggered.
