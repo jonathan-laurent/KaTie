@@ -65,7 +65,6 @@ let parse_rule_constraint_disjunct l =
 %token <string> STRING
 %token <string> ID
 
-%left COMMA
 %left LOGIC_AND LOGIC_OR
 %nonassoc EQ GT GE LT LE
 %left MINUS PLUS
@@ -220,9 +219,12 @@ ev_pattern:
   | id=ID
     { {event_id = Some id; main_pattern = []; rule_constraint = None} }
 
-action: es=separated_list(COMMA, expr) { Print es }
+assoc_pair: l=STRING COLON e=expr { (l, e) }
 
-query_legend: OP_CURL arg=separated_list(COMMA, STRING) CL_CURL { arg }
+action:
+    es=separated_list(COMMA, expr) { Print es, None }
+  | OP_CURL ps=separated_list(COMMA, assoc_pair) CL_CURL
+    { Print (List.map snd ps), Some (List.map fst ps) }
 
 when_clause: WHEN e=expr { e }
 
@@ -233,12 +235,13 @@ float_or_int:
 every_clause: EVERY f=float_or_int SECONDS { f }
 
 query:
-  QUERY query_name=STRING legend=option(query_legend)
+  QUERY query_name=STRING
   pattern=pattern
   every_clause=option(every_clause)
   when_clause=option(when_clause)
-  RETURN action=action
-  { {query_name; legend; pattern; when_clause; action; every_clause} }
+  RETURN action_legend=action
+  { let action, legend = action_legend in
+    {query_name; legend; pattern; when_clause; action; every_clause} }
 
 single_query: q=query EOF { q }
 
