@@ -1,14 +1,4 @@
-query 'query_out_kinase_complex_characterization.csv' {
-	'deg_u_T', 'Axin-deg_u', 'APC-deg_u', 'size-deg_u', 'id-prot_deg_u',
-	'ubi_u_T', 'Axin-ubi_u', 'APC-ubi_u', 'size-ubi_u', 'id-trcp_ubi_u',
-	'S33_u_T', 'Axin-S33_u', 'APC-S33_u', 'size-S33_u', 'id-gsk3_S33_u',
-	'S37_u_T', 'Axin-S37_u', 'APC-S37_u', 'size-S37_u', 'id-gsk3_S37_u',
-	'T41_a_T', 'Axin-T41_a', 'APC-T41_a', 'size-T41_a', 'id-gsk3_T41_a',
-	'T41_b_T', 'Axin-T41_b', 'APC-T41_b', 'size-T41_b', 'id-gsk3_T41_b',
-	'S45_a_T', 'Axin-S45_a', 'APC-S45_a', 'size-S45_a', 'id-ck1a_S45_a',
-	'S45_b_T', 'Axin-S45_b', 'APC-S45_b', 'size-S45_b', 'id-ck1a_S45_b',
-	'cre_u_T'
-    }
+query 'query_out_kinase_complex_characterization.csv'
 match deg_u:{ prot_deg_u: Prt(active_site[1/.]), -cat: Cat(S5{ub}[1]) } and
     last ubi_u:{ trcp_ubi_u: TCP(active_site[1/.]), cat: Cat(S5{un/ub}[1/.]) } before deg_u and
     last S33_u:{ gsk3_S33_u: GSK(active_site[1/.]), cat: Cat(S4{un/ph}[1/.]) } before ubi_u and

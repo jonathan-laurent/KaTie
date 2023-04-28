@@ -15,7 +15,7 @@ match c:{ +s:S }
 and first p:{ s:S(x{/p}) } after c
 return time[p]
 
-query 'analyze_cycles.csv' {'substrate_id', 'binding_time', 'unbinding_time'}
+query 'analyze_cycles.csv'
 match b:{ s:S(d[/1]), k:K(d[/1], x{u}) }
 and first u:{ s:S(d[/.]) } after b
 when time[b] >= 5
