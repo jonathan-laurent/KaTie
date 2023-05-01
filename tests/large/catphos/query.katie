@@ -19,7 +19,11 @@ query 'analyze_cycles.csv'
 match b:{ s:S(d[/1]), k:K(d[/1], x{u}) }
 and first u:{ s:S(d[/.]) } after b
 when time[b] >= 5
-return agent_id{s}, time[b], time[u]
+return {
+    'substrate_id':     agent_id{s},
+    'binding_time':     time[b],
+    'unbinding_time':   time[u]
+    }
 
 
 // Below, we consider variants of the bond lifespan analysis
