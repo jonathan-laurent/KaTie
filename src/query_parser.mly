@@ -54,7 +54,7 @@ let parse_rule_constraint_disjunct l =
 %token OP_PAR CL_PAR OP_SQPAR CL_SQPAR OP_CURL CL_CURL BAR
 %token SLASH SHARP
 %token MATCH RETURN AND LAST FIRST BEFORE AFTER WHEN
-%token TIME NPHOS RULE COUNT COMPONENT DIST SIZE PRINT_CC DEBUG_EVENT
+%token TIME RULE COUNT COMPONENT DIST SIZE PRINT_CC DEBUG_EVENT
 %token INT_STATE SIMILARITY AGENT_ID EVENT_ID
 %token EVERY SECONDS
 %token SNAPSHOT
@@ -65,7 +65,6 @@ let parse_rule_constraint_disjunct l =
 %token <string> STRING
 %token <string> ID
 
-%left COMMA
 %left LOGIC_AND LOGIC_OR
 %nonassoc EQ GT GE LT LE
 %left MINUS PLUS
@@ -158,13 +157,11 @@ int_state_attr:
   | LOGIC_OR { Or }
 
 st_measure_annot:
-  | { After This }
   | OP_SQPAR id=ID CL_SQPAR { After (Ev id) }
   | OP_SQPAR id=ID DOT CL_SQPAR { After (Ev id) }
   | OP_SQPAR DOT id=ID CL_SQPAR { Before (Ev id) }
 
 ev_measure_annot:
-  | { This }
   | OP_SQPAR id=ID CL_SQPAR { Ev id }
 
 quark: ag_id=ID DOT site_name=ID { (ag_id, site_name) }
@@ -178,9 +175,8 @@ expr:
   | unop=unop e=expr { Unop (unop, e) }
   | SIZE OP_CURL e=expr CL_CURL { Unop (Size, e) }
   | lhs=expr op=binop rhs=expr { Binop (lhs, op, rhs) }
-  | lhs=expr COMMA rhs=expr { Concat (lhs, rhs) }
-  | COUNT OP_CURL agents=separated_list(COMMA, STRING) CL_CURL OP_CURL e=expr CL_CURL
-    { Count_agents (agents, e) }
+  | COUNT OP_CURL kind=STRING CL_CURL OP_CURL e=expr CL_CURL
+    { Count_agents (kind, e) }
   | SIMILARITY OP_CURL e1=expr CL_CURL OP_CURL e2=expr CL_CURL
     { Binop (e1, Similarity, e2) }
   | DIST { Error.(fail (Unimplemented "'dist'"))}
@@ -188,8 +184,6 @@ expr:
     { Event_measure (ev_expr, Time) }
   | RULE ev_expr=ev_measure_annot
     { Event_measure (ev_expr, Rule) }
-  | NPHOS st_expr=st_measure_annot OP_CURL id=ID CL_CURL
-    { State_measure (st_expr, Nphos id) }
   | COMPONENT st_expr=st_measure_annot OP_CURL id=ID CL_CURL
     { State_measure (st_expr, Component id) }
   | PRINT_CC st_expr=st_measure_annot OP_CURL id=ID CL_CURL
@@ -225,9 +219,12 @@ ev_pattern:
   | id=ID
     { {event_id = Some id; main_pattern = []; rule_constraint = None} }
 
-action: e=expr { Print e }
+assoc_pair: l=STRING COLON e=expr { (l, e) }
 
-query_legend: OP_CURL arg=separated_list(COMMA, STRING) CL_CURL { arg }
+action:
+    es=separated_list(COMMA, expr) { Print es, None }
+  | OP_CURL ps=separated_list(COMMA, assoc_pair) CL_CURL
+    { Print (List.map snd ps), Some (List.map fst ps) }
 
 when_clause: WHEN e=expr { e }
 
@@ -238,12 +235,13 @@ float_or_int:
 every_clause: EVERY f=float_or_int SECONDS { f }
 
 query:
-  QUERY query_name=STRING legend=option(query_legend)
+  QUERY query_name=STRING
   pattern=pattern
   every_clause=option(every_clause)
   when_clause=option(when_clause)
-  RETURN action=action
-  { {query_name; legend; pattern; when_clause; action; every_clause} }
+  RETURN action_legend=action
+  { let action, legend = action_legend in
+    {query_name; legend; pattern; when_clause; action; every_clause} }
 
 single_query: q=query EOF { q }
 

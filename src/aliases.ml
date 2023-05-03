@@ -8,6 +8,8 @@ type local_event_id = int [@@deriving show, yojson]
 
 type global_event_id = int [@@deriving show, yojson]
 
+type local_comp_id = int [@@deriving show, yojson]
+
 type measure_id = int [@@deriving show, yojson]
 
 type agent_kind = int [@@deriving show, yojson]

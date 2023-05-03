@@ -18,7 +18,7 @@ type t =
 
 val take_measure :
      header:Trace_header.t
-  -> (local_agent_id -> global_agent_id)
+  -> read_agent_id:(local_agent_id -> global_agent_id)
   -> Streaming.window
   -> t
   -> Value.t

@@ -10,8 +10,6 @@ let no_backtraces = ref false
 
 let snapshots_name_format = ref ""
 
-let use_legacy_evaluator = ref false
-
 let skip_invalid = ref false
 
 (* state variables *)
@@ -49,8 +47,7 @@ let options =
     , "disable progress bars to avoid polluting stdout" )
   ; ( "--skip-invalid"
     , Arg.Set skip_invalid
-    , "skip invalid queries while outputting an 'errors.json' file" )
-  ; ("--legacy", Arg.Set use_legacy_evaluator, "use the legacy evaluator") ]
+    , "skip invalid queries while outputting an 'errors.json' file" ) ]
 
 let parse_queries file =
   try
@@ -115,12 +112,8 @@ let main () =
     List.iter
       (fun (_, fmt) -> Format.fprintf fmt "@[<v>")
       queries_and_formatters ;
-    let (module Evaluator : Query_evaluator.S) =
-      if !use_legacy_evaluator then (module Query_eval_legacy)
-      else (module Query_eval)
-    in
     execution_started := true ;
-    Evaluator.eval_batch ~trace_file:!trace_file queries_and_formatters ;
+    Query_eval.eval_batch ~trace_file:!trace_file queries_and_formatters ;
     List.iter (fun (_, fmt) -> Format.fprintf fmt "@]@.") queries_and_formatters ;
     Terminal.(println [bold; green] "Done.")
 

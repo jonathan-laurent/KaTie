@@ -70,12 +70,20 @@ Some remarks:
 In addition to querying the time for each matched event, we can also query the name of the corresponding rule as follows:
 
 ```
-query 'bindings.csv' {'binding-time', 'binding-rule'}
+query 'bindings.csv'
 match e:{ S(d[/d.K]) }
 return time[e], rule[e]
 ```
 
-This query outputs a CSV file with two columns. Note that column names for the CSV output can be specified in curly brackets but doing so is optional. In the rest of this document, we tend to skip the full `query` header for conciseness.
+This query outputs a CSV file with two columns. Optionally, one can provide explicit labels for those columns using the following syntax:
+
+```
+query 'bindings.csv'
+match e:{ S(d[/d.K]) }
+return {'binding-time': time[e], 'binding-rule': rule[e]}
+```
+
+In the rest of this document, we tend to skip the full `query` header for conciseness.
 
 
 #### State measures
@@ -137,7 +145,7 @@ return time[u] - time[b]
 ```
 match u:{ s:S(d[1/.]), K(d[1/.], x{p}) }
 and last b:{ s:S(d[./_]) } before u
-return (time[u] - time[b])
+return time[u] - time[b]
 ```
 
 Some comments:
@@ -157,7 +165,7 @@ For details on how to run KaTie concretely, you can look at the `exec.sh` exampl
 A query is defined by a **trace pattern** along with a **computation**. The trace pattern is a sequence of clauses, each one of them featuring an **event pattern**:
 
 ```
-<query>          ::=  "match" <trace-pattern> "return" <expr>
+<query>          ::=  "match" <trace-pattern> "return" <exprs>
 <trace-pattern>  ::=  <clause> | <clause> "and" <clause>
 <clause>         ::=  <evar> ":" <event-pattern>
                   |   "last" <evar> ":" <event-pattern> "before" <evar>
@@ -303,21 +311,42 @@ Computations can be expressed in a small language with the following **types**:
 - `int`, `float`: _numerical types_. The standard arithmetic operations (e.g. `+`, `-`) and comparison operators (e.g. `<`, `>=`) are available, along with numerical constants (`0`, `3.14`, `1.3e-7`). Integers are automatically promoted to floating point numbers when doing arithmetic with both types.
 - `bool`: _boolean type_. Booleans are printed as `0` or `1` in the tool's CSV output but they are represented using a distinct type internally. Boolean values can be combined using the `&&` and `||` logical operators.
 - `string`: _string type_. String literals are delimited by either simple or double quotes.
-- `tuple`: _type for tuples of values_. Tuples allow queries to return several results. The comma operator `,` can be used to assemble values into tuples or concatenate tuples together.
 - `agent_set`: _type for sets of `(agent_kind, agent_id)` pairs_. Values of this type are returned by some measures such as `component` but cannot be included directly in the query's output. Functions processing agent sets include:
   - `size{s: agent_set} -> int`: size of a set
   - `similarity{s1: agent_set}{s2: agent_set} -> float`: [Jaccard similarity coefficient](https://en.wikipedia.org/wiki/Jaccard_index)
-  - `count{kinds: tuple[string]}{s: agent_set} -> tuple[int]`: if `kinds` is a comma-separated list of strings representing agent kinds, this returns a tuple indicating the number of times each agent kind appears in `s`. For example, if `s` contains 3 agents of type A, two agents of type B and four agents of type C, then `count{'B','A'}{s}` yields the tuple `1, 3`.
+  - `count{k: string}{s: agent_set} -> int`: returns the number of agents with kind `k` in `s`. For example, if `s` contains 3 agents of type `A` and 2 agents of type `B`, then `count{'A'}{s} = 3`.
 
 Other remarks:
 
 - **Equality** `=` can be tested between any numerical values or between values of the same type, returning a boolean value.
 - An agent variable alone does not define a valid expression (although it can be passed to some [measures](#measures-reference)). To obtain a **unique integer identifier** from agent variable `a`, one can use the `agent_id{a}` construct. As opposed to IDs used by KaSim, such IDs can be used to compare the identity of different agents across time. The same agent IDs are also used in the output of measures such as `snapshot` and `print_cc`.
 - Similarly, a **unique event identifier** can be obtained from an event variable `e` using the `event_id{e}` construct. The identifier of an event corresponds to its index in the trace (a trace is defined as a sequence of events). Note that this does not necessarily corresponds to KaSim's `[E]` variable, which does not count initialization events.
-- A special `null` value is included in the language to be returned as a **failure code** by measures. Any operation taking `null` as an input must also return `null`, with the exception of equality (e.g. `null = null` is true and `null = 1` is false) and of the comma operator (e.g. `1, null` is a valid tuple).
+- A special `null` value is included in the language to be returned as a **failure code** by measures. Any operation taking `null` as an input must also return `null`, with the exception of equality (e.g. `null = null` is true and `null = 1` is false).
 - Although KaTie's expression language is dynamically typed and type errors can be thrown at runtime, most type errors should be caught statically before queries are executed.
 
 The expression language is not set in stone and can be **easily extended**. For a summary of currently allowed expressions, one can look at the examples in `tests/unit/expr-basic/query.katie`.
+
+#### Sub-expression sharing and caching
+
+If an identical measure expression appears multiple times in a query, it is only evaluated once. In addition, sub-computations that are local to an event are evaluated as early as possible by the query engine so as to minimize the amount of data to cache in RAM while streaming through the trace. For example, consider the following query (simplified from `tests/large/wnt`):
+
+```
+match d:{-c:Cat}
+and last p1:{ c:Cat(S45{un/ph}[1]), k1:CK1(c[1])} before d
+and last p2:{ c:Cat(T41{un/ph}[1]), k2:GSK(c[1])} before d
+return
+	count{'Axn'}{component[.p1]{k1}}, count{'APC'}{component[.p1]{k1}},
+	count{'Axn'}{component[.p2]{k2}}, count{'APC'}{component[.p2]{k2}}
+```
+
+Here, the measures `component[.p1]{k1}` and `component[.p2]{k1}` are only evaluated once. Moreover, when evaluating this query, large intermediate objects such as `component[.p2]{k2}` are never cached in RAM: maximal local sub-expressions such as `count{'Axn'}{component[.p1]{k1}}` are cached instead. In contrast, consider changing the `return` statement into the following:
+
+```
+return similarity{component[.p1]{k1}}{component[.p2]{k2}}
+```
+
+In this case, there is no choice but to cache the full result of `component[.p1]{k1}` and `component[.p2]{k2}` in RAM. See the [implementation section](#implementation-details) for more details.
+
 
 ### Measures reference
 
@@ -343,7 +372,7 @@ Whenever a measure is called on an agent that does not exist in the specified st
 In addition to _edit patterns_, event patterns can feature a rule constraint of the form `'r1'|...|'rn'`, meaning that any matching event must be an instance of one of the listed rules. The special name `'_init_'` can be used to denote an initial event. For example, the following query matches all events `e` that are either initialization events or instances of rule `p` that additionally phosphorylate a substrate that is free on site `d`.
 
 ```
-match e:{'p'|'_init_' S(x{u/p}, d[.]) }
+match e:{ 'p'|'_init_' S(x{u/p}, d[.]) }
 return ...
 ```
 
@@ -467,14 +496,14 @@ Readable summary of the simulation trace generated by KaSim with random seed 0, 
 <details><summary><b>Example query</b></summary><p>
 
 ```txt
-query 'example.csv' {'p', 'b1', 'b2', 's1', 's2', 'k1', 'k2'}
+query 'example.csv'
 match p:{ s1:S(x{u/p}), s2:S(x{u/p}) }
 and last b1:{ s1:S(d[./1]), k1:K(d[./1]) } before p
 and b1:{ k1:K(x{p}) }
 and last b2:{ s2:S(d[./1]), k2:K(d[./1]) } before p
-return
-    event_id{p}, event_id{b1}, event_id{b2},
-    agent_id{s1}, agent_id{s2}, agent_id{k1}, agent_id{k2}
+return {
+    'p': event_id{p}, 'b1': event_id{b1}, 'b2': event_id{b2},
+    's1': agent_id{s1}, 's2': agent_id{s2}, 'k1': agent_id{k1}, 'k2': agent_id{k2} }
 ```
 
 </p></details>

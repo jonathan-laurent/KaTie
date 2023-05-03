@@ -14,7 +14,7 @@ return
     event_id{e} = 0, // first event in the trace
     size{component[e.]{s}} = 1,
     size{component[.e]{s}} = null,
-    count{'S','S'}{component[e.]{s}}, // returns the (1, 1) tuple
+    count{'S'}{component[e.]{s}} = 1,
     similarity{component[e.]{s}}{component[e.]{s}} = 1.0,
     similarity{component[.e]{s}}{component[e.]{s}} = null,
     print_cc[e.]{s} = 'x0:S(x{u}[.])',

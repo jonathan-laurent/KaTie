@@ -35,7 +35,7 @@ type unop = Not | Size [@@deriving show, yojson]
 type binop = Eq | Add | Mul | Sub | Gt | Ge | Lt | Le | Similarity | And | Or
 [@@deriving show, yojson]
 
-type event_expr = This | Ev of identifier [@@deriving show, yojson]
+type event_expr = Ev of identifier [@@deriving show, yojson]
 
 type state_expr = Before of event_expr | After of event_expr
 [@@deriving show, yojson]
@@ -44,7 +44,6 @@ type state_measure =
   | Int_state of (identifier * identifier)
   | Component of identifier
   | Print_cc of identifier
-  | Nphos of identifier
   | Snapshot
 [@@deriving show, yojson]
 
@@ -53,8 +52,7 @@ type event_measure = Time | Rule | Debug_event [@@deriving show, yojson]
 type expr =
   | Unop of unop * expr
   | Binop of expr * binop * expr
-  | Concat of expr * expr
-  | Count_agents of string list * expr
+  | Count_agents of string * expr
   | Null_const
   | Int_const of int
   | Float_const of float
@@ -84,7 +82,7 @@ and clause =
   | Last_before of event_pattern * identifier
 [@@deriving show, yojson]
 
-type action = Print of expr [@@deriving show, yojson]
+type action = Print of expr list [@@deriving show, yojson]
 
 type t =
   { query_name: string

@@ -3,7 +3,7 @@
 query 'binding-times.csv'
 match e:{ S(d[/d.K]) } return time[e]
 
-query 'bindings.csv' {'binding-time', 'binding-rule'}
+query 'bindings.csv'
 match e:{ S(d[/d.K]) } return time[e], rule[e]
 
 query 'kinase-phos-state.csv'
