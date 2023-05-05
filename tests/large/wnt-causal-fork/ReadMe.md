@@ -12,7 +12,9 @@ Katie$ python3 runtests.py ./tests/large/wnt-causal-fork run
 Katie/tests/large/wnt-causal-fork$ python3 validate_katie.py
 ```
 
-## Description
+## Details
+
+### Motivation
 
 This test is inspired by the chain of events by which β-catenin is degraded in canonical Wnt signaling.
 
@@ -71,6 +73,9 @@ creation    ->      +                               +       ->  S5{un/ub}   -> d
                     \                               /
                 S1{un/ph}   ->  S2{un/ph}   ->  S4{un/ph}
 ```
+
+### What the query does
+The trace query operation roots at the degradation event, then proceeds to find the "last Y before X", going back in time, branching at the fork, and finalizing at the creation event, assigning labels. Unambiguous story events have `_u` ; the "lineage" that satisfied S3 is denoted with a `_a`, and S4's is denoted with a `_b`.
 
 This setup allows for three types of stories, classified by the number of pre-conditions that were shared:
 1) Both shared: same S2 modification event, by extension, same S1 modification event
@@ -147,6 +152,7 @@ stateDiagram-v2
         
     }
 ```
-In the query's labels, unambiguous story events have `_u`; the "lineage" that satisfied S3 is denoted with a `_a`, and S4's is denoted with a `_b`.
 
-The query produces data that can be processed to identify the frequency of thre three types of stories.
+The query produces data that can be processed to identify the frequency of thre three types of stories. Because of the nature of the Gillespie algorithm used by KaSim, where a global state is modified by only one rule application at a time, the time of each event[^1] is sufficient for identification of events.
+
+[^1]: Although time is represented as a floating point value within KaSim, the serialization done for snapshots and the trace render it a string.
