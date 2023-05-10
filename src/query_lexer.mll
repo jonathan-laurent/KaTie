@@ -16,7 +16,8 @@ let keywords_list =
      ("query", QUERY); ("int_state", INT_STATE); ("similarity", SIMILARITY);
      ("every", EVERY); ("seconds", SECONDS); ("agent_id", AGENT_ID);
      ("event_id", EVENT_ID); ("snapshot", SNAPSHOT); ("not", NOT);
-     ("print_cc", PRINT_CC); ("debug_event", DEBUG_EVENT); ("null", NULL)]
+     ("print_cc", PRINT_CC); ("debug_event", DEBUG_EVENT);
+     ("sim_event_id", SIM_EVENT_ID); ("null", NULL)]
 
 let ktab =
     let t = Hashtbl.create 20 in

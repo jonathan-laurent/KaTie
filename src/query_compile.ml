@@ -231,6 +231,8 @@ let compile_event_measure env ev_expr m =
         Measure.(Event_measure Rule)
     | Ast.Debug_event ->
         Measure.(Event_measure Debug_event)
+    | Ast.Sim_event_id ->
+        Measure.(Event_measure Sim_event_id)
   in
   register_measure ev measure
 
