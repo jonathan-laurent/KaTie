@@ -54,7 +54,7 @@ let parse_rule_constraint_disjunct l =
 %token OP_PAR CL_PAR OP_SQPAR CL_SQPAR OP_CURL CL_CURL BAR
 %token SLASH SHARP
 %token MATCH RETURN AND LAST FIRST BEFORE AFTER WHEN
-%token TIME RULE COUNT COMPONENT DIST SIZE PRINT_CC DEBUG_EVENT
+%token TIME RULE COUNT COMPONENT DIST SIZE PRINT_CC DEBUG_EVENT SIM_EVENT_ID
 %token INT_STATE SIMILARITY AGENT_ID EVENT_ID
 %token EVERY SECONDS
 %token SNAPSHOT
@@ -182,6 +182,8 @@ expr:
   | DIST { Error.(fail (Unimplemented "'dist'"))}
   | TIME ev_expr=ev_measure_annot
     { Event_measure (ev_expr, Time) }
+  | SIM_EVENT_ID ev_expr=ev_measure_annot
+    { Event_measure (ev_expr, Sim_event_id) }
   | RULE ev_expr=ev_measure_annot
     { Event_measure (ev_expr, Rule) }
   | COMPONENT st_expr=st_measure_annot OP_CURL id=ID CL_CURL

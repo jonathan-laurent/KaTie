@@ -230,3 +230,13 @@ match e:{ }
 and first u:{ s:S(x[/.]) } after e
 and u:{ s:S(x{u}) }
 return 1
+
+
+query "event_ids__matches_1__all_true.csv"
+match e1:{ '_init_' }
+and first e2:{ '_init_' } after e1
+and first e3:{ '_init_' } after e2
+return
+    event_id{e1} = 0, sim_event_id[e1] = 0,
+    event_id{e2} = 1, sim_event_id[e2] = 0,
+    event_id{e3} = 2, sim_event_id[e3] = 0

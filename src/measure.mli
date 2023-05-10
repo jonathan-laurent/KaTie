@@ -7,7 +7,8 @@ type state_measure =
   | Snapshot
 [@@deriving show, yojson_of]
 
-type event_measure = Time | Rule | Debug_event [@@deriving show, yojson_of]
+type event_measure = Time | Rule | Debug_event | Sim_event_id
+[@@deriving show, yojson_of]
 
 type state_measure_time = Before | After [@@deriving show, yojson_of]
 
