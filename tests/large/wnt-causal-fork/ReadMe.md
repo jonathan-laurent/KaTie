@@ -64,6 +64,12 @@ The "fork" occurs in that the S2 modification that satisfied the modification of
 Here, S4 modification in event `e` was possible because of event `d`; whereas S3's in `b` because of event `a`.
 </details>
 
+<details><summary>Gotcha #3: enzyme & substrate indirect bindining</summary>
+While the agents that mediate the last two modification events, degradation & ubiquitination, can directly bind the agent Cat, the first two do not. Neither CK1 nor GSK bind directly Cat, but instead are recruited into large complexes by the scaffold protein Axin, itself scaffolded by the scaffold APC.
+
+While the simplest model could use the "unary" reaction rate to represent these mechanisms, the trace would not register which enzyme was the one responsible for the modification. To solve this, the current model uses an idiom, forcing an explicit bond between enzyme & substrate, then breaking it with an infinitely fast reaction. This idiom preserves the kinetics, the spirit of the mechanism, and allows the trace to record the identity of the modifying enzyme.
+</details>
+
 The general story graph therefore looks like:
 
 ```
@@ -75,7 +81,7 @@ creation    ->      +                               +       ->  S5{un/ub}   -> d
 ```
 
 ### What the query does
-The trace query operation roots at the degradation event, then proceeds to find the "last Y before X", going back in time, branching at the fork, and finalizing at the creation event, assigning labels. Unambiguous story events have `_u` ; the "lineage" that satisfied S3 is denoted with a `_a`, and S4's is denoted with a `_b`.
+The trace query operation roots at the degradation event, then proceeds to find the "last Y before X", going back in time, branching at the fork, and finalizing at the creation event, assigning labels. Unambiguous story events have `_u` ; the "lineage" that satisfied S3 (S37) is denoted with a `_a`, and S4's (S33) is denoted with a `_b`.
 
 This setup allows for three types of stories, classified by the number of pre-conditions that were shared:
 1) Both shared: same S2 modification event, by extension, same S1 modification event
@@ -153,6 +159,6 @@ stateDiagram-v2
     }
 ```
 
-The query produces data that can be processed to identify the frequency of thre three types of stories. Because of the nature of the Gillespie algorithm used by KaSim, where a global state is modified by only one rule application at a time, the time of each event[^1] is sufficient for identification of events.
+The query produces data that can be processed to identify the frequency of thre three types of stories. Because of the nature of the Gillespie algorithm used by KaSim, where a global state is modified by only one rule application at a time, the time of each event[^1] is currently sufficient for identification of events, but using `event_id{e}` would be more appropriate.
 
 [^1]: Although time is represented as a floating point value within KaSim, the serialization done for snapshots and the trace render it a string.
