@@ -1,0 +1,9 @@
+%agent: Jekyll()    %init: 1 Jekyll()
+%agent: Hyde()
+
+Jekyll(), . <-> ., Hyde() @ 1, 1
+
+%mod: [E] = 3 do $ADD 1 Jekyll() ;
+
+%mod: [true] do $SNAPSHOT "snap_".[E].".ka" [true] ; repeat [true]
+%mod: [E] = 5 do $SNAPSHOT "snap_final.ka" [true] ; $STOP ;

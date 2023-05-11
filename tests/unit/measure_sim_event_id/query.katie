@@ -1,0 +1,25 @@
+query 'Hyde_appears.csv'
+match e:{ +h: Hyde() }
+return {
+    'step_index': event_id{e},
+    'time': time[e],
+    'sim_event_id': sim_event_id[e],
+    'agent_id': agent_id{h}
+}
+
+query 'Jekyll_appears.csv'
+match e:{ +j: Jekyll() }
+return {
+    'step_index': event_id{e},
+    'time': time[e],
+    'sim_event_id': sim_event_id[e],
+    'agent_id': agent_id{j}
+}
+
+query 'all.csv'
+match e: {}
+return {
+    'step_index': event_id{e},
+    'time': time[e],
+    'sim_event_id': sim_event_id[e]
+}

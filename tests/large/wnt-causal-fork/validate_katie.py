@@ -70,6 +70,7 @@ def main():
                             return {
                                 'id_cat': ix,
                                 'deg_u_T': pre_snap.get_snapshot_time(),
+                                'deg_u_E': pst_snap.get_snapshot_event(),
                                 'Axin_deg_u': complex_of_interest.get_number_of_embeddings_of_agent('Axn()'),
                                 'APC_deg_u': complex_of_interest.get_number_of_embeddings_of_agent('APC()'),
                                 'size_deg_u': complex_of_interest.get_size_of_complex(),
@@ -121,12 +122,13 @@ def main():
                                         raise ValueError('Agent {} should have an id!'.format(partner))
                                     else:
                                         return {
-                                            'ix': ix,
-                                            'time': pre_snap.get_snapshot_time(),
-                                            'axn': complex_of_interest.get_number_of_embeddings_of_agent('Axn()'),
-                                            'apc': complex_of_interest.get_number_of_embeddings_of_agent('APC()'),
-                                            'size': complex_of_interest.get_size_of_complex(),
-                                            'partner_id': other_id
+                                            'ix': ix,                                                               # Identifier of Cat agent
+                                            'time': pre_snap.get_snapshot_time(),                                   # Value of simulation time when the event fired (before inter-event time advancement)
+                                            'event': pst_snap.get_snapshot_event(),                                 # Value of event counter after this event has finished
+                                            'axn': complex_of_interest.get_number_of_embeddings_of_agent('Axn()'),  # Abundance of Axn-type agent in complex containing the Cat matched.
+                                            'apc': complex_of_interest.get_number_of_embeddings_of_agent('APC()'),  # Abundance of APC-type agent in complex containing the Cat matched.
+                                            'size': complex_of_interest.get_size_of_complex(),                      # Number of agents in complex containing the Cat matched.
+                                            'partner_id': other_id                                                  # Identifier of the partner modifying the matched Cat
                                             }
         return None
 
@@ -141,6 +143,7 @@ def main():
             ix = res_dict['id_cat']
             global_tracker[ix] = {
                 'deg_u_T': res_dict['deg_u_T'],
+                'deg_u_E': res_dict['deg_u_E'],
                 'Axin_deg_u': res_dict['Axin_deg_u'],
                 'APC_deg_u': res_dict['APC_deg_u'],
                 'size_deg_u': res_dict['size_deg_u'],
@@ -160,6 +163,7 @@ def main():
             else:
                 ix = res_dict['ix']
                 global_tracker[ix]['ubi_u_T'] = res_dict['time']
+                global_tracker[ix]['ubi_u_E'] = res_dict['event']
                 global_tracker[ix]['Axin_ubi_u'] = res_dict['axn']
                 global_tracker[ix]['APC_ubi_u'] = res_dict['apc']
                 global_tracker[ix]['size_ubi_u'] = res_dict['size']
@@ -178,6 +182,7 @@ def main():
             else:
                 ix = res_dict['ix']
                 global_tracker[ix]['S33_u_T'] = res_dict['time']
+                global_tracker[ix]['S33_u_E'] = res_dict['event']
                 global_tracker[ix]['Axin_S33_u'] = res_dict['axn']
                 global_tracker[ix]['APC_S33_u'] = res_dict['apc']
                 global_tracker[ix]['size_S33_u'] = res_dict['size']
@@ -196,6 +201,7 @@ def main():
             else:
                 ix = res_dict['ix']
                 global_tracker[ix]['S37_u_T'] = res_dict['time']
+                global_tracker[ix]['S37_u_E'] = res_dict['event']
                 global_tracker[ix]['Axin_S37_u'] = res_dict['axn']
                 global_tracker[ix]['APC_S37_u'] = res_dict['apc']
                 global_tracker[ix]['size_S37_u'] = res_dict['size']
@@ -214,6 +220,7 @@ def main():
             else:
                 ix = res_dict['ix']
                 global_tracker[ix]['T41_a_T'] = res_dict['time']
+                global_tracker[ix]['T41_a_E'] = res_dict['event']
                 global_tracker[ix]['Axin_T41_a'] = res_dict['axn']
                 global_tracker[ix]['APC_T41_a'] = res_dict['apc']
                 global_tracker[ix]['size_T41_a'] = res_dict['size']
@@ -232,6 +239,7 @@ def main():
             else:
                 ix = res_dict['ix']
                 global_tracker[ix]['T41_b_T'] = res_dict['time']
+                global_tracker[ix]['T41_b_E'] = res_dict['event']
                 global_tracker[ix]['Axin_T41_b'] = res_dict['axn']
                 global_tracker[ix]['APC_T41_b'] = res_dict['apc']
                 global_tracker[ix]['size_T41_b'] = res_dict['size']
@@ -250,6 +258,7 @@ def main():
             else:
                 ix = res_dict['ix']
                 global_tracker[ix]['S45_a_T'] = res_dict['time']
+                global_tracker[ix]['S45_a_E'] = res_dict['event']
                 global_tracker[ix]['Axin_S45_a'] = res_dict['axn']
                 global_tracker[ix]['APC_S45_a'] = res_dict['apc']
                 global_tracker[ix]['size_S45_a'] = res_dict['size']
@@ -268,6 +277,7 @@ def main():
             else:
                 ix = res_dict['ix']
                 global_tracker[ix]['S45_b_T'] = res_dict['time']
+                global_tracker[ix]['S45_b_E'] = res_dict['event']
                 global_tracker[ix]['Axin_S45_b'] = res_dict['axn']
                 global_tracker[ix]['APC_S45_b'] = res_dict['apc']
                 global_tracker[ix]['size_S45_b'] = res_dict['size']
@@ -282,6 +292,9 @@ def main():
         agent_exists_pst = creation_snap_pst.get_agent_from_identifier(ix) is not None
         if agent_not_exists_pre and agent_exists_pst:
             global_tracker[ix]['cre_u_T'] = creation_snap_pre.get_snapshot_time()
+            global_tracker[ix]['cre_u_E'] = creation_snap_pre.get_snapshot_event() + 1
+            # note pre & pst have same KaSim event number;
+            # KaSim did not count the introduction step as an event!
 
     # validation
     katie_data = pd.read_csv(
