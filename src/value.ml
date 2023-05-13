@@ -61,6 +61,11 @@ let value_type_to_string = function
   | T TAgentSet ->
       "agents"
 
+let std_json_string_of_float x =
+  let ob = Buffer.create 20 in
+  Yojson.Basic.write_std_float ob x ;
+  Buffer.contents ob
+
 let to_string = function
   | VNull ->
       "null"
@@ -69,7 +74,7 @@ let to_string = function
   | VInt x ->
       Int.to_string x
   | VFloat x ->
-      Fmt.str "%.17g" x
+      std_json_string_of_float x
   | VString s ->
       Fmt.str "\"%s\"" s
   | VAgentSet _ ->
