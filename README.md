@@ -320,7 +320,7 @@ Other remarks:
 
 - **Equality** `=` can be tested between any numerical values or between values of the same type, returning a boolean value.
 - An agent variable alone does not define a valid expression (although it can be passed to some [measures](#measures-reference)). To obtain a **unique integer identifier** from agent variable `a`, one can use the `agent_id{a}` construct. As opposed to IDs used by KaSim, such IDs can be used to compare the identity of different agents across time. The same agent IDs are also used in the output of measures such as `snapshot` and `print_cc`.
-- Similarly, a **unique event identifier** can be obtained from an event variable `e` using the `event_id{e}` construct. The identifier of an event corresponds to its index in the trace (a trace is defined as a sequence of events). Note that this does not necessarily corresponds to KaSim's `[E]` variable, which does not count initialization events.
+- Similarly, a **unique event identifier** can be obtained from an event variable `e` using the `event_id{e}` construct. The identifier of an event corresponds to its index in the trace (a trace is defined as a sequence of events). Note that this does not necessarily corresponds to KaSim's `[E]` variable, which does not count initialization events. The latter can be accessed using the `sim_event_id` [measure](#measures-reference).
 - A special `null` value is included in the language to be returned as a **failure code** by measures. Any operation taking `null` as an input must also return `null`, with the exception of equality (e.g. `null = null` is true and `null = 1` is false).
 - Although KaTie's expression language is dynamically typed and type errors can be thrown at runtime, most type errors should be caught statically before queries are executed.
 
@@ -355,6 +355,7 @@ Measures are atomic expressions capturing matching-specific information. They ar
 **Event measures**:
   - `time[e]: float`: indicates the time of event `e`.
   - `rule[e]: string`: indicates the name of the rule underlying event `e`. Special values `'_init_'`, `'_pert_'` and `'_obs_'` are returned for initial events, perturbation events and observation events respectively.
+  - `sim_event_id[e]: int`: returns the simulator event id for event `e`, which corresponds to the content of variable `[E]` in KaSim. This should not be confused with `event_id{e}`, which returns the index of event `e` in the trace. One particular way in which these differ is that KaSim typically assigns a single event id for all initialization steps.
   - `debug_event[e]: string`: returns a list of all actions performed by the trace event (e.g. `new(S.0) free(S.0.x) mod(S.0.x, u)`). This is mostly intended for debugging.
 
 **State measures**:

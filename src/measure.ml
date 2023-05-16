@@ -12,7 +12,8 @@ type state_measure =
   | Snapshot
 [@@deriving show, yojson_of]
 
-type event_measure = Time | Rule | Debug_event [@@deriving show, yojson_of]
+type event_measure = Time | Rule | Debug_event | Sim_event_id
+[@@deriving show, yojson_of]
 
 type state_measure_time = Before | After [@@deriving show, yojson_of]
 
@@ -89,5 +90,11 @@ let take_measure ~header ~read_agent_id w measure =
       | Rule ->
           VString (Trace_util.rule_name model w.step)
       | Debug_event ->
-          VString (Trace_util.dump_step_actions model w.step) )
+          VString (Trace_util.dump_step_actions model w.step)
+      | Sim_event_id -> (
+        match Trace.simulation_info_of_step w.step with
+        | None ->
+            VNull
+        | Some {Trace.Simulation_info.story_event; _} ->
+            VInt story_event ) )
   with Safe_replay.Inexisting_agent -> VNull

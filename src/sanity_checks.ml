@@ -17,6 +17,8 @@ let dummy_eval_measure =
       VString ""
   | Event_measure Debug_event ->
       VString ""
+  | Event_measure Sim_event_id ->
+      VInt 0
   | State_measure (_, Int_state _) ->
       VString ""
   | State_measure (_, Snapshot) ->

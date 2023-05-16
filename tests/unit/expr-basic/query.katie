@@ -12,6 +12,7 @@ return
     int_state[.e]{s.x} = null, // the agent does not exist yet
     agent_id{s} = 0, // first created agent
     event_id{e} = 0, // first event in the trace
+    sim_event_id[e] = 1,
     size{component[e.]{s}} = 1,
     size{component[.e]{s}} = null,
     count{'S'}{component[e.]{s}} = 1,

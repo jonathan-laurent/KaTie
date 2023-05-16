@@ -47,7 +47,8 @@ type state_measure =
   | Snapshot
 [@@deriving show, yojson]
 
-type event_measure = Time | Rule | Debug_event [@@deriving show, yojson]
+type event_measure = Time | Rule | Debug_event | Sim_event_id
+[@@deriving show, yojson]
 
 type expr =
   | Unop of unop * expr
