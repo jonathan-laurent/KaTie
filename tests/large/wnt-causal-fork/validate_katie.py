@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 
 import argparse
-import pandas as pd
+import numpy as np
 import sys
 from pathlib import Path
 from typing import Dict, Union
@@ -9,11 +9,9 @@ from KaSaAn.core import KappaSnapshot
 from KaSaAn.functions import find_snapshot_names
 
 
-def main():
-    """Script to validate the KaTIE outputs against KaSim-produced snapshots. Returns a pandas DataFrame holding the
-     result of the comparison. Successful validation means the DataFrame is empty. The DataFrame's columns are the
-     names assigned in the KaTIE query to the measures being taken (column names in the resulting CSV); row labels are
-     the agent identifier for the Cat agent in that story."""
+def main(verbose: bool = False) -> bool:
+    """Script to validate the KaTIE outputs against KaSim-produced snapshots. Returns True if data passes validation;
+    raises ValueErrors on first mismatch."""
 
     sim_out_dir = Path('kasim-output')
 
@@ -292,30 +290,58 @@ def main():
         agent_exists_pst = creation_snap_pst.get_agent_from_identifier(ix) is not None
         if agent_not_exists_pre and agent_exists_pst:
             global_tracker[ix]['cre_u_T'] = creation_snap_pre.get_snapshot_time()
-            global_tracker[ix]['cre_u_E'] = creation_snap_pre.get_snapshot_event() + 1
+            global_tracker[ix]['cre_u_E'] = creation_snap_pre.get_snapshot_event()
             # note pre & pst have same KaSim event number;
-            # KaSim did not count the introduction step as an event!
+            # KaSim does not count the introduction steps as "real events", as this step
+            # is a perturbation, not a rule application
 
     # validation
-    katie_data = pd.read_csv(
-        'katie-output/results/query_out_kinase_complex_characterization.csv',
-        skipinitialspace=True, quotechar="'", index_col='id_cat')
+    object_dtypes = np.dtype([
+        ('id_cat', np.int64),
+        ('deg_u_T', np.float64), ('deg_u_E', np.int64), ('Axin_deg_u', np.int64), ('APC_deg_u', np.int64), ('size_deg_u', np.int64), ('id_prot_deg_u', np.int64),
+        ('ubi_u_T', np.float64), ('ubi_u_E', np.int64), ('Axin_ubi_u', np.int64), ('APC_ubi_u', np.int64), ('size_ubi_u', np.int64), ('id_trcp_ubi_u', np.int64),
+        ('S33_u_T', np.float64), ('S33_u_E', np.int64), ('Axin_S33_u', np.int64), ('APC_S33_u', np.int64), ('size_S33_u', np.int64), ('id_gsk3_S33_u', np.int64),
+        ('S37_u_T', np.float64), ('S37_u_E', np.int64), ('Axin_S37_u', np.int64), ('APC_S37_u', np.int64), ('size_S37_u', np.int64), ('id_gsk3_S37_u', np.int64),
+        ('T41_a_T', np.float64), ('T41_a_E', np.int64), ('Axin_T41_a', np.int64), ('APC_T41_a', np.int64), ('size_T41_a', np.int64), ('id_gsk3_T41_a', np.int64),
+        ('T41_b_T', np.float64), ('T41_b_E', np.int64), ('Axin_T41_b', np.int64), ('APC_T41_b', np.int64), ('size_T41_b', np.int64), ('id_gsk3_T41_b', np.int64),
+        ('S45_a_T', np.float64), ('S45_a_E', np.int64), ('Axin_S45_a', np.int64), ('APC_S45_a', np.int64), ('size_S45_a', np.int64), ('id_ck1a_S45_a', np.int64),
+        ('S45_b_T', np.float64), ('S45_b_E', np.int64), ('Axin_S45_b', np.int64), ('APC_S45_b', np.int64), ('size_S45_b', np.int64), ('id_ck1a_S45_b', np.int64),
+        ('cre_u_T', np.float64), ('cre_u_E', np.int64)])
 
-    kasim_data = pd.DataFrame.from_dict(data=global_tracker, orient='index')
+    katie_data = np.loadtxt(
+        fname='katie-output/results/query_out_kinase_complex_characterization.csv',
+        delimiter=',', skiprows=1, quotechar="'",
+        dtype=object_dtypes)
 
-    # KaSim kappa snapshots only print 4 decimals, so rounding is necessary
-    diff_data_frame = kasim_data.compare(katie_data.round(4), result_names=('KaSim', 'KaTIE'))
-    return diff_data_frame
+    for katie_story_data in katie_data:
+        cat_id = katie_story_data['id_cat']
+        try:
+            kasim_story_data = global_tracker[cat_id]
+        except KeyError as e:
+            raise ValueError(
+                'KaTIE recorded a story for Cat {}, which is absent from the KaSim outputs!'.format(cat_id)) from e
+        for story_point_name, story_point_data in kasim_story_data.items():
+            if not katie_story_data[story_point_name] == story_point_data:
+                raise ValueError(
+                    'Mismatch! Cat {}, story point {}:\nKaSim says {}; KaTIE says {}'.format(
+                        katie_story_data['id_cat'], story_point_name, story_point_data,
+                        katie_story_data[story_point_name]
+                    )
+                )
+            elif verbose:
+                print('\tCat {:>4}, story point {:>15}: passed with {}'.format(
+                    cat_id, story_point_name, story_point_data))
+
+    # if we got here, every KaTIE value has passed validation
+    return True
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=main.__doc__)
     parser.parse_args()
 
-    result_data_frame = main()
-    if any(result_data_frame):
-        raise ValueError(
-            'Data does not match! Rows indexed by agent identifier, columns by measure label; diff is\n{}'.format(
-                result_data_frame))
-    else:
+    story_point_match = main()
+    if story_point_match:
         sys.exit(0)
+    else:
+        sys.exit(1)
