@@ -1,5 +1,12 @@
-// If all goes well, this query is supposed to match a single
-// event and output all ones.
+// This query returns no matching. Since it is simple (i.e. it has a single event
+// pattern), the snapshot measure should be taken lazily, and thus not at all in this
+// case. If a snapshot is stored on disk (wrongly), the snapshot tests in the next query
+// will fail due to the snapshot name `snapshot.0.json` being taken already.
+query 'snapshots-lazy.csv'
+match e:{ }
+when sim_event_id[e] = 100
+return snapshot[.e]
+
 
 query 'expr_basic__matches_1__all_true.csv'
 match e:{ +s:S() }

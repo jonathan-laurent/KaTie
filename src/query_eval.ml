@@ -393,20 +393,15 @@ let perform_measurement_step_for_simple_query ~header ~fmt query state window =
                   in
                   let read_agent_id lid = List.assoc lid ag_matching in
                   let read_event_id _ = window.step_id in
-                  let measures =
-                    Array.map
-                      (Measure.take_measure ~header ~read_agent_id window)
-                      event.measures
+                  let read_measure i =
+                    Measure.take_measure ~header ~read_agent_id window
+                      event.measures.(i)
                   in
-                  let comps =
-                    Array.map
-                      (Expr.eval_expr
-                         ~read_measure:(fun i -> measures.(i))
-                         ~read_agent_id ~read_event_id )
-                      event.computations
+                  let read_local ~ev_lid:_ ~comp_id =
+                    Expr.eval_expr ~read_measure ~read_agent_id ~read_event_id
+                      event.computations.(comp_id)
                   in
-                  execute_action ~fmt ~read_agent_id ~read_event_id
-                    ~read_local:(fun ~ev_lid:_ ~comp_id -> comps.(comp_id))
+                  execute_action ~fmt ~read_agent_id ~read_event_id ~read_local
                     query.Query.action ;
                   state.last_action_time <- t ) )
 
