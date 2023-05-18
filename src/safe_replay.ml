@@ -136,7 +136,16 @@ let update_step st =
   | Dummy s ->
       Dummy s
 
+let step_size_statistics step =
+  Fmt.str "%a (%d actions, %d tests, %d side effects)"
+    (Trace.print_step ~compact:true ?env:None)
+    step
+    (List.length (snd (Trace.actions_of_step step)))
+    (List.length (Trace.tests_of_step step))
+    (List.length (Trace.side_effects_of_step step))
+
 let replay_and_translate_step sigs st raw_step =
+  prerr_endline (step_size_statistics raw_step) ;
   let state, _ = Replay.do_step sigs st.state raw_step in
   st.state <- state ;
   update_step st raw_step
