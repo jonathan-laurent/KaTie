@@ -58,7 +58,10 @@ let delete_agent state simid =
   Hashtbl.remove state.uid_to_simid uid ;
   Hashtbl.remove state.simid_to_uid simid
 
-let s2u state simid = Hashtbl.find state.simid_to_uid simid
+let s2u state simid =
+  (* We avoid raising `Not_found` since this exception may be caught
+     accidentally by some other code in case of an internal error. *)
+  try Hashtbl.find state.simid_to_uid simid with Not_found -> assert false
 
 (* Functions from the [Graph] module raise this exception when called
    with an id that does not map to an existing agent. *)
