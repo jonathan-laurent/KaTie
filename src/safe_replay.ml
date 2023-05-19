@@ -140,7 +140,7 @@ let step_size_statistics step =
   Fmt.str "%a (%d actions, %d tests, %d side effects)"
     (Trace.print_step ~compact:true ?env:None)
     step
-    (List.length (snd (Trace.actions_of_step step)))
+    (List.length (fst (Trace.actions_of_step step)))
     (List.length (Trace.tests_of_step step))
     (List.length (Trace.side_effects_of_step step))
 
