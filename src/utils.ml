@@ -89,3 +89,19 @@ let rec group_list ~compare = function
 
 let sort_and_group_list ~compare l =
   List.sort (fun (k, _) (k', _) -> compare k k') l |> group_list ~compare
+
+let[@tail_mod_cons] rec map_tailrec f = function
+  | [] ->
+      []
+  | x :: xs ->
+      f x :: map_tailrec f xs
+
+let partition_tailrec f l =
+  let rec aux ts fs = function
+    | [] ->
+        (List.rev ts, List.rev fs)
+    | x :: xs ->
+        let ts, fs = if f x then (x :: ts, fs) else (ts, x :: fs) in
+        (aux [@tailcall]) ts fs xs
+  in
+  aux [] [] l

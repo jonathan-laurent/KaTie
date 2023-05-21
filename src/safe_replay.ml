@@ -96,26 +96,30 @@ let update_action state action =
 let update_actions state actions =
   (* Removals actions are placed and processed first *)
   let is_removal = function Instantiation.Remove _ -> true | _ -> false in
-  let removals, others = List.partition is_removal actions in
-  let removals = List.map (update_action state) removals in
-  let others = List.map (update_action state) others in
+  let removals, others = Utils.partition_tailrec is_removal actions in
+  let removals = Utils.map_tailrec (update_action state) removals in
+  let others = Utils.map_tailrec (update_action state) others in
   removals @ others
 
 let update_tests state tests =
-  List.map (Instantiation.subst_map_agent_in_concrete_test (s2u state)) tests
+  Utils.map_tailrec
+    (Instantiation.subst_map_agent_in_concrete_test (s2u state))
+    tests
 
 let update_event state e =
   let open Instantiation in
   (* Tests and side effects are translated BEFORE we process the actions
      and update the id correspondence table *)
-  let tests = List.map (update_tests state) e.tests in
+  let tests = Utils.map_tailrec (update_tests state) e.tests in
   let side_effects_src =
-    List.map
+    Utils.map_tailrec
       (subst_map_agent_in_concrete_side_effect (s2u state))
       e.side_effects_src
   in
   let connectivity_tests = update_tests state e.connectivity_tests in
-  let side_effects_dst = List.map (s2u_site state) e.side_effects_dst in
+  let side_effects_dst =
+    Utils.map_tailrec (s2u_site state) e.side_effects_dst
+  in
   (* Processing actions updates the mapping imperatively *)
   let actions = update_actions state e.actions in
   {tests; side_effects_src; side_effects_dst; connectivity_tests; actions}
@@ -132,7 +136,7 @@ let update_step st =
   | Init actions ->
       Init (update_actions st actions)
   | Obs (s, tests, info) ->
-      Obs (s, List.map (update_tests st) tests, info)
+      Obs (s, Utils.map_tailrec (update_tests st) tests, info)
   | Dummy s ->
       Dummy s
 
@@ -177,7 +181,9 @@ let snapshot ~raw model g =
   let sigs = Model.signatures model in
   let snap = Edges.build_snapshot ~raw sigs g.state.graph in
   let ug = Snapshot.export ~raw:true ~debugMode:true sigs snap in
-  List.map (fun (i, cc) -> (i, rename_agents_in_user_graph_cc (s2u g) cc)) ug
+  Utils.map_tailrec
+    (fun (i, cc) -> (i, rename_agents_in_user_graph_cc (s2u g) cc))
+    ug
 
 let simid_connected_component simid state =
   match state.Replay.connected_components with
