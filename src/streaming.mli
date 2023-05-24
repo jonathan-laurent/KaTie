@@ -5,9 +5,9 @@ type window =
   ; step_id: int }
 
 val fold_trace :
-     ?update_ccs:bool
-  -> ?compute_previous_states:bool
+     ?compute_previous_states:bool
   -> ?skip_init_events:bool
+  -> update_ccs:bool
   -> trace_file:string
   -> (window -> 'a -> 'a)
   -> 'a

@@ -409,8 +409,8 @@ let perform_measurement_step_for_simple_query ~header ~fmt query state window =
 (* Main function                                                             *)
 (*****************************************************************************)
 
-let iter_trace ~trace_file f =
-  Streaming.fold_trace ~update_ccs:true ~compute_previous_states:true
+let iter_trace ~update_ccs ~trace_file f =
+  Streaming.fold_trace ~update_ccs ~compute_previous_states:true
     ~skip_init_events:false ~trace_file
     (fun w () -> f w)
     ()
@@ -418,7 +418,7 @@ let iter_trace ~trace_file f =
 let dump_trace_full ~trace_file =
   let q = Queue.create () in
   let header = Trace_header.load ~trace_file in
-  iter_trace ~trace_file (fun w ->
+  iter_trace ~update_ccs:false ~trace_file (fun w ->
       Queue.push
         (string_of_int w.step_id, Trace_util.dump_step header.model w.step)
         q ) ;
@@ -428,7 +428,7 @@ let dump_trace ~trace_file =
   let open Trace_util in
   let q = Queue.create () in
   let header = Trace_header.load ~trace_file in
-  iter_trace ~trace_file (fun w ->
+  iter_trace ~trace_file ~update_ccs:false (fun w ->
       Queue.push
         ( string_of_int w.step_id
         , `List
@@ -463,7 +463,7 @@ let make_progress_bar () =
   Terminal.open_progress_bar ~step:10_000 ~info:(fun i ->
       Fmt.str "%.2fM events processed" (float_of_int i /. 1e6) )
 
-let eval_batch ~trace_file queries_and_formatters =
+let eval_batch ~cache_ccs ~trace_file queries_and_formatters =
   let header = Trace_header.load ~trace_file in
   List.iter print_legend queries_and_formatters ;
   (* Split queries into simple and complex queries *)
@@ -491,7 +491,7 @@ let eval_batch ~trace_file queries_and_formatters =
       let bar = make_progress_bar () in
       Terminal.with_progress_bar "Filling in the event cache" bar
         (fun ~progress ->
-          iter_trace ~trace_file (fun w ->
+          iter_trace ~update_ccs:cache_ccs ~trace_file (fun w ->
               with_queries complex (fun i q _ ->
                   compute_link_cache_step q w caches.(i) ) ;
               progress 1 ) ) ;
@@ -513,7 +513,7 @@ let eval_batch ~trace_file queries_and_formatters =
       [%yojson_of: measurement_schedule] complex_envs.(i).schedule ) ;
   let bar = make_progress_bar () in
   Terminal.with_progress_bar "Executing actions" bar (fun ~progress ->
-      iter_trace ~trace_file (fun w ->
+      iter_trace ~update_ccs:cache_ccs ~trace_file (fun w ->
           with_queries complex (fun i q fmt ->
               perform_measurement_step ~header ~fmt q complex_envs.(i)
                 complex_matchings.(i) w ) ;

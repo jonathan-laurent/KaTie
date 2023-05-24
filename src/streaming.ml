@@ -14,8 +14,8 @@ type window =
    state before AND after the underlying transition. Since [Edges.t] is
    imperative, the way we achieve this is by replaying the trace twice
    in parallel, one of them being constantly one step ahead.*)
-let fold_trace (type acc) ?(update_ccs = true) ?(compute_previous_states = true)
-    ?(skip_init_events = false) ~(trace_file : string)
+let fold_trace (type acc) ?(compute_previous_states = true)
+    ?(skip_init_events = false) ~(update_ccs : bool) ~(trace_file : string)
     (f : window -> acc -> acc) (init : acc) : acc =
   let init_state () =
     Safe_replay.init_state ~with_connected_components:update_ccs
