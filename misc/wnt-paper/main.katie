@@ -1,0 +1,13 @@
+query 'query_out_bound-partners_bCat_bond-swapping.csv'
+match free:{ b:bCat(iARM[_/.]) } and
+last swap:{ b:bCat(iARM[CBD.Axin/_]) } before free and
+last bind: { b:bCat(iARM[./CBD.Axin]) } before swap
+return {
+    'size_at_free': size{component[.free]{b}},
+    'size_at_swap': size{component[.swap]{b}},
+    'size_at_bind': size{component[bind.]{b}},
+    'bCat_id': agent_id{b},
+    'time_at_free': time[free],
+    'time_at_swap': time[swap],
+    'time_at_bind': time[bind]
+    }
