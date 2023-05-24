@@ -1,0 +1,391 @@
+// re-written for KaTie v0.3
+
+// ##############################################################
+// ############################################################## Phosphorylation loops
+// ##############################################################
+query 'query_out_elementary_S75_Axin_phosphrylate.csv'
+match e:{ a:Axin(S75{un/ph}) }
+return { 'size': size{component[.e]{a}}, 'time': time[e], 'id': agent_id{a} }
+
+query 'query_out_elementary_S75_Axin_dephosphrylate.csv'
+match e:{ a:Axin(S75{ph/un}) }
+return { 'size': size{component[.e]{a}}, 'time': time[e], 'id': agent_id{a} }
+
+query 'query_out_do-undo_S75_Axin_phosphorylating.csv'
+match make:{ a:Axin(S75{un/ph}) } and
+first undo:{ a:Axin(S75{ph/un}) } after make
+return { 'size-make': size{component[.make]{a}}, 'size-undo': size{component[.undo]{a}}, 'time-make': time[make], 'time-undo': time[undo], 'id': agent_id{a} }
+
+// ##############################################################
+query 'query_out_elementary_S77_Axin_phosphrylate.csv' {'size', 'time', 'id'}
+match e:{ a:Axin(S77{un/ph}) }
+return { 'size': size{component[.e]{a}}, 'time': time[e], 'id': agent_id{a} }
+
+query 'query_out_elementary_S77_Axin_dephosphrylate.csv' {'size', 'time', 'id'}
+match e:{ a:Axin(S77{ph/un}) }
+return { 'size': size{component[.e]{a}}, 'time': time[e], 'id': agent_id{a} }
+
+query 'query_out_do-undo_S77_Axin_phosphorylating.csv' {'size-make', 'size-undo', 'time-make', 'time-undo', 'id'}
+match make:{ a:Axin(S77{un/ph}) } and
+first undo:{ a:Axin(S77{ph/un}) } after make
+return { 'size-make': size{component[.make]{a}}, 'size-undo': size{component[.undo]{a}}, 'time-make': time[make], 'time-undo': time[undo], 'id': agent_id{a} }
+
+// ##############################################################
+query 'query_out_elementary_S217_Axin_phosphrylate.csv' {'size', 'time', 'id'}
+match e:{ a:Axin(S217{un/ph}) }
+return { 'size': size{component[.e]{a}}, 'time': time[e], 'id': agent_id{a} }
+
+query 'query_out_elementary_S217_Axin_dephosphrylate.csv' {'size', 'time', 'id'}
+match e:{ a:Axin(S217{ph/un}) }
+return { 'size': size{component[.e]{a}}, 'time': time[e], 'id': agent_id{a} }
+
+query 'query_out_do-undo_S217_Axin_phosphorylating.csv' {'size-make', 'size-undo', 'time-make', 'time-undo', 'id'}
+match make:{ a:Axin(S217{un/ph}) } and
+first undo:{ a:Axin(S217{ph/un}) } after make
+return { 'size-make': size{component[.make]{a}}, 'size-undo': size{component[.undo]{a}}, 'time-make': time[make], 'time-undo': time[undo], 'id': agent_id{a} }
+
+// ##############################################################
+query 'query_out_elementary_S469_Axin_phosphrylate.csv' {'size', 'time', 'id'}
+match e:{ a:Axin(S469{un/ph}) }
+return { 'size': size{component[.e]{a}}, 'time': time[e], 'id': agent_id{a} }
+
+query 'query_out_elementary_S469_Axin_dephosphrylate.csv' {'size', 'time', 'id'}
+match e:{ a:Axin(S469{ph/un}) }
+return { 'size': size{component[.e]{a}}, 'time': time[e], 'id': agent_id{a} }
+
+query 'query_out_do-undo_S469_Axin_phosphorylating.csv' {'size-make', 'size-undo', 'time-make', 'time-undo', 'id'}
+match make:{ a:Axin(S469{un/ph}) } and
+first undo:{ a:Axin(S469{ph/un}) } after make
+return { 'size-make': size{component[.make]{a}}, 'size-undo': size{component[.undo]{a}}, 'time-make': time[make], 'time-undo': time[undo], 'id': agent_id{a} }
+
+// ##############################################################
+query 'query_out_elementary_T481_Axin_phosphrylate.csv' {'size', 'time', 'id'}
+match e:{ a:Axin(T481{un/ph}) }
+return { 'size': size{component[.e]{a}}, 'time': time[e], 'id': agent_id{a} }
+
+query 'query_out_elementary_T481_Axin_dephosphrylate.csv' {'size', 'time', 'id'}
+match e:{ a:Axin(T481{ph/un}) }
+return { 'size': size{component[.e]{a}}, 'time': time[e], 'id': agent_id{a} }
+
+query 'query_out_do-undo_T481_Axin_phosphorylating.csv' {'size-make', 'size-undo', 'time-make', 'time-undo', 'id'}
+match make:{ a:Axin(T481{un/ph}) } and
+first undo:{ a:Axin(T481{ph/un}) } after make
+return { 'size-make': size{component[.make]{a}}, 'size-undo': size{component[.undo]{a}}, 'time-make': time[make], 'time-undo': time[undo], 'id': agent_id{a} }
+
+// ##############################################################
+query 'query_out_elementary_S493_Axin_phosphrylate.csv' {'size', 'time', 'id'}
+match e:{ a:Axin(S493{un/ph}) }
+return { 'size': size{component[.e]{a}}, 'time': time[e], 'id': agent_id{a} }
+
+query 'query_out_elementary_S493_Axin_dephosphrylate.csv' {'size', 'time', 'id'}
+match e:{ a:Axin(S493{ph/un}) }
+return { 'size': size{component[.e]{a}}, 'time': time[e], 'id': agent_id{a} }
+
+query 'query_out_do-undo_S493_Axin_phosphorylating.csv' {'size-make', 'size-undo', 'time-make', 'time-undo', 'id'}
+match make:{ a:Axin(S493{un/ph}) } and
+first undo:{ a:Axin(S493{ph/un}) } after make
+return { 'size-make': size{component[.make]{a}}, 'size-undo': size{component[.undo]{a}}, 'time-make': time[make], 'time-undo': time[undo], 'id': agent_id{a} }
+
+// ##############################################################
+query 'query_out_elementary_S33_bCat_phosphorylation.csv' {'size', 'time', 'id'}
+match e:{ b:bCat(S33{un/ph}) }
+return { 'size': size{component[.e]{a}}, 'time': time[e], 'id': agent_id{a} }
+
+query 'query_out_elementary_S33_bCat_dephosphorylation.csv' {'size', 'time', 'id'}
+match e:{ b:bCat(S33{ph/un}) }
+return { 'size': size{component[.e]{a}}, 'time': time[e], 'id': agent_id{a} }
+
+query 'query_out_do-undo_S33_bCat_phosphorylating.csv' {'size-make', 'size-undo', 'time-make', 'time-undo', 'id'}
+match make:{ a:bCat(S33{un/ph}) } and
+first undo:{ a:bCat(S33{ph/un}) } after make
+return { 'size-make': size{component[.make]{a}}, 'size-undo': size{component[.undo]{a}}, 'time-make': time[make], 'time-undo': time[undo], 'id': agent_id{a} }
+
+// ##############################################################
+query 'query_out_elementary_S37_bCat_phosphorylation.csv' {'size', 'time', 'id'}
+match e:{ b:bCat(S37{un/ph}) }
+return { 'size': size{component[.e]{a}}, 'time': time[e], 'id': agent_id{a} }
+
+query 'query_out_elementary_S37_bCat_dephosphorylation.csv' {'size', 'time', 'id'}
+match e:{ b:bCat(S37{ph/un}) }
+return { 'size': size{component[.e]{a}}, 'time': time[e], 'id': agent_id{a} }
+
+query 'query_out_do-undo_S75_Axin_phosphorylating.csv' {'size-make', 'size-undo', 'time-make', 'time-undo', 'id'}
+match make:{ a:bCat(S37{un/ph}) } and
+first undo:{ a:bCat(S37{ph/un}) } after make
+return { 'size-make': size{component[.make]{a}}, 'size-undo': size{component[.undo]{a}}, 'time-make': time[make], 'time-undo': time[undo], 'id': agent_id{a} }
+
+// ##############################################################
+query 'query_out_elementary_T41_bCat_phosphorylation.csv' {'size', 'time', 'id'}
+match e:{ b:bCat(T41{un/ph}) }
+return { 'size': size{component[.e]{a}}, 'time': time[e], 'id': agent_id{a} }
+
+query 'query_out_elementary_T41_bCat_dephosphorylation.csv' {'size', 'time', 'id'}
+match e:{ b:bCat(T41{ph/un}) }
+return { 'size': size{component[.e]{a}}, 'time': time[e], 'id': agent_id{a} }
+
+query 'query_out_do-undo_S75_Axin_phosphorylating.csv' {'size-make', 'size-undo', 'time-make', 'time-undo', 'id'}
+match make:{ a:bCat(T41{un/ph}) } and
+first undo:{ a:bCat(T41{ph/un}) } after make
+return { 'size-make': size{component[.make]{a}}, 'size-undo': size{component[.undo]{a}}, 'time-make': time[make], 'time-undo': time[undo], 'id': agent_id{a} }
+
+// ##############################################################
+query 'query_out_elementary_S45_bCat_phosphorylation.csv' {'size', 'time', 'id'}
+match e:{ b:bCat(S45{un/ph}) }
+return { 'size': size{component[.e]{a}}, 'time': time[e], 'id': agent_id{a} }
+
+query 'query_out_elementary_S45_bCat_dephosphorylation.csv' {'size', 'time', 'id'}
+match e:{ b:bCat(S45{ph/un}) }
+return { 'size': size{component[.e]{a}}, 'time': time[e], 'id': agent_id{a} }
+
+query 'query_out_do-undo_S75_Axin_phosphorylating.csv' {'size-make', 'size-undo', 'time-make', 'time-undo', 'id'}
+match make:{ a:bCat(S45{un/ph}) } and
+first undo:{ a:bCat(S45{ph/un}) } after make
+return { 'size-make': size{component[.make]{a}}, 'size-undo': size{component[.undo]{a}}, 'time-make': time[make], 'time-undo': time[undo], 'id': agent_id{a} }
+
+// ##############################################################
+// ############################################################## Binding Loops
+// ##############################################################
+query 'query_out_elementary_bCat-APC@r1_bind.csv'
+match e: { b:bCat(iARM[./1]), a:APC(rpt20AA1[./1]) }
+return { 'size_bCat': size{component[.e]{b}}, 'size_APC': size{component[.e]{a}}, 'size_post': size{component[e.]{b}}, 'time': time[e], 'id_bCat': agent_id{b}, 'id_APC': agent_id{a} }
+
+query 'query_out_elementary_bCat-APC@r1_unbind.csv'
+match e: { b:bCat(iARM[1/.]), a:APC(rpt20AA1[1/.]) }
+return { 'size_pre': size{component[.e]{b}}, 'size_bCat': size{component[e.]{b}}, 'size_APC': size{component[e.]{a}}, 'time': time[e], 'id_bCat': agent_id{b}, 'id_APC': agent_id{a} }
+
+query 'query_out_do-undo_bCat-APC@r1_binding.csv'
+match make:{ b:bCat(iARM[./1]), a:APC(rpt20AA1[./1])} and
+first undo:{ b:bCat(iARM[1/.]), a:APC(rpt20AA1[1/.]) } after make
+return { 'size-make': size{component[.make]{a}}, 'size-undo': size{component[.undo]{a}}, 'time-make': time[make], 'time-undo': time[undo], 'id': agent_id{a} }
+
+// ##############################################################
+query 'query_out_elementary_bCat-APC@r2_bind.csv'
+match e: { b:bCat(iARM[./1]), a:APC(rpt20AA2[./1]) }
+return { 'size_bCat': size{component[.e]{b}}, 'size_APC': size{component[.e]{a}}, 'size_post': size{component[e.]{b}}, 'time': time[e], 'id_bCat': agent_id{b}, 'id_APC': agent_id{a} }
+
+query 'query_out_elementary_bCat-APC@r2_unbind.csv'
+match e: { b:bCat(iARM[1/.]), a:APC(rpt20AA2[1/.]) }
+return { 'size_pre': size{component[.e]{b}}, 'size_bCat': size{component[e.]{b}}, 'size_APC': size{component[e.]{a}}, 'time': time[e], 'id_bCat': agent_id{b}, 'id_APC': agent_id{a} }
+
+query 'query_out_do-undo_bCat-APC@r2_binding.csv'
+match make:{ b:bCat(iARM[./1]), a:APC(rpt20AA2[./1])} and
+first undo:{ b:bCat(iARM[1/.]), a:APC(rpt20AA2[1/.]) } after make
+return { 'size-make': size{component[.make]{a}}, 'size-undo': size{component[.undo]{a}}, 'time-make': time[make], 'time-undo': time[undo], 'id': agent_id{a} }
+
+// ##############################################################
+query 'query_out_elementary_bCat-APC@r3_bind.csv'
+match e: { b:bCat(iARM[./1]), a:APC(rpt20AA3[./1]) }
+return { 'size_bCat': size{component[.e]{b}}, 'size_APC': size{component[.e]{a}}, 'size_post': size{component[e.]{b}}, 'time': time[e], 'id_bCat': agent_id{b}, 'id_APC': agent_id{a} }
+
+query 'query_out_elementary_bCat-APC@r3_unbind.csv'
+match e: { b:bCat(iARM[1/.]), a:APC(rpt20AA3[1/.]) }
+return { 'size_pre': size{component[.e]{b}}, 'size_bCat': size{component[e.]{b}}, 'size_APC': size{component[e.]{a}}, 'time': time[e], 'id_bCat': agent_id{b}, 'id_APC': agent_id{a} }
+
+query 'query_out_do-undo_bCat-APC@r3_binding.csv'
+match make:{ b:bCat(iARM[./1]), a:APC(rpt20AA3[./1])} and
+first undo:{ b:bCat(iARM[1/.]), a:APC(rpt20AA3[1/.]) } after make
+return { 'size-make': size{component[.make]{a}}, 'size-undo': size{component[.undo]{a}}, 'time-make': time[make], 'time-undo': time[undo], 'id': agent_id{a} }
+
+// ##############################################################
+query 'query_out_elementary_bCat-APC@r4_bind.csv'
+match e: { b:bCat(iARM[./1]), a:APC(rpt20AA4[./1]) }
+return { 'size_bCat': size{component[.e]{b}}, 'size_APC': size{component[.e]{a}}, 'size_post': size{component[e.]{b}}, 'time': time[e], 'id_bCat': agent_id{b}, 'id_APC': agent_id{a} }
+
+query 'query_out_elementary_bCat-APC@r4_unbind.csv'
+match e: { b:bCat(iARM[1/.]), a:APC(rpt20AA4[1/.]) }
+return { 'size_pre': size{component[.e]{b}}, 'size_bCat': size{component[e.]{b}}, 'size_APC': size{component[e.]{a}}, 'time': time[e], 'id_bCat': agent_id{b}, 'id_APC': agent_id{a} }
+
+query 'query_out_do-undo_bCat-APC@r4_binding.csv'
+match make:{ b:bCat(iARM[./1]), a:APC(rpt20AA4[./1])} and
+first undo:{ b:bCat(iARM[1/.]), a:APC(rpt20AA4[1/.]) } after make
+return { 'size-make': size{component[.make]{a}}, 'size-undo': size{component[.undo]{a}}, 'time-make': time[make], 'time-undo': time[undo], 'id': agent_id{a} }
+
+// ##############################################################
+query 'query_out_elementary_bCat-APC@r5_bind.csv'
+match e: { b:bCat(iARM[./1]), a:APC(rpt20AA5[./1]) }
+return { 'size_bCat': size{component[.e]{b}}, 'size_APC': size{component[.e]{a}}, 'size_post': size{component[e.]{b}}, 'time': time[e], 'id_bCat': agent_id{b}, 'id_APC': agent_id{a} }
+
+query 'query_out_elementary_bCat-APC@r5_unbind.csv'
+match e: { b:bCat(iARM[1/.]), a:APC(rpt20AA5[1/.]) }
+return { 'size_pre': size{component[.e]{b}}, 'size_bCat': size{component[e.]{b}}, 'size_APC': size{component[e.]{a}}, 'time': time[e], 'id_bCat': agent_id{b}, 'id_APC': agent_id{a} }
+
+query 'query_out_do-undo_bCat-APC@r5_binding.csv'
+match make:{ b:bCat(iARM[./1]), a:APC(rpt20AA5[./1])} and
+first undo:{ b:bCat(iARM[1/.]), a:APC(rpt20AA5[1/.]) } after make
+return { 'size-make': size{component[.make]{a}}, 'size-undo': size{component[.undo]{a}}, 'time-make': time[make], 'time-undo': time[undo], 'id': agent_id{a} }
+
+// ##############################################################
+query 'query_out_elementary_bCat-APC@r6_bind.csv' {'size_bCat', 'size_APC', 'size_post', 'time', 'id_bCat', 'id_APC'}
+match e: { b:bCat(iARM[./1]), a:APC(rpt20AA6[./1]) }
+return { 'size_bCat': size{component[.e]{b}}, 'size_APC': size{component[.e]{a}}, 'size_post': size{component[e.]{b}}, 'time': time[e], 'id_bCat': agent_id{b}, 'id_APC': agent_id{a} }
+
+query 'query_out_elementary_bCat-APC@r6_unbind.csv'
+match e: { b:bCat(iARM[1/.]), a:APC(rpt20AA6[1/.]) }
+return { 'size_pre': size{component[.e]{b}}, 'size_bCat': size{component[e.]{b}}, 'size_APC': size{component[e.]{a}}, 'time': time[e], 'id_bCat': agent_id{b}, 'id_APC': agent_id{a} }
+
+query 'query_out_do-undo_bCat-APC@r6_binding.csv'
+match make:{ b:bCat(iARM[./1]), a:APC(rpt20AA6[./1])} and
+first undo:{ b:bCat(iARM[1/.]), a:APC(rpt20AA6[1/.]) } after make
+return { 'size-make': size{component[.make]{a}}, 'size-undo': size{component[.undo]{a}}, 'time-make': time[make], 'time-undo': time[undo], 'id': agent_id{a} }
+
+// ##############################################################
+query 'query_out_elementary_bCat-APC@r7_bind.csv'
+match e: { b:bCat(iARM[./1]), a:APC(rpt20AA7[./1]) }
+return { 'size_bCat': size{component[.e]{b}}, 'size_APC': size{component[.e]{a}}, 'size_post': size{component[e.]{b}}, 'time': time[e], 'id_bCat': agent_id{b}, 'id_APC': agent_id{a} }
+
+query 'query_out_elementary_bCat-APC@r7_unbind.csv'
+match e: { b:bCat(iARM[1/.]), a:APC(rpt20AA7[1/.]) }
+return { 'size_pre': size{component[.e]{b}}, 'size_bCat': size{component[e.]{b}}, 'size_APC': size{component[e.]{a}}, 'time': time[e], 'id_bCat': agent_id{b}, 'id_APC': agent_id{a} }
+
+query 'query_out_do-undo_bCat-APC@r7_binding.csv'
+match make:{ b:bCat(iARM[./1]), a:APC(rpt20AA7[./1])} and
+first undo:{ b:bCat(iARM[1/.]), a:APC(rpt20AA7[1/.]) } after make
+return { 'size-make': size{component[.make]{a}}, 'size-undo': size{component[.undo]{a}}, 'time-make': time[make], 'time-undo': time[undo], 'id': agent_id{a} }
+
+// ##############################################################
+query 'query_out_elementary_bCat-Axin_bind.csv'
+match e: { b:bCat(iARM[./1]), a:Axin(CBD[./1]) }
+return { 'size_bCat': size{component[.e]{b}}, 'size_Axin': size{component[.e]{a}}, 'size_post': size{component[e.]{b}}, 'time': time[e], 'id_bCat': agent_id{b}, 'id_Axin': agent_id{a} }
+
+query 'query_out_elementary_bCat-Axin_unbind.csv'
+match e: { b:bCat(iARM[1/.]), a:Axin(CBD[1/.]) }
+return { 'size_pre': size{component[.e]{b}}, 'size_bCat': size{component[e.]{b}}, 'size_Axin': size{component[e.]{a}}, 'time': time[e], 'id_bCat': agent_id{b}, 'id_Axin': agent_id{a} }
+
+query 'query_out_do-undo_bCat-Axin_binding.csv'
+match make:{ b:bCat(iARM[./1]), a:Axin(CBD[./1])} and
+first undo:{ b:bCat(iARM[1/.]), a:Axin(CBD[1/.]) } after make
+return { 'size-make': size{component[.make]{a}}, 'size-undo': size{component[.undo]{a}}, 'time-make': time[make], 'time-undo': time[undo], 'id': agent_id{a} }
+
+// ##############################################################
+query 'query_out_elementary_bCat-bTrCP_bind.csv'
+match e: { b:bCat(iARM[./1]), a:bTrCP(iCat[./1]) }
+return { 'size_bCat': size{component[.e]{b}}, 'size_bTrCP': size{component[.e]{a}}, 'size_post': size{component[e.]{b}}, 'time': time[e], 'id_bCat': agent_id{b}, 'id_bTrCP': agent_id{a} }
+
+query 'query_out_elementary_bCat-bTrCP_unbind.csv'
+match e: { b:bCat(iARM[1/.]), a:bTrCP(iCat[1/.]) }
+return { 'size_pre': size{component[.e]{b}}, 'size_bCat': size{component[e.]{b}}, 'size_bTrCP': size{component[e.]{a}}, 'time': time[e], 'id_bCat': agent_id{b}, 'id_bTrCP': agent_id{a} }
+
+query 'query_out_do-undo_bCat-bTrCP_binding.csv'
+match make:{ b:bCat(iARM[./1]), a:bTrCP(iCat[./1])} and
+first undo:{ b:bCat(iARM[1/.]), a:bTrCP(iCat[1/.]) } after make
+return { 'size-make': size{component[.make]{a}}, 'size-undo': size{component[.undo]{a}}, 'time-make': time[make], 'time-undo': time[undo], 'id': agent_id{a} }
+
+// ##############################################################
+// ############################################################## Degradation Locations
+// ##############################################################
+query 'query_out_degradation_while_free.csv'
+match deg: { -b:bCat(iARM[.])}
+return { 'size_at_deg': size{component[.deg]{b}}, 'time_at_deg': time[deg], 'bCat_id': agent_id{b} }
+
+query 'query_out_degradation_while_Axin-bound.csv'
+match deg: { -b:bCat(iARM[CBD.Axin])}
+return { 'size_at_deg': size{component[.deg]{b}}, 'time_at_deg': time[deg], 'bCat_id': agent_id{b} }
+
+query 'query_out_degradation_while_APC-r1-bound.csv'
+match deg: { -b:bCat(iARM[rpt20AA1.APC])}
+return { 'size_at_deg': size{component[.deg]{b}}, 'time_at_deg': time[deg], 'bCat_id': agent_id{b} }
+
+query 'query_out_degradation_while_APC-r2-bound.csv'
+match deg: { -b:bCat(iARM[rpt20AA2.APC])}
+return { 'size_at_deg': size{component[.deg]{b}}, 'time_at_deg': time[deg], 'bCat_id': agent_id{b} }
+
+query 'query_out_degradation_while_APC-r3-bound.csv'
+match deg: { -b:bCat(iARM[rpt20AA3.APC])}
+return { 'size_at_deg': size{component[.deg]{b}}, 'time_at_deg': time[deg], 'bCat_id': agent_id{b} }
+
+query 'query_out_degradation_while_APC-r4-bound.csv'
+match deg: { -b:bCat(iARM[rpt20AA4.APC])}
+return { 'size_at_deg': size{component[.deg]{b}}, 'time_at_deg': time[deg], 'bCat_id': agent_id{b} }
+
+query 'query_out_degradation_while_APC-r5-bound.csv'
+match deg: { -b:bCat(iARM[rpt20AA5.APC])}
+return { 'size_at_deg': size{component[.deg]{b}}, 'time_at_deg': time[deg], 'bCat_id': agent_id{b} }
+
+query 'query_out_degradation_while_APC-r6-bound.csv'
+match deg: { -b:bCat(iARM[rpt20AA6.APC])}
+return { 'size_at_deg': size{component[.deg]{b}}, 'time_at_deg': time[deg], 'bCat_id': agent_id{b} }
+
+query 'query_out_degradation_while_APC-r7-bound.csv'
+match deg: { -b:bCat(iARM[rpt20AA7.APC])}
+return { 'size_at_deg': size{component[.deg]{b}}, 'time_at_deg': time[deg], 'bCat_id': agent_id{b} }
+
+query 'query_out_degradation_while_bTrCP-bound.csv'
+match deg: { -b:bCat(iARM[iCat.bTrCP])}
+return { 'size_at_deg': size{component[.deg]{b}}, 'time_at_deg': time[deg], 'bCat_id': agent_id{b} }
+
+// #############################################################
+// ############################################################# Kinase model characterization
+// #############################################################
+query 'query_out_kinase_complex_characterization.csv'
+match deg_u:{ prot_deg_u: Prt(active_site[1/.]), -cat: Cat(S5{ub}[1]) } and
+    last ubi_u:{ trcp_ubi_u: TCP(active_site[1/.]), cat: Cat(S5{un/ub}[1/.]) } before deg_u and
+    last S33_u:{ gsk3_S33_u: GSK(active_site[1/.]), cat: Cat(S4{un/ph}[1/.]) } before ubi_u and
+    last S37_u:{ gsk3_S37_u: GSK(active_site[1/.]), cat: Cat(S3{un/ph}[1/.]) } before ubi_u and
+    last T41_a:{ gsk3_T41_a: GSK(active_site[1/.]), cat: Cat(S2{un/ph}[1/.]) } before S37_u and
+    last T41_b:{ gsk3_T41_b: GSK(active_site[1/.]), cat: Cat(S2{un/ph}[1/.]) } before S33_u and
+    last S45_a:{ ck1a_S45_a: CK1(active_site[1/.]), cat: Cat(S1{un/ph}[1/.]) } before T41_a and
+    last S45_b:{ ck1a_S45_b: CK1(active_site[1/.]), cat: Cat(S1{un/ph}[1/.]) } before T41_b and
+last cre_u:{ +cat: Cat() } before deg_u
+return {
+	'id_cat': 			agent_id{cat},
+	'deg_u_T': 			time[deg_u],
+	'Axin_deg_u': 		count{'Axn'}{component[.deg_u]{cat}},
+	'APC_deg_u': 		count{'APC'}{component[.deg_u]{cat}},
+	'size_deg_u': 		size{component[.deg_u]{cat}},
+	'id_prot_deg_u': 	agent_id{prot_deg_u},
+	'ubi_u_T': 			time[ubi_u],
+	'Axin_ubi_u': 		count{'Axn'}{component[.ubi_u]{cat}},
+	'APC_ubi_u': 		count{'APC'}{component[.ubi_u]{cat}},
+	'size_ubi_u': 		size{component[.ubi_u]{cat}},
+	'id_trcp_ubi_u': 	agent_id{trcp_ubi_u},
+	'S33_u_T': 			time[S33_u],
+	'Axin_S33_u': 		count{'Axn'}{component[.S33_u]{cat}},
+	'APC_S33_u': 		count{'APC'}{component[.S33_u]{cat}},
+	'size_S33_u': 		size{component[.S33_u]{cat}},
+	'id_gsk3_S33_u': 	agent_id{gsk3_S33_u},
+	'S37_u_T': 			time[S37_u],
+	'Axin_S37_u': 		count{'Axn'}{component[.S37_u]{cat}},
+	'APC_S37_u': 		count{'APC'}{component[.S37_u]{cat}},
+	'size_S37_u': 		size{component[.S37_u]{cat}},
+	'id_gsk3_S37_u': 	agent_id{gsk3_S37_u},
+	'T41_a_T': 			time[T41_a],
+	'Axin_T41_a': 		count{'Axn'}{component[.T41_a]{cat}},
+	'APC_T41_a': 		count{'APC'}{component[.T41_a]{cat}},
+	'size_T41_a': 		size{component[.T41_a]{cat}},
+	'id_gsk3_T41_a': 	agent_id{gsk3_T41_a},
+	'T41_b_T': 			time[T41_b],
+	'Axin_T41_b': 		count{'Axn'}{component[.T41_b]{cat}},
+	'APC_T41_b': 		count{'APC'}{component[.T41_b]{cat}},
+	'size_T41_b': 		size{component[.T41_b]{cat}},
+	'id_gsk3_T41_b': 	agent_id{gsk3_T41_b},
+	'S45_a_T': 			time[S45_a],
+	'Axin_S45_a': 		count{'Axn'}{component[.S45_a]{cat}},
+	'APC_S45_a': 		count{'APC'}{component[.S45_a]{cat}},
+	'size_S45_a': 		size{component[.S45_a]{cat}},
+	'id_ck1a_S45_a': 	agent_id{ck1a_S45_a},
+	'S45_b_T': 			time[S45_b],
+	'Axin_S45_b': 		count{'Axn'}{component[.S45_b]{cat}},
+	'APC_S45_b': 		count{'APC'}{component[.S45_b]{cat}},
+	'size_S45_b': 		size{component[.S45_b]{cat}},
+	'id_ck1a_S45_b': 	agent_id{ck1a_S45_b},
+	'cre_u_T': 			time[cre_u]
+	}
+// ##############################################################
+query 'query_out_elementary_bond_swap.csv'
+match e:{ b:bCat(iARM[CBD.Axin/_]) }
+return  { 'size': size{component[.e]{b}}, 'time': time[e], 'id': agent_id{b} }
+
+// ##############################################################
+query 'query_out_bound-partners_bCat_bond-swapping.csv'
+match free:{ b:bCat(iARM[_/.]) } and
+last swap:{ b:bCat(iARM[CBD.Axin/_]) } before free and
+last bind: { b:bCat(iARM[./CBD.Axin]) } before swap
+return {
+    'size_at_free': size{component[.free]{b}},
+    'size_at_swap': size{component[.swap]{b}},
+    'size_at_bind': size{component[bind.]{b}},
+    'bCat_id': agent_id{b},
+    'time_at_free': time[free],
+    'time_at_swap': time[swap],
+    'time_at_bind': time[bind]
+    }

@@ -1,0 +1,6 @@
+query 'test.csv'
+match c:{ +b: bCat() }
+return {
+        'c': time[c],
+        'i': agent_id{b}
+}
