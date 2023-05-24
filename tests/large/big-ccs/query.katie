@@ -1,0 +1,9 @@
+// query 'comp_size.csv'
+// match e:{a:A(x[./_])}
+// every 0.1 seconds
+// return size{component[.e]{a}}
+
+query 'time.csv'
+match e:{}
+every 0.1 seconds
+return time[e]

@@ -1,0 +1,11 @@
+%agent: A(x, y)
+
+%var: 'AV'              1E4 // M^(-1)
+%var: 'on_rate'         100 / 'AV'
+%var: 'off_rate'        0.5
+
+A(x[./1]), A(y[./1]) @ 'on_rate'
+A(x[1/.]), A(y[1/.]) @ 'off_rate'
+
+%init: 'AV' A(x, y)
+%mod: [E] > 1e6 do $STOP ;
