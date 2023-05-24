@@ -1,5 +1,5 @@
 val eval_batch :
-     cache_ccs:bool
+     ccs_incremental:bool
   -> trace_file:string
   -> (Query.t * Format.formatter) list
   -> unit

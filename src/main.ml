@@ -12,7 +12,7 @@ let snapshots_name_format = ref ""
 
 let skip_invalid = ref false
 
-let cache_ccs = ref false
+let ccs_incremental = ref false
 
 (* state variables *)
 
@@ -45,7 +45,7 @@ let options =
     , "dump snapshot using KaSim's native format" )
   ; ("--no-color", Arg.Set Terminal.no_color, "disable colored output")
   ; ( "--cache-ccs"
-    , Arg.Set cache_ccs
+    , Arg.Set ccs_incremental
     , "cache connected component information explicitly" )
   ; ( "--no-progress-bars"
     , Arg.Set Terminal.disable_progress_bars
@@ -118,8 +118,8 @@ let main () =
       (fun (_, fmt) -> Format.fprintf fmt "@[<v>")
       queries_and_formatters ;
     execution_started := true ;
-    Query_eval.eval_batch ~cache_ccs:!cache_ccs ~trace_file:!trace_file
-      queries_and_formatters ;
+    Query_eval.eval_batch ~ccs_incremental:!ccs_incremental
+      ~trace_file:!trace_file queries_and_formatters ;
     List.iter (fun (_, fmt) -> Format.fprintf fmt "@]@.") queries_and_formatters ;
     Terminal.(println [bold; green] "Done.")
 
