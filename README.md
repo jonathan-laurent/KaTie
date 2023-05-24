@@ -33,7 +33,7 @@ The simplest way to install KaTie is via opam:
 
 To develop KaTie locally, you can do the following instead:
 
-```sh
+```
 git clone git@github.com:jonathan-laurent/KaTie.git
 cd KaTie
 opam pin add -y https://github.com/Kappa-Dev/KappaTools.git
