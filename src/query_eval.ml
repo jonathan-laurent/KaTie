@@ -393,9 +393,20 @@ let perform_measurement_step_for_simple_query ~header ~fmt query state window =
                   in
                   let read_agent_id lid = List.assoc lid ag_matching in
                   let read_event_id _ = window.step_id in
+                  let cached_measures =
+                    Array.map (fun _ -> None) event.measures
+                  in
                   let read_measure i =
-                    Measure.take_measure ~header ~read_agent_id window
-                      event.measures.(i)
+                    match cached_measures.(i) with
+                    | Some r ->
+                        r
+                    | None ->
+                        let r =
+                          Measure.take_measure ~header ~read_agent_id window
+                            event.measures.(i)
+                        in
+                        cached_measures.(i) <- Some r ;
+                        r
                   in
                   let read_local ~ev_lid:_ ~comp_id =
                     Expr.eval_expr ~read_measure ~read_agent_id ~read_event_id
