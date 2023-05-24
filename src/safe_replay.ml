@@ -185,7 +185,7 @@ let snapshot ~raw model g =
     (fun (i, cc) -> (i, rename_agents_in_user_graph_cc (s2u g) cc))
     ug
 
-let simid_connected_component simid state =
+let simid_cached_connected_component simid state =
   match state.Replay.connected_components with
   | None ->
       Log.failwith "No connected component information available."
@@ -205,9 +205,32 @@ let simid_connected_component simid state =
       | Some cc ->
           cc )
 
+(* Compute connected components by doing a graph traversal. *)
+let edges_connected_component ag_id graph =
+  let to_visit = Stack.create () in
+  let cc = ref Agent.SetMap.Set.empty in
+  let sort = Edges.get_sort ag_id graph in
+  Stack.push (Agent.make ~id:ag_id ~sort) to_visit ;
+  while not (Stack.is_empty to_visit) do
+    let cur = Stack.pop to_visit in
+    cc := Agent.SetMap.Set.add cur !cc ;
+    Edges.iter_neighbors
+      (fun neigh ->
+        if not (Agent.SetMap.Set.mem neigh !cc) then Stack.push neigh to_visit
+        )
+      (Agent.id cur) graph
+  done ;
+  !cc
+
+(* Uses the ccs cache iff it is available *)
+let simid_connected_components simid state =
+  let ccs_cached = Option.is_some state.Replay.connected_components in
+  if ccs_cached then simid_cached_connected_component simid state
+  else edges_connected_component simid state.graph
+
 (* Same than [simid_connected_component] but works with uids *)
 let connected_component uid st =
   let simid = u2s st uid in
-  let scc = simid_connected_component simid st.state in
+  let scc = simid_connected_components simid st.state in
   let open Agent.SetMap.Set in
   fold (fun sa ucc -> add (s2u_ag st sa) ucc) scc empty
