@@ -31,6 +31,17 @@ The simplest way to install KaTie is via opam:
 - Install KaTie: `opam pin add -y kappa-trace-queries https://github.com/jonathan-laurent/KaTie.git`
 - The tool can then be used as `KaTie -t <trace_file> -q <query_file> [options]`
 
+To develop KaTie locally, you can do the following instead:
+
+```sh
+git clone git@github.com:jonathan-laurent/KaTie.git
+cd KaTie
+opam pin add -y https://github.com/Kappa-Dev/KappaTools.git
+opam install . --deps-only
+dune build
+dune exec -- KaTie -t <trace_file> -q <query_file> [options]
+```
+
 ## Tutorial
 
 We introduce the _trace query language_ and its execution engine KaTie using a simple example involving a substrate-kinase system (see `tests/large/catphos` and `tests/unit/catphos-mini`). The example is discussed in more details in the [paper](https://www.cs.cmu.edu/~jlaurent/pdf/papers/cmsb18.pdf).
