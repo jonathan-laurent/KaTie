@@ -444,7 +444,7 @@ Here are some of KaTie's options:
 - `--no-backtraces`: disable exception backtraces (for better performances)
 - `--native-snapshots`: dump snapshot using KaSim's native format (`*.ka` instead of `*.json`)
 - `--no-color`: disable colors in the output
-- `--ccs-incremental`: compute connected components incrementally. By default, information about connected components is not maintained when resimulating the trace. When a measure needs to extract a connected component, this component is computed from the current mixture via a graph traversal (depth-first search). With this option, a mapping of all connected components is maintained when replaying the trace and updated incrementally at each step. Querying a component is then a costless operation. However, maintaining such a mapping is going to be slower in most cases and sometimes massively so.
+- `--ccs-incremental`: compute connected components incrementally. By default, information about connected components is not maintained when resimulating the trace. When a measure needs to extract a connected component, this component is computed from the current mixture via a graph traversal (depth-first search). With this option, a mapping of all connected components is maintained when replaying the trace and updated incrementally at each step. Querying a component is then a costless operation. However, maintaining such a mapping is going to be slower in most cases and sometimes massively so. Thus, this option should not be used by default.
 
 built on the fly by performing a graph search on the current mixture.
 

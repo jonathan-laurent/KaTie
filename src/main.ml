@@ -46,7 +46,7 @@ let options =
   ; ("--no-color", Arg.Set Terminal.no_color, "disable colored output")
   ; ( "--ccs-incremental"
     , Arg.Set ccs_incremental
-    , "cache connected component information explicitly" )
+    , "compute all connected components incrementally (unadvised)" )
   ; ( "--no-progress-bars"
     , Arg.Set Terminal.disable_progress_bars
     , "disable progress bars to avoid polluting stdout" )
