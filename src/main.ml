@@ -35,6 +35,9 @@ let options =
   ; ( "--debug-level"
     , Arg.Set_int Output.debug_level
     , "set the debug level (0, 1, 2) (default: 1)" )
+  ; ( "--profile"
+    , Arg.Set Profile.profiling_enabled
+    , "output a 'profile.json' file with profiling info" )
   ; ("--no-backtraces", Arg.Set no_backtraces, "disable exception backtraces")
   ; ( "--snapshots-names"
     , Arg.Set_string snapshots_name_format
@@ -84,10 +87,12 @@ let compile_and_check_all model queries =
   in
   if not (Queue.is_empty errors) then some_queries_are_invalid := true ;
   if !skip_invalid then
-    Output.with_file "errors.json" (fun fmt ->
-        let json = `Assoc (Utils.list_of_queue errors) in
-        Format.fprintf fmt "%a@.]" (Yojson.Safe.pretty_print ~std:false) json ) ;
+    Output.write_json "errors.json" (`Assoc (Utils.list_of_queue errors)) ;
   queries
+
+let dump_profiling_info () =
+  if !Profile.profiling_enabled then
+    Output.write_json "profile.json" (Profile.dump_json ())
 
 let formatter_of_file f = Format.formatter_of_out_channel (open_out f)
 
@@ -125,7 +130,9 @@ let main () =
 
 let () =
   try
+    Sys.catch_break true (* Catch the Ctrl+C signal *) ;
     main () ;
+    dump_profiling_info () ;
     exit (if !some_queries_are_invalid then 1 else 0)
   with
   (* Normal user errors *)
@@ -146,3 +153,9 @@ let () =
   | (Failure _ | Assert_failure _) as exn ->
       Log.error "A top-level exception was caught." ~exn ;
       exit 3
+  | Sys.Break ->
+      dump_profiling_info () ;
+      (* newline in case there is a progress bar running *)
+      Terminal.println [] "" ;
+      Terminal.(println [red] "Terminated by user.") ;
+      exit 1

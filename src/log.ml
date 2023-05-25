@@ -2,36 +2,16 @@
 (* KaTie's Custom Logging Module                                             *)
 (*****************************************************************************)
 
-module Smap = Utils.StringMap
-
 let current_query = ref None
-
-let profiling_enabled = ref true
-
-let profiling_info = ref Smap.empty
 
 let set_current_query s = current_query := s
 
 let get_current_query () = !current_query
 
-let update_profiling_info query dt =
-  let t = Smap.find_opt query !profiling_info |> Option.value ~default:0.0 in
-  profiling_info := Smap.add query (t +. dt) !profiling_info
-
-let with_elapsed_time f =
-  let t = Sys.time () in
-  let v = f () in
-  (v, Sys.time () -. t)
-
-let with_current_query ?(profile = false) s f =
+let with_current_query s f =
   let old = !current_query in
   set_current_query (Some s) ;
-  let ret =
-    if profile && !profiling_enabled then (
-      let ret, dt = with_elapsed_time f in
-      update_profiling_info s dt ; ret )
-    else f ()
-  in
+  let ret = f () in
   set_current_query old ; ret
 
 (* For convenience when debugging, we allow storing the model underlying

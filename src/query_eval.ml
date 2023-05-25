@@ -448,13 +448,13 @@ let dump_trace ~trace_file =
         q ) ;
   `Assoc (Utils.list_of_queue q)
 
-let map_queries ?profile qs f =
+let map_queries qs f =
   Array.mapi
     (fun i (q, fmt) ->
-      Log.with_current_query ?profile q.Query.title (fun () -> f i q fmt) )
+      Log.with_current_query q.Query.title (fun () -> f i q fmt) )
     qs
 
-let with_queries ?profile qs f = ignore (map_queries ?profile qs f)
+let with_queries qs f = ignore (map_queries qs f)
 
 let batch_dump ~level file queries f =
   Output.debug_json ~level file (fun () ->
@@ -503,8 +503,9 @@ let eval_batch ~ccs_incremental ~trace_file queries_and_formatters =
       Terminal.with_progress_bar "Filling in the event cache" bar
         (fun ~progress ->
           iter_trace ~update_ccs:ccs_incremental ~trace_file (fun w ->
-              with_queries ~profile:true complex (fun i q _ ->
-                  compute_link_cache_step q w caches.(i) ) ;
+              with_queries complex (fun i q _ ->
+                  Profile.record ~query:q.Query.title "match" (fun () ->
+                      compute_link_cache_step q w caches.(i) ) ) ;
               progress 1 ) ) ;
       batch_dump ~level:2 "event-cache.json" complex (fun i q ->
           LinkCache.dump q caches.(i) ) ;
@@ -525,10 +526,12 @@ let eval_batch ~ccs_incremental ~trace_file queries_and_formatters =
   let bar = make_progress_bar () in
   Terminal.with_progress_bar "Executing actions" bar (fun ~progress ->
       iter_trace ~update_ccs:ccs_incremental ~trace_file (fun w ->
-          with_queries ~profile:true complex (fun i q fmt ->
-              perform_measurement_step ~header ~fmt q complex_envs.(i)
-                complex_matchings.(i) w ) ;
-          with_queries ~profile:true simple (fun i q fmt ->
-              perform_measurement_step_for_simple_query ~header ~fmt q
-                simple_envs.(i) w ) ;
+          with_queries complex (fun i q fmt ->
+              Profile.record ~query:q.Query.title "exec" (fun () ->
+                  perform_measurement_step ~header ~fmt q complex_envs.(i)
+                    complex_matchings.(i) w ) ) ;
+          with_queries simple (fun i q fmt ->
+              Profile.record ~query:q.Query.title "exec-simple" (fun () ->
+                  perform_measurement_step_for_simple_query ~header ~fmt q
+                    simple_envs.(i) w ) ) ;
           progress 1 ) )

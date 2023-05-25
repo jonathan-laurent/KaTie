@@ -171,6 +171,7 @@ def run(dir):
     katie_options = [
         "--debug-level",
         "2",
+        "--profile",
         "--output-dir",
         katie_out,
         "--no-color",

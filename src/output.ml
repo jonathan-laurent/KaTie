@@ -35,6 +35,8 @@ let output_directory = ref Filename.current_dir_name
 
 (* Functions *)
 
+type kind = [`Result | `Snapshot | `Debug]
+
 let snapshot_counter = ref 0
 
 let rec mkdir_p dir =
@@ -78,6 +80,10 @@ let with_file ?kind filename f =
   let oc = open_out (file ?kind filename) in
   let fmt = Format.formatter_of_out_channel oc in
   f fmt ; close_out oc
+
+let write_json ?kind filename json =
+  with_file ?kind filename (fun fmt ->
+      Format.fprintf fmt "%a@.]" (Yojson.Safe.pretty_print ~std:false) json )
 
 let debug_json ?(level = 1) ?show_message filename make_json =
   if !debug_level >= level then
