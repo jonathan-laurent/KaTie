@@ -14,6 +14,8 @@ let skip_invalid = ref false
 
 let ccs_incremental = ref false
 
+let eval_only = ref None
+
 (* state variables *)
 
 let execution_started =
@@ -29,6 +31,10 @@ let usage = Sys.argv.(0) ^ " queries a Kappa trace"
 let options =
   [ ("-q", Arg.Set_string query_file, "query file")
   ; ("-t", Arg.Set_string trace_file, "trace file")
+  ; ( "--only"
+    , Arg.String (fun s -> eval_only := Some s)
+    , "only evaluate a subset of queries (expects a comma-separated list of \
+       names)" )
   ; ( "--output-dir"
     , Arg.String Output.set_output_directory
     , "set the output directory (default: '.')" )
@@ -96,6 +102,26 @@ let dump_profiling_info () =
 
 let formatter_of_file f = Format.formatter_of_out_channel (open_out f)
 
+let filter_asts filter asts =
+  match filter with
+  | None ->
+      asts
+  | Some only ->
+      let module Sset = Set.Make (String) in
+      let only = String.split_on_char ',' only |> Sset.of_list in
+      let available =
+        List.map (fun q -> q.Query_ast.query_name) asts |> Sset.of_list
+      in
+      let missing = Sset.diff only available in
+      ( if not (Sset.is_empty missing) then
+          let missing =
+            missing |> Sset.to_seq |> List.of_seq
+            |> List.map (fun s -> "'" ^ s ^ "'")
+            |> String.concat ", "
+          in
+          Error.failwith ("No queries with names: " ^ missing) ) ;
+      List.filter (fun q -> Sset.mem q.Query_ast.query_name only) asts
+
 let main () =
   Arg.parse options (fun _ -> ()) usage ;
   if not !no_backtraces then Printexc.record_backtrace true ;
@@ -110,6 +136,7 @@ let main () =
     let asts = parse_queries !query_file in
     Output.debug_json "queries-ast.json" (fun () ->
         [%yojson_of: Query_ast.t list] asts ) ;
+    let asts = filter_asts !eval_only asts in
     let queries = compile_and_check_all header.model asts in
     Output.debug_json "compiled-queries.json" (fun () ->
         [%yojson_of: Query.t list] queries ) ;
