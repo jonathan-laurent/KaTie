@@ -44,7 +44,7 @@ let options =
     , Arg.Unit native_snapshots
     , "dump snapshot using KaSim's native format" )
   ; ("--no-color", Arg.Set Terminal.no_color, "disable colored output")
-  ; ( "--cache-ccs"
+  ; ( "--ccs-incremental"
     , Arg.Set ccs_incremental
     , "cache connected component information explicitly" )
   ; ( "--no-progress-bars"
