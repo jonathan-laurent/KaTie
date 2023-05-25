@@ -20,6 +20,7 @@ This tool implements a unified language for querying simulation traces of rule-b
 - [Testing Instructions](#testing-instructions)
   * [Using the testing script](#using-the-testing-script)
   * [Contributing new tests](#contributing-new-tests)
+- [Frequently Asked Questions](#frequently-asked-questions)
 
 
 ## Installation Instructions
@@ -719,9 +720,7 @@ In addition to ensuring that valid queries are correctly executed, it is also im
 
 ### I encountered a stack overflow error
 
-Both KaTie and the underlying KaSim API make a heavy use of recursive functions on lists, which may result in stack overflows on some systems. This is particularly likely to arise when querying traces that were created using KaSim's `-mixture` option, in which case the trace may contain events initializing a very high number of agents at once.
-
-A simple workaround is to raise the stack size limit. On Linux, this can be done for the current shell with the following command:
+Both KaTie and the underlying KaSim API make a heavy use of recursive functions on lists, which may result in stack overflows on some systems. This is particularly likely to arise when querying traces that were created using KaSim's `-mixture` option, in which case the trace may contain events initializing a very high number of agents at once. A simple workaround is to raise the stack size limit. On Linux, this can be done for the current shell with the following command:
 
 ```
 ulimit -s 1000000  # set the stack size limit to 1GB
