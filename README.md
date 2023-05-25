@@ -714,3 +714,15 @@ Here are some tips for debugging and inspecting tests:
 - The `runtests.py` script runs KaTie with a maximal debug level, meaning that a lot of useful files are generated in the `katie-output/debug` directory to help understanding how the trace was processed. In particular, `trace-summary.json` contains a summary of the trace that is friendlier than the original `trace.json` file and `matchings.json` enumerates all found matchings. Other debug files are discussed in the [implementation section](#implementation-details).
 
 In addition to ensuring that valid queries are correctly executed, it is also important to ensure that invalid queries are detected as such statically (i.e. before they are executed) to avoid having them failing at runtime, possibly wasting weeks of computation. Users are therefore encouraged to add  invalid queries to the test suite with the `errors__` substring included in their name. Note that KaTie's return code can be used to determine whether or not errors were detected statically: a return code of `0` means that all queries ran fine, `1` means that errors were detected statically, `2` means that at least one user error was detected dynamically and `3` indicates an internal error. Users should consider filing issues when encountering return codes `2` or `3`, even for invalid queries.
+
+# Frequently asked questions
+
+### I encountered a stack overflow error
+
+Both KaTie and the underlying KaSim API make a heavy use of recursive functions on lists, which may result in stack overflows on some systems. This is particularly likely to arise when querying traces that were created using KaSim's `-mixture` option, in which case the trace may contain events initializing a very high number of agents at once.
+
+A simple workaround is to raise the stack size limit. On Linux, this can be done for the current shell with the following command:
+
+```
+ulimit -s 1000000  # set the stack size limit to 1GB
+```
