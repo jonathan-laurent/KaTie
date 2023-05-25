@@ -27,9 +27,14 @@ let record ?query key f =
 let yojson_of_query_info info : Yojson.Safe.t =
   `Assoc (info |> Smap.to_list |> List.map (fun (k, t) -> (k, `Float t)))
 
+let total_time qinfo = Smap.fold (fun _ t acc -> t +. acc) qinfo 0.0
+
 let yojson_of_info info : Yojson.Safe.t =
+  let compare (_, qi) (_, qi') =
+    -Float.compare (total_time qi) (total_time qi')
+  in
   `Assoc
-    ( info |> Smap.to_list
+    ( info |> Smap.to_list |> List.sort compare
     |> List.map (fun (q, ks) -> (q, yojson_of_query_info ks)) )
 
 let dump_json () = yojson_of_info !profiling_info
