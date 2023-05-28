@@ -1,0 +1,7 @@
+query 'unbind_matches_degradation__matches_0.csv'
+match e:{ s: sub(s[_/.]) }
+return {
+    'agent_id': agent_id{s},
+    'anti_size': size{component[.e]{s}},
+    'post_size': size{component[e.]{s}}
+}

@@ -1,0 +1,5 @@
+%agent: enz(s)
+%agent: sub(s)
+%init: 1 enz(s[1]), sub(s[1])
+
+'r' enz(s[1/.]), sub(s[1])- @ 1
