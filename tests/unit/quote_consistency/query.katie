@@ -1,0 +1,9 @@
+query 'quote_consistency.csv'
+match e: { t: timer(s{tik/tok}) }
+return {
+    'rule': rule[e],
+    'anti_internal': int_state[.e]{t.s},
+    'post_internal': int_state[e.]{t.s},
+    'connected_component': print_cc[e]{t},
+    'snapshot_name': snapshot[e]
+}

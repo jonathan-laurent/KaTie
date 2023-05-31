@@ -1,0 +1,7 @@
+%agent: timer(s{tik, tok})      %init: 1 timer(s[1]), side_car(s[1])
+%agent: side_car(s)
+
+'i,o' timer(s{tik/tok}) @ 1
+'o,i' timer(s{tok/tik}) @ 1
+
+%mod: [E] = 3 do $STOP ;
