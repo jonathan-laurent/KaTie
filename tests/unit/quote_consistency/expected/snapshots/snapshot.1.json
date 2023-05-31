@@ -1,0 +1,1 @@
+{"snapshot_event":3,"snapshot_time":3.9882686236387492,"snapshot_agents":[[1,[[{"node_type":"timer","node_id":0,"node_sites":[{"site_name":"s","site_type":["port",{"port_links":[[[0,1],0]],"port_states":["tok"]}]}]},{"node_type":"side_car","node_id":1,"node_sites":[{"site_name":"s","site_type":["port",{"port_links":[[[0,0],0]],"port_states":[]}]}]}]]]],"snapshot_tokens":[]}
