@@ -1,0 +1,12 @@
+%agent: timer(s{tik,tok})
+timer(s{tik}) <-> timer(s{tok}) @ 1, 1
+
+%agent: mischief()
+
+%init: 1 mischief()
+%mod: [E] = 1 do $ADD 1 mischief() ; repeat [false]
+
+'_pert_' mischief()+ @ 1
+'_init_' mischief()+ @ 1
+
+%mod: |mischief()| = 4 do $STOP ;

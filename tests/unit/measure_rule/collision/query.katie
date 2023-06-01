@@ -1,0 +1,3 @@
+query 'rule_name_collision.csv'
+match e:{ +m: mischief() }
+return {'rule': rule[e]}
