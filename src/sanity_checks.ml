@@ -121,6 +121,16 @@ let check_patterns_rooted_in_ev e =
 let check_patterns_rooted q =
   Array.iter check_patterns_rooted_in_ev q.Query.trace_pattern.events
 
+let check_unique_names qs =
+  let module Sset = Set.Make (String) in
+  let previous = ref Sset.empty in
+  qs
+  |> List.iter (fun q ->
+         let name = q.Query_ast.query_name in
+         if Sset.mem name !previous then
+           Error.failwith ("There are multiple queries with name " ^ name) ;
+         previous := Sset.add name !previous )
+
 (* Main checking function *)
 
 let run q = check_query_types q ; check_every_clause q ; check_patterns_rooted q

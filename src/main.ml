@@ -80,6 +80,7 @@ let compile_and_check model query =
       Sanity_checks.run query ; query )
 
 let compile_and_check_all model queries =
+  Sanity_checks.check_unique_names queries ;
   let errors = Queue.create () in
   let queries =
     List.filter_map
