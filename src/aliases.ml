@@ -1,3 +1,5 @@
+open Ppx_yojson_conv_lib.Yojson_conv
+
 type pat_agent_id = int [@@deriving show, yojson]
 
 type local_agent_id = int [@@deriving show, yojson]

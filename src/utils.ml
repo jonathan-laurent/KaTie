@@ -2,6 +2,8 @@
 (* Utils                                                                     *)
 (*****************************************************************************)
 
+open Ppx_yojson_conv_lib.Yojson_conv
+
 module type ShowableOrderedType = sig
   include Map.OrderedType
 

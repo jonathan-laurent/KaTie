@@ -36,6 +36,8 @@ let query_root_event q = List.hd q.Query.trace_pattern.execution_path
 (* Link cache computation                                                    *)
 (*****************************************************************************)
 
+open Ppx_yojson_conv_lib.Yojson_conv
+
 (* A "link" is an ordered matching of all agents in [event.link_agents] *)
 module Link = struct
   type t = Aliases.global_agent_id list [@@deriving yojson]

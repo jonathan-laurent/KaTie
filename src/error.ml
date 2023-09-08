@@ -1,5 +1,7 @@
 (* User-facing errors raised by KaTie *)
 
+open Ppx_yojson_conv_lib.Yojson_conv
+
 type error_kind =
   | Generic of string
   | Lexer_error

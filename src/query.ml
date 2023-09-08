@@ -2,6 +2,7 @@
 (* Compiled Query                                                            *)
 (*****************************************************************************)
 
+open Ppx_yojson_conv_lib.Yojson_conv
 open Aliases
 
 type lnk_state =

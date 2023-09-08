@@ -2,6 +2,7 @@
 (* Event matcher                                                             *)
 (*****************************************************************************)
 
+open Ppx_yojson_conv_lib.Yojson_conv
 open Query
 open Utils
 open Streaming

@@ -2,6 +2,8 @@
 (* KaTie: The Kappa Trace Inquiry Engine                                     *)
 (*****************************************************************************)
 
+open Ppx_yojson_conv_lib.Yojson_conv
+
 let trace_file = ref ""
 
 let query_file = ref ""

@@ -2,6 +2,8 @@
 (* Dynamically typed values                                                  *)
 (*****************************************************************************)
 
+open Ppx_yojson_conv_lib.Yojson_conv
+
 (* The 'component' measure in particular returns sets of agents. *)
 module AgentSet = struct
   include Agent.SetMap.Set

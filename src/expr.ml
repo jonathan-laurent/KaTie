@@ -2,6 +2,7 @@
 (* Simple Expression Language                                                *)
 (*****************************************************************************)
 
+open Ppx_yojson_conv_lib.Yojson_conv
 open Aliases
 open Value
 
