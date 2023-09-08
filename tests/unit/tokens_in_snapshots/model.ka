@@ -1,0 +1,8 @@
+%agent: timer(s{tik,tok})   %init: 10 timer()
+%token: tiks                %init: 0 tiks, toks
+%token: toks
+
+timer(s{tik}) -> timer(s{tok}) | 1 toks @ 1
+timer(s{tok}) -> timer(s{tik}) | 1 tiks @ 1
+
+%mod: [T] > 1 do $SNAPSHOT "snap_KaSim.ka" ; $STOP ;
