@@ -1,4 +1,4 @@
-query 'snap_at_5'
+query 'snap_at_x'
 match a:{}
-when time[a] > 1
-do snapshot[.a] = "snap_KaTie.ka"
+when sim_event_id[a] = 2
+do snapshot[a.] = "snap_KaTie.json"
