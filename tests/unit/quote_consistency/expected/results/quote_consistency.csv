@@ -1,0 +1,4 @@
+"rule", "anti_internal", "post_internal", "connected_component", "snapshot_name"
+"i,o", "tik", "tok", "x0:timer(s{tok}[1]), x1:side_car(s[1])", "./tests/unit/quote_consistency/katie-output/snapshots/snapshot.0.json"
+"i,o", "tik", "tok", "x0:timer(s{tok}[1]), x1:side_car(s[1])", "./tests/unit/quote_consistency/katie-output/snapshots/snapshot.1.json"
+

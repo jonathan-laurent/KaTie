@@ -469,7 +469,7 @@ let print_legend (q, fmt) =
   | None ->
       ()
   | Some ls ->
-      let labels = List.map (fun l -> "'" ^ l ^ "'") ls in
+      let labels = List.map (fun l -> "\"" ^ l ^ "\"") ls in
       Format.fprintf fmt "%s@;" (String.concat ", " labels)
 
 let make_progress_bar () =
